@@ -2,16 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <PackageId>Minded.CleanCode.Framework</PackageId>
+    <PackageId>Minded</PackageId>
     <Authors>Manuel Salvatori</Authors>
     <Product>Minded Clean code made easy</Product>
-    <Description>Offers the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
+    <Description>Minded helps to implement a clean architecture, offering the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
 Encapsuplate all your business logic in Commands and Queries, the rest will be dealth by the framework.</Description>
     <Copyright>MIT</Copyright>
     <PackageLicenseFile></PackageLicenseFile>
     <PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
     <PackageIcon>Minded-128.png</PackageIcon>
-    <PackageIconUrl />
+    <PackageIconUrl>https://raw.githubusercontent.com/norcino/Minded/master/minded.ico</PackageIconUrl>
     <RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
     <PackageTags>CleanCode Mediator Decorator Command Query</PackageTags>
     <PackageReleaseNotes>Initial commit with first version of the framework</PackageReleaseNotes>
@@ -22,9 +22,13 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Version>0.0.1.0</Version>
   </PropertyGroup>
+  
+  <PropertyGroup>
+	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Minded-128.png" />
     <None Remove="Minded-128.png" />
     <None Include="Minded-128.png">
       <Pack>True</Pack>
