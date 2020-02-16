@@ -1,4 +1,4 @@
-[![Build status](https://manuelsal.visualstudio.com/Minded/_apis/build/status/Github%20Minded)](https://manuelsal.visualstudio.com/Minded/_build/latest?definitionId=8)
+[![Build status](https://dev.azure.com/norcino/Minded/_apis/build/status/GitHub%20Minded)](https://dev.azure.com/norcino/Minded/_build/latest?definitionId=1)
 
 
 # Minded
