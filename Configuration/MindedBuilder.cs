@@ -190,7 +190,7 @@ namespace Minded.Configuration
                     // Register the handler by it's own type
                     serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
 
-                    DecorateHandlerdescriptors(interfaceType, typeof(ValidatingCommandHandlerDecorator<>), typeof(ValidateCommandAttribute), GetICommandValidatorInterfaceType(interfaceType));
+                    DecorateHandlerdescriptors(interfaceType, typeof(ValidationCommandHandlerDecorator<>), typeof(ValidateCommandAttribute), GetICommandValidatorInterfaceType(interfaceType));
                     DecorateHandlerdescriptors(interfaceType, typeof(TransactionalCommandHandlerDecorator<>));
                     DecorateHandlerdescriptors(interfaceType, typeof(ExceptionCommandHandlerDecorator<>));
                     DecorateHandlerdescriptors(interfaceType, typeof(LoggingCommandHandlerDecorator<>));

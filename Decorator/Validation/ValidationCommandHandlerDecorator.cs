@@ -7,16 +7,16 @@ using Minded.Common;
 
 namespace Minded.Decorator.Validation
 {
-    public class ValidatingCommandHandlerDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
+    public class ValidationCommandHandlerDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
         where TCommand : ICommand
     {
         private readonly ICommandValidator<TCommand> _commandValidator;
-        private readonly ILogger<ValidatingCommandHandlerDecorator<TCommand>> _logger;
+        private readonly ILogger<ValidationCommandHandlerDecorator<TCommand>> _logger;
         private const string _validationFailureTemplate = "Validation Failure: {CommandValidatorName:l} Failures: {ValidationFailures:l}";
         private const string _logTemplate = "Validation started: {CommandValidatorName:l} - ";
 
-        public ValidatingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, 
-            ILogger<ValidatingCommandHandlerDecorator<TCommand>> logger, 
+        public ValidationCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, 
+            ILogger<ValidationCommandHandlerDecorator<TCommand>> logger, 
             ICommandValidator<TCommand> commandValidator)
             : base(commandHandler)
         {
