@@ -7,16 +7,22 @@ using Minded.Common;
 
 namespace Minded.Decorator.Validation
 {
-    public class ValidationCommandHandlerDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
+    /// <summary>
+    /// Decorator responsible to determine if the Command requires validation, checking if it has the <see cref="ValidateCommandAttribute"/>.
+    /// If the validation does not fail it will invoke the next <see cref="ICommandHandler{TCommand}"/> registered implementation
+    /// </summary>
+    /// <typeparam name="TCommand">Generic type if the <see cref="ICommand"/> implementation handled by the handler currently decorated</typeparam>
+    public class ValidatingCommandHandlerDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
         where TCommand : ICommand
     {
         private readonly ICommandValidator<TCommand> _commandValidator;
-        private readonly ILogger<ValidationCommandHandlerDecorator<TCommand>> _logger;
+        private readonly ILogger<ValidatingCommandHandlerDecorator<TCommand>> _logger;
         private const string _validationFailureTemplate = "Validation Failure: {CommandValidatorName:l} Failures: {ValidationFailures:l}";
+        private const string _debugOutcomeLogTemplate = "Validation {validationSuccess} for {CommandValidatorName:l}";
         private const string _logTemplate = "Validation started: {CommandValidatorName:l} - ";
 
-        public ValidationCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, 
-            ILogger<ValidationCommandHandlerDecorator<TCommand>> logger, 
+        public ValidatingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, 
+            ILogger<ValidatingCommandHandlerDecorator<TCommand>> logger, 
             ICommandValidator<TCommand> commandValidator)
             : base(commandHandler)
         {
@@ -24,10 +30,13 @@ namespace Minded.Decorator.Validation
             _logger = logger;
         }
         
+        /// <summary>
+        /// Execute the command asynchronously returning an instance of ICommandResponse
+        /// </summary>
+        /// <param name="command">Subject Command</param>
+        /// <returns>An instance of <see cref="ICommandResponse"/> representing the output of the command</returns>
         public async Task<ICommandResponse> HandleAsync(TCommand command)
         {
-            ICommandResponse retVal;
-
             if (IsValidatingCommand(command))
             {
                 var originalLogInfo = command.ToLog();
@@ -39,47 +48,31 @@ namespace Minded.Decorator.Validation
 
                 var valResult = await _commandValidator.ValidateAsync(command);
 
-                _logger.LogDebug("Validation {validationSuccess} for {CommandValidatorName:l}", valResult.IsValid, _commandValidator.GetType().Name);
+                _logger.LogDebug(_debugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
                 
-                if (valResult.IsValid)
-                {
-                    retVal = await InnerCommandHandler.HandleAsync(command);
-                }
-                else
+                if (!valResult.IsValid)
                 {
                     _logger.LogInformation(_validationFailureTemplate, _commandValidator.GetType().Name, valResult.ValidationEntries.Select(e => e.ErrorMessage).ToArray());
 
-                    retVal = new CommandResponse
+                    return new CommandResponse
                     {
                         Successful = false,
                         ValidationEntries = valResult.ValidationEntries.ToList()
                     };
                 }
             }
-            else
-            {
-                retVal = await InnerCommandHandler.HandleAsync(command);
-            }
-
-            return retVal;
+            
+            return await InnerCommandHandler.HandleAsync(command);
         }
 
         /// <summary>
-        /// We use TypeDescriptor so we can retrieve dynamically added attributes from the class type.
+        /// Determine if the Command requires validation
         /// </summary>
-        /// <param name="command"></param>
-        /// <returns></returns>
+        /// <param name="command">Subject Command</param>
+        /// <returns>True if the command requires validation</returns>
         private static bool IsValidatingCommand(object command)
         {
-            var retVal = false;
-            var validateAttrib = TypeDescriptor.GetAttributes(command)[typeof(ValidateCommandAttribute)];
-
-            if (validateAttrib != null)
-            {
-                retVal = ((ValidateCommandAttribute)validateAttrib).Validate;
-            }
-
-            return retVal;
+            return TypeDescriptor.GetAttributes(command)[typeof(ValidateCommandAttribute)] != null;
         }
     }
 }

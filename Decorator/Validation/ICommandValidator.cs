@@ -1,7 +1,8 @@
 ﻿using System.Threading.Tasks;
+using Minded.Common;
 using Minded.Validation;
 
-namespace Minded.Common
+namespace Minded.Decorator.Validation
 {
     public interface ICommandValidator<TCommand> where TCommand : ICommand
     {

@@ -49,7 +49,7 @@ So when **Mediator.ProcessCommandAsync** is invoked to process a **Command**, th
 
 The Handle method of the last registered Decorator will be invoked passing the Command, based on the Decorator responsibility, something might happen straight away or only after the next Handler (which could either be another Decorator or the fina Handler) has been executed.
 
-This works very much like the .net Core Middlewares, where a request (Command) comes in, follow the pipeline and then returns back as response (CommandResponse).
+This works very much like the .net Core Middlewares, where a request (ICommand) comes in, follow the pipeline and then returns back as response ([CommandResponse](https://github.com/norcino/Minded/blob/master/CommandQuery/Command/CommandResponse.cs)).
 
 
 ### Limitations
@@ -66,16 +66,23 @@ First of all install the [Minded Nuget Package](https://www.nuget.org/packages/M
 
 
 ## Decorators
-[...]
+Decorators are provided with the framework for both Query and Command handling.
 
 ### Error decorator
-[...]
+[ExceptionCommandHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Exception/ExceptionCommandHandlerDecorator.cs) and [ExceptionQueryHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Exception/ExceptionQueryHandlerDecorator.cs) are designed to handle Exceptions in a single place. The decorators depend on the logging system used to log the details of the exception.
+This is a basic implementation, a more elaborated version can be used instead leveraging custom attributes.
 
 ### Logging decorator
-[...]
+[LoggingCommandHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Logging/LoggingCommandHandlerDecorator.cs) and [LoggingQueryHandlerDecorator]()
+https://github.com/norcino/Minded/blob/master/Decorator/Logging/LoggingQueryHandlerDecorator.cs) are responsible to log the execution of each command and query, including information like the time needed for the execution.
 
 ### Validation decorator
-[...]
+Probably the best example on how decorators can be used with their great potential.
+[ValidationCommandHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Validation/ValidationCommandHandlerDecorator.cs) allows you to add validation for each command, to do so the command class has to use the [ValidateCommandAttribute](https://github.com/norcino/Minded/blob/master/Decorator/Validation/ValidateCommandAttribute.cs).
+
+When the decorator is invoked, it takes the command as parameter, this is inspected and if the attribute is found, the injected ICommandValidator implementation, is used to validate the command. If the command is valid, the next handler will be invoked, otherwhise and instance of CommandResponse will be returned straight away.
+
+_NOTE: The Validation decorator can be a terminal handler if the validation does not succeed, interrupting the execution pipeline and preventing the next handlers to be called._
 
 ### Transaction decorator
 [...]

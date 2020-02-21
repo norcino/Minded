@@ -2,13 +2,8 @@
 
 namespace Minded.Decorator.Validation
 {
-    public class ValidateCommandAttribute : Attribute
-    {
-        public bool Validate { get; set; }
-
-        public ValidateCommandAttribute()
-        {
-            Validate = true;
-        }
-    }
+    /// <summary>
+    /// Attribute used by <see cref="ValidationCommandHandlerDecorator{TCommand}"/> to determine if a command requires validation
+    /// </summary>
+    public class ValidateCommandAttribute : Attribute    { }
 }
