@@ -3,18 +3,6 @@ using System.Collections.Generic;
 
 namespace Minded.Common
 {
-    public interface ICommandResponse
-    {
-        bool Successful { get; set; }
-
-        List<ValidationEntry> ValidationEntries { get; set; }
-    }
-
-    public interface ICommandResponse<out TResult> : ICommandResponse
-    {
-        TResult Result { get; }
-    }
-
     public class CommandResponse : ICommandResponse
     {
         public bool Successful { get; set; }

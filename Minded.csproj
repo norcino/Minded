@@ -16,17 +16,26 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
     <PackageTags>CleanCode Mediator Decorator Command Query</PackageTags>
     <PackageReleaseNotes>Initial commit with first version of the framework</PackageReleaseNotes>
     <NeutralLanguage>en</NeutralLanguage>
-    <AssemblyVersion>0.0.1.0</AssemblyVersion>
-    <FileVersion>0.0.1.0</FileVersion>
+    <AssemblyVersion>0.0.2.0</AssemblyVersion>
+    <FileVersion>0.0.2.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.0.1.0</Version>
+    <Version>0.0.2.0</Version>
   </PropertyGroup>
   
   <PropertyGroup>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Remove="Example - Copy\**" />
+    <Compile Remove="Example\**" />
+    <EmbeddedResource Remove="Example - Copy\**" />
+    <EmbeddedResource Remove="Example\**" />
+    <None Remove="Example - Copy\**" />
+    <None Remove="Example\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="Minded-128.png" />
@@ -38,9 +47,9 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="2.1.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="3.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.2" />
   </ItemGroup>
 
 </Project>

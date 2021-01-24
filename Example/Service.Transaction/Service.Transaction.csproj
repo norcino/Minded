@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Service.Transaction</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Data.Context\Data.Context.csproj" />
+    <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
+  </ItemGroup>
+
+</Project>

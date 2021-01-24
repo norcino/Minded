@@ -6,7 +6,7 @@ Clean code and architecture made simple with Mediator, Command Query and Decorat
 
 
 ## Introduction
-The Minded framework take it's name in a stretchy way from "**M**ed**I**ator comma**ND** qu**E**ry **D**ecorator". As you can see those are the top patterns used in the framework to help create simple yet effective architectures where the structure of the framework will force you to think about Encapsulation, Reusability, Maintainability, Extension, Low Coumpling and more.
+The Minded framework take it's name in a stretchy way from "**M**ed**I**ator comma**ND** qu**E**ry **D**ecorator". As you can see those are the top patterns used in the framework to help create simple yet effective architectures, where the structure of the framework will force you to think about Encapsulation, Reusability, Maintainability, Extension, Low Coupling and more.
 
 Correct, this is not the silver bullet framework and will not magically turn people in experienced professionals, but it will help.
 
@@ -73,14 +73,13 @@ Decorators are provided with the framework for both Query and Command handling.
 This is a basic implementation, a more elaborated version can be used instead leveraging custom attributes.
 
 ### Logging decorator
-[LoggingCommandHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Logging/LoggingCommandHandlerDecorator.cs) and [LoggingQueryHandlerDecorator]()
-https://github.com/norcino/Minded/blob/master/Decorator/Logging/LoggingQueryHandlerDecorator.cs) are responsible to log the execution of each command and query, including information like the time needed for the execution.
+[LoggingCommandHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Logging/LoggingCommandHandlerDecorator.cs) and [LoggingQueryHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Logging/LoggingQueryHandlerDecorator.cs) are responsible to log the execution of each command and query, including information like the time needed for the execution.
 
 ### Validation decorator
 Probably the best example on how decorators can be used with their great potential.
 [ValidationCommandHandlerDecorator](https://github.com/norcino/Minded/blob/master/Decorator/Validation/ValidationCommandHandlerDecorator.cs) allows you to add validation for each command, to do so the command class has to use the [ValidateCommandAttribute](https://github.com/norcino/Minded/blob/master/Decorator/Validation/ValidateCommandAttribute.cs).
 
-When the decorator is invoked, it takes the command as parameter, this is inspected and if the attribute is found, the injected ICommandValidator implementation, is used to validate the command. If the command is valid, the next handler will be invoked, otherwhise and instance of CommandResponse will be returned straight away.
+When the decorator is invoked, it takes the command as parameter, this is inspected and if the attribute is found, the injected [ICommandValidator](https://github.com/norcino/Minded/blob/master/Decorator/Validation/ICommandValidator.cs) implementation, is used to validate the command. If the command is valid, the next handler will be invoked, otherwhise and instance of [CommandResponse](https://github.com/norcino/Minded/blob/master/CommandQuery/Command/CommandResponse.cs) will be returned straight away.
 
 _NOTE: The Validation decorator can be a terminal handler if the validation does not succeed, interrupting the execution pipeline and preventing the next handlers to be called._
 
@@ -91,11 +90,10 @@ _NOTE: The Validation decorator can be a terminal handler if the validation does
 [...]
 
 ## A bit of history and thanks
-This architecture was originally designed when I was working as Tech Lead with Hadrian Phillips and Sebastian Ilari. We were working together to replace a monolitic application more than 15 years old, and after roughly 6 months of evolution, we got to an almost final version of the application.
+A first draft of this architecture was originally designed by me and my team when I was working as Tech Lead in a company where we were trying o rewrite a monolitic legacy application into a more modern and cleaner architecture where the first goal was to create simplified maitainable code, with the possibility to scale.
 
 The original implementation was made in .net Framework and been used for years proving itself to be a very effective solution to deliver good code, easy to maintain and test.
 Encapsulating the business logic in commands, has also facilitated the migration from syncronous operations to asynchronous, wrapping Commands and CommandHandlers in a Distributed Messageing System commands and handlers, allowing us the break down in smaller services the logic which was more I/O intensive to, and to support the execution of batches of commands.
 
-The key concepts and benefits, come directly from the experience we had together, so a special thank you to the best team I had so far.
-I wrote from scratch in the last few years, the code in this repository, with the intent to apply the best practices I was using and improve them with new ideas, implementing the whole in .net Core, nowdays the future of .net.
+In the last few years I wrote from scratch the code in this repository, with the intent to apply the best practices I was using and improve them with new ideas, implementing the whole in .net Core, nowdays the future of .net.
 The last step has been the migration to this public repository to share it with the world, and make it a NuGet package, so that it will be easier for me and everyone else to use it.
