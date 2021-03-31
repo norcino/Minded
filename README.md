@@ -27,7 +27,10 @@ The Mediator allows to hide and decouple from the mechanism used to execute comm
 
 **The encapsulation of the business logic (Command Query)**
 
-The consumer component is responsible for the creation of an instance of [ICommand](https://github.com/norcino/Minded/blob/master/CommandQuery/Command/ICommand.cs) or [IQuery](https://github.com/norcino/Minded/blob/master/CommandQuery/Query/IQuery.cs) (from now on I will refer to Command as Command or Query) ([Command Design Pattern](https://en.wikipedia.org/wiki/Command_pattern) and [Command Query](https://en.wikipedia.org/wiki/Command%E2%80%93query_separation)). Using the mediator, the Command is passed for the execution, and following the [Dependency Injection Configuration](https://github.com/norcino/Minded/tree/master/Configuration), one or more [ICommandHandler](https://github.com/norcino/Minded/blob/master/CommandQuery/Command/ICommandHandler.cs) or [IQueryHandler](https://github.com/norcino/Minded/blob/master/CommandQuery/Query/IQueryHandler.cs), will be instantiated to process the command or the query.
+Every action is represented as a [ICommand](https://github.com/norcino/Minded/blob/master/CommandQuery/Command/ICommand.cs), every data read from the system is considered an [IQuery](https://github.com/norcino/Minded/blob/master/CommandQuery/Query/IQuery.cs) (from now on I will refer to Command as Command or Query).
+Concepts are taken from ([Command Design Pattern](https://en.wikipedia.org/wiki/Command_pattern) and [Command Query](https://en.wikipedia.org/wiki/Command%E2%80%93query_separation)).
+
+Using the mediator, the Command is passed for the execution, and following the [Dependency Injection Configuration](https://github.com/norcino/Minded/tree/master/Configuration), one or more [ICommandHandler](https://github.com/norcino/Minded/blob/master/CommandQuery/Command/ICommandHandler.cs) or [IQueryHandler](https://github.com/norcino/Minded/blob/master/CommandQuery/Query/IQueryHandler.cs), will be instantiated to process the command or the query.
 
 Note that a single command can have multiple Handlers responsible to process it.
 
@@ -40,7 +43,7 @@ When an Handler is instantiated, by default it is decorated with:
 * Exception handling decorator
 * Logging command decorator
 
-Each decorator represent a layer around the handler, like an onion, each layer has and must have a single responsibility and the order used to register them in the dependency injection, is important to drive the order of execution.
+Each decorator represent a layer around the handler, like an onion, each layer has and must have a single responsibility and the order used to register them in the dependency injection, is important to drive the order of execution (First registered, First executed).
 
 
 **Command processing flow**

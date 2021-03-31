@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Hosting;
-using System.Configuration;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -21,7 +20,7 @@ namespace Application.Api
         public static readonly ILoggerFactory AppLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
         public IConfigurationRoot Configuration { get; }
         public IWebHostEnvironment HostingEnvironment { get; }
-        
+
         public Startup(IConfiguration configuration, IWebHostEnvironment env)
         {
             HostingEnvironment = env;
@@ -30,7 +29,9 @@ namespace Application.Api
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddConfiguration(configuration)
                 .AddEnvironmentVariables();
+
             Configuration = builder.Build();
         }
         

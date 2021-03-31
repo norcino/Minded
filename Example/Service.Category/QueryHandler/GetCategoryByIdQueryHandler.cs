@@ -15,9 +15,9 @@ namespace Service.Category.QueryHandler
             _context = context;
         }
 
-        public Task<Data.Entity.Category> HandleAsync(GetCategoryByIdQuery query)
+        public async Task<Data.Entity.Category> HandleAsync(GetCategoryByIdQuery query)
         {
-            return _context.Categories.SingleOrDefaultAsync(c => c.Id == query.CategoryId);
+            return await _context.Categories.SingleOrDefaultAsync(c => c.Id == query.CategoryId);
         }
     }
 }
