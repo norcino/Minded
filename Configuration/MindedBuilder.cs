@@ -140,7 +140,7 @@ namespace Minded.Configuration
         /// <param name="services">Service container for the Dependency Injection</param>
         internal void RegisterMediator()
         {
-            serviceCollection.AddSingleton<IMediator>(service => new Mediator.Mediator(service));
+            serviceCollection.AddTransient<IMediator>(service => new Mediator.Mediator(service));
         }
 
         /// <summary>
