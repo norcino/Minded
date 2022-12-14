@@ -2,7 +2,7 @@ pool:
   name: Azure Pipelines
   vmImage: 'ubuntu-latest'
 
-name: Minded_0.0$(Rev:.r)
+name: Minded_0.1$(Rev:.r)
     
 steps:
 - task: DotNetCoreCLI@2
