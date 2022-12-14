@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
-using Minded.CommandQuery.Query;
+using Minded.Framework.CQRS.Query;
 using Service.Category.Query;
 
 namespace Service.Category.QueryHandler

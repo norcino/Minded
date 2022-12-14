@@ -2,10 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Minded.Validation;
 using Service.Category.Validator;
 using Builder;
 using FluentAssertions;
+using Minded.Extensions.Validation;
 
 namespace Service.Category.Tests
 {

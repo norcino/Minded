@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Builder;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Minded.Validation;
+using Minded.Extensions.Validation;
 using Service.Category.Command;
 using Service.Category.Validator;
 

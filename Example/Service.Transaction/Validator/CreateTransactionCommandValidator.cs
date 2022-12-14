@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Minded.Common;
 using Minded.Decorator.Validation;
-using Minded.Validation;
+using Minded.Extensions.Validation;
 using Service.Transaction.Command;
 
 namespace Service.Transaction.Validator

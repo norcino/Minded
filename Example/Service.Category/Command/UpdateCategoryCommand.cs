@@ -1,5 +1,5 @@
-﻿using Minded.Common;
-using Minded.Log;
+﻿using Minded.Extensions.Logging;
+using Minded.Framework.CQRS.Command;
 
 namespace Service.Category.Command
 {

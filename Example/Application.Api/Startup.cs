@@ -1,6 +1,5 @@
 ﻿using System;
 using Common.Configuration;
-using Minded.Configuration;
 using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNet.OData.Query;
 using Microsoft.AspNetCore.Builder;
@@ -12,6 +11,8 @@ using Microsoft.AspNetCore.Hosting;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Minded.Extensions.Configuration;
+using Minded.Framework.Mediator;
 
 namespace Application.Api
 {
@@ -74,7 +75,23 @@ namespace Application.Api
             // Entity Framework context registration
             RegisterContext(services, HostingEnvironment);
 
-            services.AddMinded(assembly => assembly.Name.StartsWith("Service."));
+            services.AddMinded(assembly => assembly.Name.StartsWith("Service."), b =>
+            {
+                b.AddMediator();
+
+                // Add command query (CQRS)
+
+                // Add default decorators
+
+                // Add remaining dependencies
+
+
+                // TODO refacto change order and add custom decorators
+                // .AddDecorator(
+
+
+            });
+
             // Add framework services.
             services.AddOData();
 

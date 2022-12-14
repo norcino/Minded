@@ -1,5 +1,5 @@
-﻿using Minded.CommandQuery.Query;
-using Minded.Log;
+﻿using Minded.Extensions.Logging;
+using Minded.Framework.CQRS.Query;
 
 namespace Service.Category.Query
 {

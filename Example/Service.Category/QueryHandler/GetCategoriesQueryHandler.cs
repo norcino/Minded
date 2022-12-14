@@ -5,7 +5,7 @@ using Data.Common;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Minded.CommandQuery.Query;
+using Minded.Framework.CQRS.Query;
 using Service.Category.Query;
 
 namespace Service.Category.QueryHandler

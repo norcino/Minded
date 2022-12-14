@@ -1,6 +1,6 @@
-﻿using Minded.Common;
-using Minded.Decorator.Validation;
-using Minded.Log;
+﻿using Minded.Extensions.Logging;
+using Minded.Extensions.Validation.Decorator;
+using Minded.Framework.CQRS.Command;
 
 namespace Service.Category.Command
 {

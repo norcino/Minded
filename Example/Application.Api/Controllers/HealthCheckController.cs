@@ -4,7 +4,7 @@ using Common.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Minded.Mediator;
+using Minded.Framework.Mediator;
 
 namespace Application.Api.Controllers
 {

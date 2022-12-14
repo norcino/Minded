@@ -1,7 +1,6 @@
-﻿using Minded.CommandQuery.Query;
-using Minded.CommandQuery.Query.Trait;
-using Minded.Common.Query.Trait;
-using Minded.Log;
+﻿using Minded.Extensions.Logging;
+using Minded.Framework.CQRS.Query;
+using Minded.Framework.CQRS.Query.Trait;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;

@@ -14,13 +14,13 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
     <PackageIconUrl>https://raw.githubusercontent.com/norcino/Minded/master/minded.ico</PackageIconUrl>
     <RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
     <PackageTags>CleanCode Mediator Decorator Command Query</PackageTags>
-    <PackageReleaseNotes>Initial commit with first version of the framework</PackageReleaseNotes>
+    <PackageReleaseNotes>Restored packge with first working version, testing is still needed do not use in production</PackageReleaseNotes>
     <NeutralLanguage>en</NeutralLanguage>
-    <AssemblyVersion>0.0.2.0</AssemblyVersion>
-    <FileVersion>0.0.2.0</FileVersion>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.0.2.0</Version>
+    <Version>0.1.0</Version>
   </PropertyGroup>
   
   <PropertyGroup>
@@ -29,12 +29,15 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
   </PropertyGroup>
   
   <ItemGroup>
-    <Compile Remove="Example - Copy\**" />
+    <Compile Remove="Extensions\**" />
+    <Compile Remove="Framework\**" />
+    <EmbeddedResource Remove="Extensions\**" />
+    <EmbeddedResource Remove="Framework\**" />
+    <None Remove="Extensions\**" />
     <Compile Remove="Example\**" />
-    <EmbeddedResource Remove="Example - Copy\**" />
     <EmbeddedResource Remove="Example\**" />
-    <None Remove="Example - Copy\**" />
     <None Remove="Example\**" />
+    <None Remove="Framework\**" />
   </ItemGroup>
 
   <ItemGroup>

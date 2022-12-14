@@ -1,4 +1,4 @@
-﻿using Minded.Validation;
+﻿using Minded.Extensions.Validation;
 using System.Threading.Tasks;
 
 namespace Service.Transaction.Validator
