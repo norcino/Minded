@@ -6,8 +6,8 @@ namespace Minded.Extensions.Exception
     {
         public TCommand Command { get; private set; }
 
-        public CommandHandlerException(string message, System.Exception innerException, TCommand command)
-            : base(message, innerException)
+        public CommandHandlerException(string message, System.Exception innerException, TCommand command, string errorCode = "0")
+    : base(message, innerException)
         {
             Command = command;
         }

@@ -1,24 +1,14 @@
-﻿using System.Transactions;
+﻿using System;
 
 namespace Minded.Framework.CQRS.Command
 {
     public interface ICommand
     {
-        
+        Guid TrackingId { get; }
     }
 
     public interface ICommand<TResult> : ICommand
     {
         TResult Result { get; }
     }
-
-    //public interface ICommandWithTransactionIsolationLevelOverride : ICommand
-    //{
-    //    IsolationLevel? IsolationLevel { get; set; }
-    //}
-
-    //public interface ICommandWithTransactionScopeOptionOverride : ICommand
-    //{
-    //    TransactionScopeOption? TransactionScopeOption { get; set; }
-    //}
 }

@@ -7,7 +7,7 @@ namespace Minded.Extensions.Exception
     {
         public TQuery Query { get; private set; }
 
-        public QueryHandlerException(string message, System.Exception innerException, TQuery query)
+        public QueryHandlerException(string message, System.Exception innerException, TQuery query, int errorCode = 1)
             : base(message, innerException)
         {
             Query = query;

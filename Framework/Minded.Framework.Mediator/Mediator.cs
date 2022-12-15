@@ -16,11 +16,11 @@ namespace Minded.Framework.Mediator
         }
 
         /// <inheritdoc cref="IMediator.ProcessQueryAsync{TResult}(IQuery{TResult})"/>
-        public Task<TResult> ProcessQueryAsync<TResult>(IQuery<TResult> query)
+        public async Task<TResult> ProcessQueryAsync<TResult>(IQuery<TResult> query)
         {
             var handlerType = typeof(IQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResult));
             dynamic handler = _services.GetService(handlerType);
-            return handler.HandleAsync((dynamic)query);
+            return await handler.HandleAsync((dynamic)query);
 
             //var handler = _services.GetService(handlerType) as IQueryHandler<IQuery<TResult>, TResult>;
             //return handler.HandleAsync(query);
