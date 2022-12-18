@@ -1,22 +1,20 @@
-﻿using Minded.Extensions.Validation.Decorator;
-using Minded.Framework.CQRS.Command;
+﻿using System;
+using Minded.Extensions.Logging;
+using Minded.Extensions.Validation.Decorator;
 
 namespace Service.Transaction.Command
 {
     [ValidateCommand]
-    public class CreateTransactionCommand : ICommand
+    public class CreateTransactionCommand : ILoggableCommand
     {
         public Data.Entity.Transaction Transaction { get; set; }
+        public Guid TraceId { get; } = Guid.NewGuid();
 
-        public CreateTransactionCommand(Data.Entity.Transaction transaction)
+        public CreateTransactionCommand(Data.Entity.Transaction transaction, Guid? traceId = null)
         {
             Transaction = transaction;
+            TraceId = traceId ?? TraceId;
         }
-
-        //public LogInfo ToLog()
-        //{
-        //    const string template = "Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}";
-        //    return new LogInfo(template, Transaction.Credit, Transaction.Debit, Transaction.CategoryId);
-        //}
+        public LogData ToLog() => new(TraceId, "Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}", Transaction.Credit, Transaction.Debit, Transaction.CategoryId);
     }
 }

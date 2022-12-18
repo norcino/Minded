@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <TypeScriptToolsVersion>2.3</TypeScriptToolsVersion>
     <UserSecretsId>6886025b-a2c9-4491-ac0a-e73b9d4569e3</UserSecretsId>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OData" Version="7.3.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.12" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />

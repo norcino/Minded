@@ -40,9 +40,7 @@ namespace Minded.Extensions.Validation.Decorator
         {
             if (IsValidatingCommand(command))
             {
-                var templateArguments = new List<object> { _commandValidator.GetType().Name };
-                
-                _logger.LogDebug(_logTemplate, templateArguments.ToArray(), _commandValidator.GetType().Name);
+                _logger.LogDebug(_logTemplate, _commandValidator.GetType().Name);
 
                 var valResult = await _commandValidator.ValidateAsync(command);
 

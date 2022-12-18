@@ -1,1 +1,6 @@
-Configure the dependency injection configuration
+Test application features
+Check if need to use dynamic in mediator ExecuteCommand
+Add tracing decorator
+Add caching decorator
+Add authorization decorator
+Add transaction decorator

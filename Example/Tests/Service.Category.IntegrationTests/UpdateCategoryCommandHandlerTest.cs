@@ -1,10 +1,7 @@
 //using System.Threading.Tasks;
-//using Common.IntegrationTests;
 //using Common.Tests.FluentAssertion;
-//using Data.Common.Testing.Builder;
 //using Microsoft.EntityFrameworkCore;
 //using Microsoft.VisualStudio.TestTools.UnitTesting;
-//using Service.Category.Command;
 
 //namespace Service.Category.IntegrationTests
 //{

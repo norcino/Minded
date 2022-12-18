@@ -2,14 +2,14 @@
 using System.Threading.Tasks;
 using Builder;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Minded.Extensions.Validation;
+using Minded.Framework.CQRS.Abstractions;
 using Service.Category.Command;
 using Service.Category.Validator;
 
 namespace Service.Category.Tests
 {
     [TestClass]
-    public class CreateCategoryCommandValidatorTest : CategoryValidatorTest
+    public class CreateCategoryCommandValidatorTest
     {
         private CreateCategoryCommandValidator _sut;
 
@@ -43,7 +43,7 @@ namespace Service.Category.Tests
             Assert.IsTrue(result.ValidationEntries.Any(e =>
                 e.PropertyName == nameof(command.Category) &&
                 e.Severity == Severity.Error &&
-                e.ErrorMessage == "{0} is mandatory"));
+                e.Message == "{0} is mandatory"));
         }
 
         [TestMethod]
@@ -63,7 +63,7 @@ namespace Service.Category.Tests
             Assert.IsTrue(result.ValidationEntries.Any(e =>
                 e.PropertyName == nameof(command.Category.Id) &&
                 e.Severity == Severity.Error &&
-                e.ErrorMessage == "{0} should not be specified on creation"));
+                e.Message == "{0} should not be specified on creation"));
         }
     }
 }

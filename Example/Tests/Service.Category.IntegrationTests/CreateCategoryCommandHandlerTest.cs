@@ -16,7 +16,8 @@
 //        [TestMethod]
 //        public async Task Handler_creates_new_category_with_the_correct_properties()
 //        {
-//            var category = Builder<Data.Entity.Category>.New().Build(c => {
+//            var category = Builder<Data.Entity.Category>.New().Build(c =>
+//            {
 //                c.Name = "Test category";
 //                c.Description = "Test description";
 //                c.Active = true;
@@ -26,11 +27,11 @@
 //            var response = await mediator.ProcessCommandAsync<int>(command);
 
 //            Assert.IsTrue(response.Successful, "The command response is successful");
-           
+
 //            var createdCategory = await Context.Categories.SingleAsync(p => p.Id == response.Result);
 
 //            category.Id = response.Result;
-//            createdCategory.Should().BeEquivalentTo(category);            
+//            createdCategory.Should().BeEquivalentTo(category);
 //        }
 //    }
 //}

@@ -50,7 +50,7 @@ namespace Minded.Framework.Mediator
             }
             
             var specialisedRommandResponse = (ICommandResponse<TResult>) Activator.CreateInstance(typeof(CommandResponse<TResult>));
-//specialisedRommandResponse.ValidationEntries = (result as ICommandResponse).ValidationEntries;
+            specialisedRommandResponse.OutcomeEntries = (result as ICommandResponse).OutcomeEntries;
             specialisedRommandResponse.Successful = (result as ICommandResponse).Successful;
 
             return specialisedRommandResponse;

@@ -63,7 +63,7 @@ namespace Application.Api
                     .OrderBy(QueryOptionSetting.Allowed)
                     .MaxTop(100)
                     .Count();
-                routeBuilder.EnableDependencyInjection();
+               // routeBuilder.EnableDependencyInjection();
             });
         }
         

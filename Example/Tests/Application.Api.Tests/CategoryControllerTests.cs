@@ -7,12 +7,12 @@ using Microsoft.AspNet.OData.Routing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.OData.Edm;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Minded.Mediator;
 using Moq;
 using Service.Category.Command;
 using Service.Category.Query;
 using Builder;
 using AnonymousData;
+using Minded.Framework.Mediator;
 
 namespace Application.Api.Tests
 {

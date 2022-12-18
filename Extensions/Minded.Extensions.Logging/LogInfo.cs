@@ -2,24 +2,26 @@
 
 namespace Minded.Extensions.Logging
 {
-    public class LogInfo
+    /// <summary>
+    /// Object containing the template and parameter values
+    /// </summary>
+    public class LogData
     {
-        public LogInfo()
+        public Guid TraceId { get; } = new Guid();
+        public string LogMessageTemplate { get; private set; }
+        public object[] LogMessageParameters { get; private set; }
+
+        public LogData()
         {
-            TrackingId = Guid.NewGuid();
             LogMessageTemplate = string.Empty;
             LogMessageParameters = new object[0];
         }
 
-        public LogInfo(Guid trackingId, string logMessageTemplate = "", params object[] logMessageParameters)
+        public LogData(Guid? traceId = null, string logMessageTemplate = "", params object[] logMessageParameters)
         {
-            TrackingId = trackingId;
             LogMessageTemplate = logMessageTemplate;
             LogMessageParameters = logMessageParameters;
+            TraceId = traceId ?? TraceId;
         }
-
-        public Guid TrackingId { get; private set; }
-        public string LogMessageTemplate { get; private set; }
-        public object[] LogMessageParameters { get; private set; }
     }
 }
