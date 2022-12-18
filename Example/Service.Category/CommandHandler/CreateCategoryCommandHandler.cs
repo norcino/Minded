@@ -16,8 +16,8 @@ namespace Service.Category.CommandHandler
 
         public async Task<ICommandResponse> HandleAsync(CreateCategoryCommand command)
         {
-            //await _context.Categories.AddAsync(command.Category);
-            //await _context.SaveChangesAsync();
+            await _context.Categories.AddAsync(command.Category);
+            await _context.SaveChangesAsync();
 
             return new CommandResponse<int>(command.Category.Id)
             {

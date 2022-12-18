@@ -11,8 +11,14 @@ using Microsoft.AspNetCore.Hosting;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using Minded.Extensions.Configuration;
 using Minded.Framework.Mediator;
+using Minded.Extensions.Configuration;
+using Minded.Extensions.Exception.Decorator;
+using Minded.Extensions.Logging.Decorator;
+using Minded.Extensions.Validation.Decorator;
+using System.Linq;
+using System.Reflection;
+using Minded.Framework.CQRS.Command;
 
 namespace Application.Api
 {
@@ -60,7 +66,7 @@ namespace Application.Api
                 routeBuilder.EnableDependencyInjection();
             });
         }
-
+        
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -79,17 +85,14 @@ namespace Application.Api
             {
                 b.AddMediator();
 
-                // Add command query (CQRS)
+                b.AddCommandValidationDecorator()
+                .AddCommandExceptionDecorator()
+                .AddCommandLoggingDecorator()
+                .RegisterCommandHandlers();
 
-                // Add default decorators
-
-                // Add remaining dependencies
-
-
-                // TODO refacto change order and add custom decorators
-                // .AddDecorator(
-
-
+                b.AddQueryExceptionDecorator()
+                .AddQueryLoggingDecorator()
+                .AddQueryHandlers();
             });
 
             // Add framework services.

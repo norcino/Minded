@@ -2,8 +2,6 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Logging;
-using Minded.Framework.CQRS.Command;
-using Minded.Framework.CQRS.Query;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,117 +13,130 @@ namespace Minded.Extensions.Configuration
     /// <summary>
     /// Builder class to configure the Minded framework
     /// </summary>
-    public partial class MindedBuilder
+    public class MindedBuilder
     {
         /// <summary>
         /// Action used to filter the assemblies by name to be used to register decorators
         /// </summary>
-        private Func<AssemblyName, bool> AssemblyNameFilter;
+        public Func<AssemblyName, bool> AssemblyFilter { get; }
+        public List<Action<MindedBuilder, Type>> QueuedQueryDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
+        public List<Action<MindedBuilder, Type>> QueuedCommandDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
+
         internal IServiceCollection serviceCollection;
 
         public MindedBuilder(IServiceCollection serviceCollection, Func<AssemblyName, bool> assemblyNameFilter = null)
         {
             this.serviceCollection = serviceCollection;
-            AssemblyNameFilter = assemblyNameFilter;
+            AssemblyFilter = assemblyNameFilter;
         }
 
-        /// <summary>
-        /// Add a Command Handler Decorator to the current Command handling setup, the last decorator added will be the first to process the incoming query.
-        /// </summary>
-        /// <param name="genericDecoratorType">Decorator type to use for the current decoration</param>
-        /// <param name="requiredAttributeType">Optional attribute that if provided must be present in the command in order to enable the current decoration</param>
-        /// <param name="optionalDependencyType">Optional interface type that if provided will be used to create an instance passed as parameter to the current decorator</param>
-        /// <returns></returns>
-        public MindedBuilder AddCommandHandlerDecorator(Type genericDecoratorType, Type requiredAttributeType = null, Type optionalDependencyType = null)
+        public void QueueCommandDecoratorRegistrationAction(Action<MindedBuilder, Type> decoratorRegistrationAction)
         {
-            foreach (var assembly in ServiceAssemblies)
-            {
-                var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<>));
-
-                foreach (var handlerType in queryHandlers)
-                {
-                    var interfaceType = GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<>));
-                    DecorateHandlerdescriptors(interfaceType, genericDecoratorType, requiredAttributeType, optionalDependencyType);
-                }
-            }
-            return this;
+            QueuedCommandDecoratorsRegistrationAction.Add(decoratorRegistrationAction);
         }
 
-        /// <summary>
-        /// Add a Query Handler Decorator to the current Query handling setup, the last decorator added will be the first to process the incoming query.
-        /// </summary>
-        /// <param name="genericDecoratorType">Decorator type to use for the current decoration</param>
-        /// <param name="requiredAttributeType">Optional attribute that if provided must be present in the query in order to enable the current decoration</param>
-        /// <param name="optionalDependencyType">Optional interface type that if provided will be used to create an instance passed as parameter to the current decorator</param>
-        /// <returns></returns>
-        public MindedBuilder AddQueryHandlerDecorator(Type genericDecoratorType, Type requiredAttributeType = null, Type optionalDependencyType = null)
+        public void QueueQueryDecoratorRegistrationAction(Action<MindedBuilder, Type> decoratorRegistrationAction)
         {
-            foreach (var assembly in ServiceAssemblies)
-            {
-                var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
-
-                foreach (var handlerType in queryHandlers)
-                {
-                    var interfaceType = GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
-                    DecorateHandlerdescriptors(interfaceType, genericDecoratorType, requiredAttributeType, optionalDependencyType);
-                }
-            }
-            return this;
+            QueuedQueryDecoratorsRegistrationAction.Add(decoratorRegistrationAction);
         }
 
-        /// <summary>
-        /// Remove all registered decorators leaving only the Query Handler.
-        /// This enables custom setup to manually register additional decorators for the Query Handler.
-        /// </summary>
-        /// <returns></returns>
-        public MindedBuilder RemoveAllQueryDecorators()
-        {
-            serviceCollection.RemoveAll(typeof(IQueryHandler<,>));
-            foreach (var assembly in ServiceAssemblies)
-            {
-                var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
+        ///// <summary>
+        ///// Add a Command Handler Decorator to the current Command handling setup, the last decorator added will be the first to process the incoming query.
+        ///// </summary>
+        ///// <param name="genericDecoratorType">Decorator type to use for the current decoration</param>
+        ///// <param name="requiredAttributeType">Optional attribute that if provided must be present in the command in order to enable the current decoration</param>
+        ///// <param name="optionalDependencyType">Optional interface type that if provided will be used to create an instance passed as parameter to the current decorator</param>
+        ///// <returns></returns>
+        //public MindedBuilder AddCommandHandlerDecorator(Type genericDecoratorType, Type requiredAttributeType = null, Type optionalDependencyType = null)
+        //{
+        //    foreach (var assembly in ServiceAssemblies)
+        //    {
+        //        var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<>));
 
-                foreach (var handlerType in queryHandlers)
-                {
-                    var interfaceType = GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
+        //        foreach (var handlerType in queryHandlers)
+        //        {
+        //            var interfaceType = GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<>));
+        //            DecorateHandlerdescriptors(interfaceType, genericDecoratorType, requiredAttributeType, optionalDependencyType);
+        //        }
+        //    }
+        //    return this;
+        //}
 
-                    // Register the handler by it's interface
-                    serviceCollection.Add(new ServiceDescriptor(interfaceType, handlerType, ServiceLifetime.Transient));
+        ///// <summary>
+        ///// Add a Query Handler Decorator to the current Query handling setup, the last decorator added will be the first to process the incoming query.
+        ///// </summary>
+        ///// <param name="genericDecoratorType">Decorator type to use for the current decoration</param>
+        ///// <param name="requiredAttributeType">Optional attribute that if provided must be present in the query in order to enable the current decoration</param>
+        ///// <param name="optionalDependencyType">Optional interface type that if provided will be used to create an instance passed as parameter to the current decorator</param>
+        ///// <returns></returns>
+        //public MindedBuilder AddQueryHandlerDecorator(Type genericDecoratorType, Type requiredAttributeType = null, Type optionalDependencyType = null)
+        //{
+        //    foreach (var assembly in ServiceAssemblies)
+        //    {
+        //        var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
 
-                    // Register the handler by it's own type
-                    serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
-                }
-            }
-            return this;
-        }
+        //        foreach (var handlerType in queryHandlers)
+        //        {
+        //            var interfaceType = GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
+        //            DecorateHandlerdescriptors(interfaceType, genericDecoratorType, requiredAttributeType, optionalDependencyType);
+        //        }
+        //    }
+        //    return this;
+        //}
 
-        /// <summary>
-        /// Remove all registered decorators leaving only the Command Handler.
-        /// This enables custom setup to manually register additional decorators for the Command Handler.
-        /// </summary>
-        /// <returns></returns>
-        public MindedBuilder RemoveAllCommandDecorators()
-        {
-            serviceCollection.RemoveAll(typeof(ICommandHandler<>));
+        ///// <summary>
+        ///// Remove all registered decorators leaving only the Query Handler.
+        ///// This enables custom setup to manually register additional decorators for the Query Handler.
+        ///// </summary>
+        ///// <returns></returns>
+        //public MindedBuilder RemoveAllQueryDecorators()
+        //{
+        //    serviceCollection.RemoveAll(typeof(IQueryHandler<,>));
+        //    foreach (var assembly in ServiceAssemblies)
+        //    {
+        //        var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
 
-            foreach (var assembly in ServiceAssemblies)
-            {
-                var commandHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<>));
+        //        foreach (var handlerType in queryHandlers)
+        //        {
+        //            var interfaceType = GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
 
-                foreach (var handlerType in commandHandlers)
-                {
-                    var interfaceType = GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<>));
+        //            // Register the handler by it's interface
+        //            serviceCollection.Add(new ServiceDescriptor(interfaceType, handlerType, ServiceLifetime.Transient));
 
-                    // Register the handler by it's interface
-                    serviceCollection.Add(new ServiceDescriptor(interfaceType, handlerType, ServiceLifetime.Transient));
+        //            // Register the handler by it's own type
+        //            serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
+        //        }
+        //    }
+        //    return this;
+        //}
 
-                    // Register the handler by it's own type
-                    serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
-                    return this;
-                }
-            }
-            return this;
-        }
+        ///// <summary>
+        ///// Remove all registered decorators leaving only the Command Handler.
+        ///// This enables custom setup to manually register additional decorators for the Command Handler.
+        ///// </summary>
+        ///// <returns></returns>
+        //public MindedBuilder RemoveAllCommandDecorators()
+        //{
+        //    serviceCollection.RemoveAll(typeof(ICommandHandler<>));
+
+        //    foreach (var assembly in ServiceAssemblies)
+        //    {
+        //        var commandHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<>));
+
+        //        foreach (var handlerType in commandHandlers)
+        //        {
+        //            var interfaceType = GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<>));
+
+        //            // Register the handler by it's interface
+        //            serviceCollection.Add(new ServiceDescriptor(interfaceType, handlerType, ServiceLifetime.Transient));
+
+        //            // Register the handler by it's own type
+        //            serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
+        //            return this;
+        //        }
+        //    }
+        //    return this;
+        //}
 
         /// <summary>
         /// 
@@ -136,95 +147,14 @@ namespace Minded.Extensions.Configuration
             action(serviceCollection);
         }
 
-        #region Internal helpers
-        //internal void RegisterMediator()
-        //{
-        //    serviceCollection.AddSingleton<IMediator>(service => new Mediator(service));
-        //}
-
-
-        ///// <summary>
-        ///// Register the Mediator class
-        ///// </summary>
-        ///// <param name="services">Service container for the Dependency Injection</param>
-        //internal void RegisterMediator()
-        //{
-        //    serviceCollection.AddSingleton<IMediator>(service => new Mediator(service));
-        //}
-
-        //        /// <summary>
-        //        /// Register the query handers and all the decorators
-        //        /// </summary>
-        //        /// <param name="services">Service container for the Dependency Injection</param>
-        //        internal void RegisterQueryHandlers()
-        //        {
-        //            foreach (var assembly in ServiceAssemblies)
-        //            {
-        //                var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
-
-        //                foreach (var handlerType in queryHandlers)
-        //                {
-        //                    var interfaceType = GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
-
-        //                    // Register the handler by it's interface
-        //                    serviceCollection.Add(new ServiceDescriptor(interfaceType, handlerType, ServiceLifetime.Transient));
-
-        //                    // Register the handler by it's own type
-        //                    serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
-
-        //                    DecorateHandlerdescriptors(interfaceType, typeof(TransactionalQueryHandlerDecorator<,>));
-        //                    DecorateHandlerdescriptors(interfaceType, typeof(ExceptionQueryHandlerDecorator<,>));
-        //                    DecorateHandlerdescriptors(interfaceType, typeof(LoggingQueryHandlerDecorator<,>));
-        //                }
-        //            }
-        //        }
-
-        //        /// <summary>
-        //        /// Register the command handers and all the decorators
-        //        /// </summary>
-        //        /// <param name="services">Service container for the Dependency Injection</param>
-        //        internal void RegisterCommandHandlers()
-        //        {
-        //            foreach (var assembly in ServiceAssemblies)
-        //            {
-        //                var commandHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<>));
-
-        //                foreach (var handlerType in commandHandlers)
-        //                {
-        //                    var interfaceType = GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<>));
-
-        //                    // Register the handler by it's interface
-        //                    serviceCollection.Add(new ServiceDescriptor(interfaceType, handlerType, ServiceLifetime.Transient));
-
-        //                    // Register the handler by it's own type
-        //                    serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
-
-        //                    DecorateHandlerdescriptors(interfaceType, typeof(ValidatingCommandHandlerDecorator<>), typeof(ValidateCommandAttribute), GetICommandValidatorInterfaceType(interfaceType));
-        //                    DecorateHandlerdescriptors(interfaceType, typeof(TransactionalCommandHandlerDecorator<>));
-        //                    DecorateHandlerdescriptors(interfaceType, typeof(ExceptionCommandHandlerDecorator<>));
-        //                    DecorateHandlerdescriptors(interfaceType, typeof(LoggingCommandHandlerDecorator<>));
-        //                }
-        //            }
-        //        }
-        #endregion
-
         #region Helper methods
-        //        /// <summary>
-        //        /// Register the Validator classes used to validate commands and entities
-        //        /// </summary>
-        //        public void RegisterValidators()
-        //        {
-        //            RegisterAllTypesInServiceAssembliesImplementingInterface(typeof(ICommandValidator<>));
-        //            RegisterAllTypesInServiceAssembliesImplementingInterface(typeof(IValidator<>));
-        //        }
-
         /// <summary>
         /// Scan all assemblies of the Service Layer, and registers all Types implementing the Generic Interfaces
         /// </summary>
         /// <param name="genericInterface">Generic interface</param>
-        protected void RegisterAllTypesInServiceAssembliesImplementingInterface(Type genericInterface)
+        public void RegisterAllTypesInServiceAssembliesImplementingInterface(Type genericInterface, Func<AssemblyName, bool> assemblyFilter = null)
         {
-            foreach (var assembly in ServiceAssemblies)
+            foreach (var assembly in SourceAssemblies(assemblyFilter ?? AssemblyFilter))
             {
                 var validatorTypes = GetGenericTypesImplementingInterfaceInAssembly(assembly, genericInterface);
 
@@ -235,6 +165,33 @@ namespace Minded.Extensions.Configuration
                 }
             }
         }
+
+        ///// <summary>
+        ///// Register the query handers and all the decorators
+        ///// </summary>
+        ///// <param name="services">Service container for the Dependency Injection</param>
+        //internal void RegisterQueryHandlers()
+        //{
+        //    foreach (var assembly in SourceAssemblies(AssemblyFilter))
+        //    {
+        //        var queryHandlers = GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
+
+        //        foreach (var handlerType in queryHandlers)
+        //        {
+        //            var interfaceType = GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
+
+        //            // Register the handler by it's interface
+        //            serviceCollection.Add(new ServiceDescriptor(interfaceType, handlerType, ServiceLifetime.Transient));
+
+        //            // Register the handler by it's own type
+        //            serviceCollection.Add(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Transient));
+
+        //            DecorateHandlerdescriptors(interfaceType, typeof(TransactionalQueryHandlerDecorator<,>));
+        //            DecorateHandlerdescriptors(interfaceType, typeof(ExceptionQueryHandlerDecorator<,>));
+        //            DecorateHandlerdescriptors(interfaceType, typeof(LoggingQueryHandlerDecorator<,>));
+        //        }
+        //    }
+        //}
 
         //        /// <summary>
         //        /// Get the ICommandValidator generic type
@@ -269,9 +226,9 @@ namespace Minded.Extensions.Configuration
         /// </summary>
         /// <param name="interfaceType">Type of the ICommandHandler interface including the generic type</param>
         /// <param name="genericDecoratorType">Decorator type to use for the current decoration</param>
-        /// <param name="requiredAttributeType">Optional attribute that if provided must be present in the command or query in order to enable the current decoration</param>
+        /// <param name="requiredAttributeType">Optional attribute that if provided must be present in the command or query in order to activate and control the current decoration</param>
         /// <param name="optionalDependencyType">Optional interface type that if provided will be used to create an instance passed as parameter to the current decorator</param>
-        private void DecorateHandlerdescriptors(Type interfaceType, Type genericDecoratorType, Type requiredAttributeType = null, Type optionalDependencyType = null)
+        public void DecorateHandlerDescriptors(Type interfaceType, Type genericDecoratorType, Type requiredAttributeType = null, Func<Type,Type> optionalDependencyType = null)
         {
             if (requiredAttributeType != null)
             {
@@ -302,11 +259,15 @@ namespace Minded.Extensions.Configuration
                     // Create the logger type
                     var loggerType = typeof(ILogger<>).MakeGenericType(decoratorType);
 
-                    return optionalDependencyType == null
+                    Type dependantType = null;
+                    if(optionalDependencyType != null)
+                        dependantType = optionalDependencyType(handler.GetType());
+
+                    return dependantType == null
                         // Standard decorator and handler constructor
                         ? Activator.CreateInstance(decoratorType, handler, serviceProvider.GetService(loggerType))
                         // Custom decorator constructor that receives an additional type
-                        : Activator.CreateInstance(decoratorType, handler, serviceProvider.GetService(loggerType), serviceProvider.GetService(optionalDependencyType));
+                        : Activator.CreateInstance(decoratorType, handler, serviceProvider.GetService(loggerType), serviceProvider.GetService(dependantType));
                 }
 
                 serviceCollection.Replace(ServiceDescriptor.Describe(descriptor.ServiceType, Factory, ServiceLifetime.Transient));
@@ -319,7 +280,7 @@ namespace Minded.Extensions.Configuration
         /// <param name="type"></param>
         /// <param name="genericInferface"></param>
         /// <returns>Generic Type for the given interface</returns>
-        private static Type GetGenericInterfaceInType(Type type, Type genericInferface) =>
+        public Type GetGenericInterfaceInType(Type type, Type genericInferface) =>
                 type.GetInterfaces()
                     .FirstOrDefault(i => i.GetTypeInfo().IsGenericType &&
                                          i.GetGenericTypeDefinition() == genericInferface);
@@ -330,7 +291,7 @@ namespace Minded.Extensions.Configuration
         /// <param name="assembly">Assembly to scan</param>
         /// <param name="genericInferface">Generic Interface</param>
         /// <returns>All types implementing the generic interface</returns>
-        private static IEnumerable<Type> GetGenericTypesImplementingInterfaceInAssembly(Assembly assembly,
+        public IEnumerable<Type> GetGenericTypesImplementingInterfaceInAssembly(Assembly assembly,
                 Type genericInferface) =>
                 assembly.GetTypes().Where(t => t.GetInterfaces().Any(i => i.GetTypeInfo().IsGenericType &&
                                                                           i.GetGenericTypeDefinition() ==
@@ -339,20 +300,16 @@ namespace Minded.Extensions.Configuration
         /// <summary>
         /// Scan all assemblies matching the criteria AssemblyNameFilter criteria, if this is null all assemblies will be scanned
         /// </summary>
-        private IEnumerable<Assembly> ServiceAssemblies
+        public IEnumerable<Assembly> SourceAssemblies(Func<AssemblyName, bool> assemblyNameFilter)
         {
-            get
+            if (assemblyNameFilter == null)
+                assemblyNameFilter = (a) => { return true; };
+
+            var assemblies = DependencyContext.Default.GetDefaultAssemblyNames().Where(a => assemblyNameFilter(a)).ToList();
+
+            foreach (var assemblyName in assemblies)
             {
-                if (AssemblyNameFilter == null)
-                    AssemblyNameFilter = (a) => { return true; };
-
-                var assemblies = DependencyContext.Default.GetDefaultAssemblyNames()
-                    .Where(a => AssemblyNameFilter(a)).ToList();
-
-                foreach (var assemblyName in assemblies)
-                {
-                    yield return Assembly.Load(assemblyName);
-                }
+                yield return Assembly.Load(assemblyName);
             }
         }
         #endregion

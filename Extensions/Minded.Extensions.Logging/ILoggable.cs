@@ -1,6 +1,6 @@
 ﻿namespace Minded.Extensions.Logging
 {
-    public interface ILoggableCommand
+    public interface ILoggable
     {
         LogInfo ToLog();
     }

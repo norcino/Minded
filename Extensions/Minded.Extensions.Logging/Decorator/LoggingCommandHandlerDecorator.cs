@@ -27,9 +27,9 @@ namespace Minded.Extensions.Logging.Decorator
             var response = await CommmandHandler.HandleAsync(command);
             stopWatch.Stop();
 
-            if(command is ILoggableCommand)
+            if(command is ILoggable)
             {
-                var originalLogInfo = (command as ILoggableCommand).ToLog();
+                var originalLogInfo = (command as ILoggable).ToLog();
 
                 var formattedTime = string.Format("{0:mm\\:ss\\:fff}", stopWatch.Elapsed);
                 var template = formattedTime + " {CommandName:l} {CommandSuccessful} - " + originalLogInfo.LogMessageTemplate;

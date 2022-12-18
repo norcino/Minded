@@ -1,8 +1,6 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Extensions.Decorator;
-using Minded.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 
 namespace Minded.Extensions.Exception.Decorator
@@ -26,10 +24,10 @@ namespace Minded.Extensions.Exception.Decorator
             catch (System.Exception ex)
             {
                 var queryLogString = query.ToString();
-                if (query is ILoggableCommand)
-                    queryLogString = ((ILoggableCommand)query).ToLog().ToString();
+                //if (query is ILoggableQuery)
+                //    queryLogString = (query as ILoggableQuery)?.ToLog().ToString();
 
-                _logger.LogError(LogEvent.QueryHandling, ex, queryLogString);
+                //_logger.LogError(LogEvent.QueryHandling, ex, queryLogString);
 
                 throw new QueryHandlerException<TQuery, TResult>("QueryHandlerException: " + query, ex, query);
             }

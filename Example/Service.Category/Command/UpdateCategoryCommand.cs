@@ -14,10 +14,10 @@ namespace Service.Category.Command
             Category = category;
         }
 
-        public LogInfo ToLog()
-        {
-            const string template = "CategoryId: {Id} Category: {Name}";
-            return new LogInfo(template, Category.Id, Category.Name);
-        }
+        //public LogInfo ToLog()
+        //{
+        //    const string template = "CategoryId: {Id} Category: {Name}";
+        //    return new LogInfo(template, Category.Id, Category.Name);
+        //}
     }
 }

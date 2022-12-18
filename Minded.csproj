@@ -55,4 +55,8 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>

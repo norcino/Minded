@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Minded.Log;
 using Microsoft.Extensions.Logging;
 using Minded.Exception;

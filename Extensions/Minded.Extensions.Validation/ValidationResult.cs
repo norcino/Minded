@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Minded.Framework.CQRS.Abstractions;
 
 namespace Minded.Extensions.Validation
 {
@@ -18,17 +19,17 @@ namespace Minded.Extensions.Validation
         /// </summary>
         public ValidationResult()
         {
-            ValidationEntries = new List<IValidationEntry>();
+            ValidationEntries = new List<IOutcomeEntry>();
         }
 
         /// <summary>
         /// Creates a new ValidationResult from a collection of failures
         /// </summary>
-        /// <param name="failures">List of <see cref="IValidationEntry"/> which is later available through <see cref="Entries"/>. This list get's copied.</param>
+        /// <param name="failures">List of <see cref="IOutcomeEntry"/> which is later available through <see cref="Entries"/>. This list get's copied.</param>
         /// <remarks>
         /// Every caller is responsible for not adding <c>null</c> to the list.
         /// </remarks>
-        public ValidationResult(IEnumerable<IValidationEntry> failures)
+        public ValidationResult(IEnumerable<IOutcomeEntry> failures)
         {
             ValidationEntries = failures.Where(failure => failure != null).ToList();
         }
@@ -36,7 +37,7 @@ namespace Minded.Extensions.Validation
         /// <summary>
         /// A collection of errors
         /// </summary>
-        public IList<IValidationEntry> ValidationEntries { get; }
+        public IList<IOutcomeEntry> ValidationEntries { get; }
 
         /// <summary>
         /// Merge two validation results appending the entries of the second validation result to the first

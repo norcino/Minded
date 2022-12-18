@@ -12,10 +12,10 @@ namespace Service.Category.Query
             CategoryId = categoryId;
         }
         
-        public LogInfo ToLog()
-        {
-            const string template = "CategoryId: {CategoryId}";
-            return new LogInfo(template, CategoryId);
-        }
+        //public LogInfo ToLog()
+        //{
+        //    const string template = "CategoryId: {CategoryId}";
+        //    return new LogInfo(template, CategoryId);
+        //}
     }
 }

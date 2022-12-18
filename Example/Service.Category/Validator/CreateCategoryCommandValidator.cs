@@ -1,39 +1,39 @@
-﻿//using System.Threading.Tasks;
-//using Minded.Common;
-//using Minded.Decorator.Validation;
-//using Minded.Extensions.Validation;
-//using Service.Category.Command;
+﻿using System.Threading.Tasks;
+using Minded.Extensions.Validation;
+using Minded.Extensions.Validation.Decorator;
+using Minded.Framework.CQRS.Abstractions;
+using Service.Category.Command;
 
-//namespace Service.Category.Validator
-//{
-//    public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCommand>
-//    {
-//        private readonly IValidator<Data.Entity.Category> _categoryValidator;
+namespace Service.Category.Validator
+{
+    public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCommand>
+    {
+        private readonly IValidator<Data.Entity.Category> _categoryValidator;
 
-//        public CreateCategoryCommandValidator(IValidator<Data.Entity.Category> categoryValidator)
-//        {
-//            _categoryValidator = categoryValidator;
-//        }
+        public CreateCategoryCommandValidator(IValidator<Data.Entity.Category> categoryValidator)
+        {
+            _categoryValidator = categoryValidator;
+        }
 
-//        public async Task<IValidationResult> ValidateAsync(CreateCategoryCommand command)
-//        {
-//            var validationResult = new ValidationResult();
+        public async Task<IValidationResult> ValidateAsync(CreateCategoryCommand command)
+        {
+            var validationResult = new ValidationResult();
 
-//            if (command.Category == null)
-//            {
-//                validationResult.ValidationEntries.Add(new ValidationEntry(nameof(command.Category), "{0} is mandatory"));
+            if (command.Category == null)
+            {
+                validationResult.ValidationEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory"));
 
-//                return validationResult;
-//            }
+                return validationResult;
+            }
 
-//            var result = _categoryValidator.ValidateAsync(command.Category);
+            var result = _categoryValidator.ValidateAsync(command.Category);
 
-//            if (command.Category.Id != 0)
-//            {
-//                validationResult.ValidationEntries.Add(new ValidationEntry(nameof(command.Category.Id), "{0} should not be specified on creation"));
-//            }
-            
-//            return (await result).Merge(validationResult);
-//        }
-//    }
-//}
+            if (command.Category.Id != 0)
+            {
+                validationResult.ValidationEntries.Add(new OutcomeEntry(nameof(command.Category.Id), "{0} should not be specified on creation"));
+            }
+
+            return (await result).Merge(validationResult);
+        }
+    }
+}

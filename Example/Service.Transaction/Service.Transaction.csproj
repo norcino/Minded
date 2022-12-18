@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation\Minded.Extensions.Validation.csproj" />
     <ProjectReference Include="..\Data.Context\Data.Context.csproj" />
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
   </ItemGroup>

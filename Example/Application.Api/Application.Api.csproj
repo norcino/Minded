@@ -28,6 +28,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.2" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator.Abstractions\Minded.Framework.Mediator.Abstractions.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator\Minded.Framework.Mediator.csproj" />
     <ProjectReference Include="..\Common.Configuration\Common.Configuration.csproj" />

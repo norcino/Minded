@@ -47,6 +47,7 @@ namespace Application.Api.Controllers
         [HttpPost]
         public async Task<ActionResult> PostAsync([FromBody] Category category)
         {
+            //            return await _mediator.ProcessRestQueryAsync(HttpMethod.Get, query);
             var result = await _mediator.ProcessCommandAsync<int>(new CreateCategoryCommand(category));
 
             if (result.Successful)

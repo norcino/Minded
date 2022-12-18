@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Data.Common;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Minded.CommandQuery.Query;
+using Minded.Framework.CQRS.Query;
 using Service.Transaction.Query;
 
 namespace Service.Transaction.QueryHandler
@@ -23,7 +22,7 @@ namespace Service.Transaction.QueryHandler
 
         public Task<List<Data.Entity.Transaction>> HandleAsync(GetTransactionsQuery query)
         {
-            return query.ApplyTo(_context.Transactions.AsQueryable()).ToListAsync();
+            return null;// query.ApplyTo(_context.Transactions.AsQueryable()).ToListAsync();
         }
     }
 }

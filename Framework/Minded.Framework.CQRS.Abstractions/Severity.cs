@@ -1,8 +1,7 @@
-﻿namespace Minded.Extensions.Validation
+﻿namespace Minded.Framework.CQRS.Abstractions
 {
     /// <summary>
-    /// Serverity of a validation entry.
-    /// Error causes the <see cref="ValidationResult"/> to have IsValid property false.
+    /// Serverity of an outcome entry.
     /// </summary>
     public enum Severity
     {

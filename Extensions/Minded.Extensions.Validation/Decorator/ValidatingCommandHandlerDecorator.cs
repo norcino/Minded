@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Extensions.Decorator;
-using Minded.Extensions.Logging;
 using Minded.Framework.CQRS.Command;
 
 namespace Minded.Extensions.Validation.Decorator
@@ -51,12 +50,12 @@ namespace Minded.Extensions.Validation.Decorator
 
                 if (!valResult.IsValid)
                 {
-                    _logger.LogInformation(_validationFailureTemplate, _commandValidator.GetType().Name, valResult.ValidationEntries.Select(e => e.ErrorMessage).ToArray());
+                    _logger.LogInformation(_validationFailureTemplate, _commandValidator.GetType().Name, valResult.ValidationEntries.Select(e => e.Message).ToArray());
 
                     return new CommandResponse
                     {
                         Successful = false,
-                        ValidationEntries = valResult.ValidationEntries.ToList()
+                        OutcomeEntries = valResult.ValidationEntries.ToList()
                     };
                 }
             }

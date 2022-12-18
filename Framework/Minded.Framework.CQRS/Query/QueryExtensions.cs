@@ -7,7 +7,7 @@ namespace Minded.Framework.CQRS.Query
 {
     public static class QueryExtensions
     {
-        public static IQueryable<T> ApplyTo<T>(this IQuery query, IQueryable<T> queryable) where T : class
+        public static IQueryable<T> ApplyTo<T>(this IQuery<T> query, IQueryable<T> queryable) where T : class
         {
             if (query is ICanOrderBy o && o?.OrderBy?.Count > 0)
             {

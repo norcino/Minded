@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Data.Context;
-using Minded.Common;
+using Minded.Framework.CQRS.Command;
 using Service.Transaction.Command;
 
 namespace Service.Transaction.CommandHandler

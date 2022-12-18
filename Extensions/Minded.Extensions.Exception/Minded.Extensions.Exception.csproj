@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+    <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Decorator\Minded.Extensions.Decorator.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
   </ItemGroup>

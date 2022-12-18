@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Decorator\Minded.Extensions.Decorator.csproj" />
   </ItemGroup>
 

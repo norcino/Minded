@@ -26,7 +26,7 @@ namespace Minded.Extensions.Logging.Decorator
             var response = await DecoratedQueryHandler.HandleAsync(query);
             stopWatch.Stop();
 
-            var originalLogInfo = (query as ILoggableCommand)?.ToLog();
+            var originalLogInfo = (query as ILoggable)?.ToLog();
 
             var formattedTime = string.Format("{0:mm\\:ss\\:fff}", stopWatch.Elapsed);
             var template = formattedTime + " {QueryName} - " + originalLogInfo?.LogMessageTemplate ?? query.GetType().Name;

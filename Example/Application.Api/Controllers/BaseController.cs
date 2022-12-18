@@ -36,7 +36,7 @@ namespace Application.Api.Controllers
             
             if (query is ICanFilter<TEntity> f && queryOptions.Filter != null)
             {
-                f.Filter = queryOptions.Filter.GetFilterExpression<TEntity>();
+               // f.Filter = queryOptions.Filter.GetFilterExpression<TEntity>();
             }
 
             if (query is ICanOrderBy o && queryOptions.OrderBy != null)

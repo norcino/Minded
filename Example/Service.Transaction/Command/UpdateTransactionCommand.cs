@@ -1,5 +1,4 @@
-﻿using Minded.Common;
-using Minded.Log;
+﻿using Minded.Framework.CQRS.Command;
 
 namespace Service.Transaction.Command
 {
@@ -14,10 +13,10 @@ namespace Service.Transaction.Command
             Transaction = transaction;
         }
 
-        public LogInfo ToLog()
-        {
-            const string template = "Transaction Id: {TransactionId} Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}";
-            return new LogInfo(template, TransactionId, Transaction.Credit, Transaction.Debit, Transaction.CategoryId);
-        }
+        //public LogInfo ToLog()
+        //{
+        //    const string template = "Transaction Id: {TransactionId} Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}";
+        //    return new LogInfo(template, TransactionId, Transaction.Credit, Transaction.Debit, Transaction.CategoryId);
+        //}
     }
 }

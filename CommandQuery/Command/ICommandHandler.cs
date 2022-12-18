@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Minded.Framework.CQRS.Command;
 
 namespace Minded.Common
 {
