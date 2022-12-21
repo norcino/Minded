@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Extensions.Decorator;
 using Minded.Framework.CQRS.Command;
@@ -19,12 +20,21 @@ namespace Minded.Extensions.Exception.Decorator
         {
             try
             {
-                return await CommmandHandler.HandleAsync(command);
+                return await DecoratedCommmandHandler.HandleAsync(command);
             }
             catch (System.Exception ex)
             {
+                var commandJson = "Command serialization unavailable";
+
+                try
+                {
+                    commandJson = JsonSerializer.Serialize(command);
+                }
+                catch { }
+
                 _logger.LogError(ex, ex.Message);
-                throw new CommandHandlerException<TCommand>("CommandHandlerException: " + command, ex, command);
+
+                throw new CommandHandlerException<TCommand>(command, "CommandHandlerException: " + commandJson, ex);
             }
         }
     }

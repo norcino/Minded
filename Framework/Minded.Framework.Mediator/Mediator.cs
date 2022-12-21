@@ -21,9 +21,6 @@ namespace Minded.Framework.Mediator
             var handlerType = typeof(IQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResult));
             dynamic handler = _services.GetService(handlerType);
             return await handler.HandleAsync((dynamic)query);
-
-            //var handler = _services.GetService(handlerType) as IQueryHandler<IQuery<TResult>, TResult>;
-            //return handler.HandleAsync(query);
         }
 
         /// <inheritdoc cref="IMediator.ProcessCommandAsync(ICommand)"/>
@@ -32,9 +29,6 @@ namespace Minded.Framework.Mediator
             var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
             dynamic handler = _services.GetService(handlerType);
             return await handler.HandleAsync((dynamic)command);
-
-            //var handler = _services.GetService(handlerType) as ICommandHandler<ICommand>;
-            //return await handler.HandleAsync(command);
         }
 
         /// <inheritdoc cref="IMediator.ProcessCommandAsync{TResult}(ICommand)"/>

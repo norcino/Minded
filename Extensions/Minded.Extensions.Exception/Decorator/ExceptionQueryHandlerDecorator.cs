@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Extensions.Decorator;
 using Minded.Framework.CQRS.Query;
@@ -23,13 +24,17 @@ namespace Minded.Extensions.Exception.Decorator
             }
             catch (System.Exception ex)
             {
-                var queryLogString = query.ToString();
-                //if (query is ILoggableQuery)
-                //    queryLogString = (query as ILoggableQuery)?.ToLog().ToString();
+                var queryJson = "Query serialization unavailable";
 
-                //_logger.LogError(LogEvent.QueryHandling, ex, queryLogString);
+                try
+                {
+                    queryJson = JsonSerializer.Serialize(query);
+                }
+                catch { }
 
-                throw new QueryHandlerException<TQuery, TResult>("QueryHandlerException: " + query, ex, query);
+                _logger.LogError(ex, ex.Message);
+
+                throw new QueryHandlerException<TQuery, TResult>(query, "QueryHandlerException: " + queryJson, ex);
             }
         }
     }

@@ -24,7 +24,7 @@ namespace Minded.Extensions.Logging.Decorator
 
             _logger.LogInformation(string.Format("{0} Started", command.GetType().Name));
 
-            var response = await CommmandHandler.HandleAsync(command);
+            var response = await DecoratedCommmandHandler.HandleAsync(command);
             stopWatch.Stop();
 
             if(command is ILoggable)

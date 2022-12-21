@@ -4,6 +4,7 @@ using Data.Entity;
 using Microsoft.AspNet.OData.Query;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Service.Category.Command;
 using Service.Category.Query;
@@ -14,10 +15,12 @@ namespace Application.Api.Controllers
     public class CategoryController : BaseController
     {
         private readonly IMediator _mediator;
+        private readonly IRestMediator _restMediator;
 
-        public CategoryController(IMediator mediator)
+        public CategoryController(IMediator mediator, IRestMediator restMediator)
         {
             _mediator = mediator;
+            _restMediator = restMediator;
         }
 
         public Task<List<Category>> Get(ODataQueryOptions<Category> queryOptions)
@@ -29,11 +32,7 @@ namespace Application.Api.Controllers
         [HttpGet("{id}", Name = "GetCategoryById")]
         public async Task<ActionResult> Get(int id)
         {
-            // Create 201 Created - 400 Bad request
-            // Update 200 Ok - 400 Bad request
-            // Delete 404  NotFound - 200 Ok
-            // Patch 200 Ok - 400 Bad request
-            // Get 404 Not found - 200 Ok
+            return await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetCategoryByIdQuery(id));
             var result = await _mediator.ProcessQueryAsync(new GetCategoryByIdQuery(id));
 
             if (result == null)

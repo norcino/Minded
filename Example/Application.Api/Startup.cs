@@ -17,8 +17,7 @@ using Minded.Extensions.Exception.Decorator;
 using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Validation.Decorator;
 using System.Linq;
-using System.Reflection;
-using Minded.Framework.CQRS.Command;
+using Minded.Extensions.WebApi;
 
 namespace Application.Api
 {
@@ -84,6 +83,7 @@ namespace Application.Api
             services.AddMinded(assembly => assembly.Name.StartsWith("Service."), b =>
             {
                 b.AddMediator();
+                b.AddRestMediator();
 
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
