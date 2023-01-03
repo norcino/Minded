@@ -9,11 +9,9 @@
         Delete = 3,
         GetMany = 4,
         GetSingle = 5,
-        HeadMany = 6,
-        HeadSingle = 7,
-        Patch = 8,
-        PatchWithContent = 9,
-        Update = 10,
-        UpdateWithContent = 11
+        Patch = 6,
+        PatchWithContent = 7,
+        Update = 8,
+        UpdateWithContent = 9
     }
 }

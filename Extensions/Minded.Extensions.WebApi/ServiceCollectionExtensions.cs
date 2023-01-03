@@ -8,7 +8,7 @@ namespace Minded.Extensions.WebApi
         public static void AddRestMediator(this MindedBuilder builder, ServiceLifetime lifeTime = ServiceLifetime.Transient)
         {
             builder.Register(sc => sc.Add(new ServiceDescriptor(typeof(IRestMediator), typeof(RestMediator), lifeTime)));
-            builder.Register(sc => sc.Add(new ServiceDescriptor(typeof(IRestRulesProvider), typeof(RestRulesProvider), lifeTime)));
+            builder.Register(sc => sc.Add(new ServiceDescriptor(typeof(IRestRulesProvider), typeof(DefaultRestRulesProvider), lifeTime)));
             builder.Register(sc => sc.Add(new ServiceDescriptor(typeof(IRulesProcessor), typeof(DefaultRulesProcessor), lifeTime)));
         }
     }

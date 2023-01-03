@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator\Minded.Framework.Mediator.csproj" />
+    <ProjectReference Include="..\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
   </ItemGroup>
 
 </Project>

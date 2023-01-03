@@ -4,6 +4,9 @@ using Minded.Framework.CQRS.Command;
 
 namespace Minded.Extensions.WebApi
 {
+    /// <summary>
+    /// This class provides methods to process the rules necessary to determine which ActionResult to return
+    /// </summary>
     public class DefaultRulesProcessor : IRulesProcessor
     {
         private readonly IRestRulesProvider _ruleProvider;
@@ -13,21 +16,13 @@ namespace Minded.Extensions.WebApi
             _ruleProvider = ruleProvider;
         }
 
-        private IQueryRestRule GetQueryRule(RestOperation operation, object result)
-        {
-            return _ruleProvider
-               .GetQueryRules()
-               .First(r => r.Operation == operation && (r.RuleCondition == null || r.RuleCondition(result)));
-        }
-
-        private ICommandRestRule GetCommandRule(RestOperation operation, ICommandResponse result)
-        {
-            return _ruleProvider
-               .GetCommandRules()
-               .First(r => r.Operation == operation && (r.RuleCondition == null || r.RuleCondition(result)));
-        }
-
-        public ActionResult ProcessQueryRules(RestOperation operation, object result)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="operation"></param>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        public virtual ActionResult ProcessQueryRules(RestOperation operation, object result)
         {
             var rule = GetQueryRule(operation, result);
 
@@ -54,7 +49,13 @@ namespace Minded.Extensions.WebApi
             return new StatusCodeResult((int)rule.ResultStatusCode);
         }
 
-        public ActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result)
+        /// <summary>
+        /// Process a command rule for a given operation using the provided CommandResponse
+        /// </summary>
+        /// <param name="operation">API Operation</param>
+        /// <param name="result">CommandResponse result of the proccessing of the command</param>
+        /// <returns>ActionResult to be returned to the API</returns>
+        public virtual ActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result)
         {
             var rule = GetCommandRule(operation, result);
 
@@ -86,7 +87,14 @@ namespace Minded.Extensions.WebApi
             return new StatusCodeResult((int)rule.ResultStatusCode);
         }
 
-        public ActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result)
+        /// <summary>
+        /// Process a command rule for a given operation using the provided CommandResponse
+        /// </summary>
+        /// <typeparam name="T">Generic type of the CommandResponse</typeparam>
+        /// <param name="operation">API Operation</param>
+        /// <param name="result">CommandResponse result of the proccessing of the command</param>
+        /// <returns>ActionResult to be returned to the API</returns>
+        public virtual ActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result)
         {
             var rule = GetCommandRule(operation, result);
 
@@ -116,6 +124,20 @@ namespace Minded.Extensions.WebApi
             }
 
             return new StatusCodeResult((int)rule.ResultStatusCode);
+        }
+
+        private IQueryRestRule GetQueryRule(RestOperation operation, object result)
+        {
+            return _ruleProvider
+               .GetQueryRules()
+               .First(r => r.Operation == operation && (r.RuleCondition == null || r.RuleCondition(result)));
+        }
+
+        private ICommandRestRule GetCommandRule(RestOperation operation, ICommandResponse result)
+        {
+            return _ruleProvider
+               .GetCommandRules()
+               .First(r => r.Operation == operation && (r.RuleCondition == null || r.RuleCondition(result)));
         }
     }
 }
