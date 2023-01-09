@@ -5,7 +5,7 @@ using Minded.Extensions.Validation.Decorator;
 namespace Service.Category.Command
 {
     [ValidateCommand]
-    public class CreateCategoryCommand : ILoggableCommand
+    public class CreateCategoryCommand : ILoggableCommand<Data.Entity.Category>
     {
         public Data.Entity.Category Category { get; set; }
         public Guid TraceId { get; } = Guid.NewGuid();

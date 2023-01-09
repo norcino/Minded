@@ -21,6 +21,7 @@ namespace Minded.Extensions.Configuration
         public Func<AssemblyName, bool> AssemblyFilter { get; }
         public List<Action<MindedBuilder, Type>> QueuedQueryDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
         public List<Action<MindedBuilder, Type>> QueuedCommandDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
+        public List<Action<MindedBuilder, Type>> QueuedCommandWithResultDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
 
         internal IServiceCollection serviceCollection;
 
@@ -35,10 +36,15 @@ namespace Minded.Extensions.Configuration
             QueuedCommandDecoratorsRegistrationAction.Add(decoratorRegistrationAction);
         }
 
+        public void QueueCommandWithResultDecoratorRegistrationAction(Action<MindedBuilder, Type> decoratorRegistrationAction)
+        {
+            QueuedCommandWithResultDecoratorsRegistrationAction.Add(decoratorRegistrationAction);
+        }
+
         public void QueueQueryDecoratorRegistrationAction(Action<MindedBuilder, Type> decoratorRegistrationAction)
         {
             QueuedQueryDecoratorsRegistrationAction.Add(decoratorRegistrationAction);
-        }
+        }     
 
         ///// <summary>
         ///// Add a Command Handler Decorator to the current Command handling setup, the last decorator added will be the first to process the incoming query.
@@ -291,8 +297,7 @@ namespace Minded.Extensions.Configuration
         /// <param name="assembly">Assembly to scan</param>
         /// <param name="genericInferface">Generic Interface</param>
         /// <returns>All types implementing the generic interface</returns>
-        public IEnumerable<Type> GetGenericTypesImplementingInterfaceInAssembly(Assembly assembly,
-                Type genericInferface) =>
+        public IEnumerable<Type> GetGenericTypesImplementingInterfaceInAssembly(Assembly assembly, Type genericInferface) =>
                 assembly.GetTypes().Where(t => t.GetInterfaces().Any(i => i.GetTypeInfo().IsGenericType &&
                                                                           i.GetGenericTypeDefinition() ==
                                                                           genericInferface));

@@ -17,4 +17,19 @@ namespace Minded.Framework.CQRS.Command
         /// <returns><see cref="ICommandResponse"/> containing the command output</returns>
         Task<ICommandResponse> HandleAsync(TCommand command);
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="TCommand"></typeparam>
+    /// <typeparam name="TResult"></typeparam>
+    public interface ICommandHandler<TCommand, TResult> where TCommand : ICommand<TResult>
+    {
+        /// <summary>
+        /// Execute the given command returning the <see cref="ICommandResponse"/>
+        /// </summary>
+        /// <param name="command">Command to be executed</param>
+        /// <returns><see cref="ICommandResponse"/> containing the command output</returns>
+        Task<ICommandResponse<TResult>> HandleAsync(TCommand command);
+    }
 }

@@ -128,16 +128,16 @@ namespace Minded.Extensions.WebApi
 
         private IQueryRestRule GetQueryRule(RestOperation operation, object result)
         {
-            return _ruleProvider
-               .GetQueryRules()
-               .First(r => r.Operation == operation && (r.RuleCondition == null || r.RuleCondition(result)));
+            return _ruleProvider?
+               .GetQueryRules()?
+               .FirstOrDefault(r => operation.HasFlag(r.Operation) && (r.RuleCondition == null || r.RuleCondition(result)));
         }
 
         private ICommandRestRule GetCommandRule(RestOperation operation, ICommandResponse result)
-        {
-            return _ruleProvider
-               .GetCommandRules()
-               .First(r => r.Operation == operation && (r.RuleCondition == null || r.RuleCondition(result)));
+        {            
+            return _ruleProvider?
+               .GetCommandRules()?
+               .FirstOrDefault(r => operation.HasFlag(r.Operation) && (r.RuleCondition == null || r.RuleCondition(result)));
         }
     }
 }

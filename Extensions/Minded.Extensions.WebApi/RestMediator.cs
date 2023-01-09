@@ -22,7 +22,7 @@ namespace Minded.Extensions.WebApi
             return _rulesProcessor.ProcessQueryRules(operation, result);
         }
 
-        public async Task<ActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand command)
+        public async Task<ActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command)
         {
             var result = await ProcessCommandAsync(command);
             return _rulesProcessor.ProcessCommandRules(operation, result);
@@ -30,7 +30,7 @@ namespace Minded.Extensions.WebApi
 
         public async Task<ActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command)
         {
-            var result = await ProcessCommandAsync(command);
+            var result = await ProcessCommandAsync<TResult>(command);
             return _rulesProcessor.ProcessCommandRules(operation, result);
         }
     }

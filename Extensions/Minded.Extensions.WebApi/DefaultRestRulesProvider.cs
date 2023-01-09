@@ -62,15 +62,28 @@ namespace Minded.Extensions.WebApi
 {
     /// <summary>
     /// Default suggested REST rules
+    /// Every rule condition predicate must be uniquely true, if more than one rule applies correctly the first will be used resulting in a potential inconsistent response
     /// </summary>
     public class DefaultRestRulesProvider : IRestRulesProvider
     {
         private static Func<object, bool> QueryHasNoContent = (o) => o != null;
         private static Func<object, bool> QueryHasContent = (o) => o == null;
+
         private static Func<ICommandResponse, bool> SuccessfulCommand = (r) => r.Successful;
-        private static Func<ICommandResponse, bool> UnsuccessfulCommand = (r) => !r.Successful;
+
+        private static Func<ICommandResponse, bool> UnsuccessfulCommand = (r) => !r.Successful && r.OutcomeEntries.All(e =>
+                e.ErrorCode != GenericErrorCodes.SubjectNotFound &&
+                e.ErrorCode != GenericErrorCodes.NotAuthenticated &&
+                e.ErrorCode == GenericErrorCodes.NotAuthorized);
+
         private static Func<ICommandResponse, bool> UnsuccessfulCommandWithNotFoundCode = (r) => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.SubjectNotFound);
-        
+        private static Func<ICommandResponse, bool> UnsuccessfulWithNotAuthenticatedCode = (r) => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.NotAuthenticated);
+        private static Func<ICommandResponse, bool> UnsuccessfulWithNotAuthorizationCode = (r) => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.NotAuthorized);
+
+        // Any 201 Unouthorized
+        private ICommandRestRule NotAuthorizedCommand        = new CommandRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, true, UnsuccessfulWithNotAuthorizationCode);
+        private ICommandRestRule NotAuthenticatedCommand     = new CommandRestRule(RestOperation.Any, HttpStatusCode.Forbidden, true, UnsuccessfulWithNotAuthenticatedCode);
+
         // Get(key) 200 Ok
         private IQueryRestRule GetSingleSuccessfully = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.OK, true, QueryHasNoContent);
         // Get(key) 404 NotFound
@@ -154,7 +167,9 @@ namespace Minded.Extensions.WebApi
             PostWithContentSuccessfully,
             PostSuccessfully,
             PostInvalid,
-            PostWithContentInvalid
+            PostWithContentInvalid,
+            NotAuthorizedCommand,
+            NotAuthenticatedCommand
         };
     }
 }

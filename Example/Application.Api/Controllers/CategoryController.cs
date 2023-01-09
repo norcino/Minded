@@ -33,28 +33,28 @@ namespace Application.Api.Controllers
         public async Task<ActionResult> Get(int id)
         {
             return await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetCategoryByIdQuery(id));
-            var result = await _mediator.ProcessQueryAsync(new GetCategoryByIdQuery(id));
+            //var result = await _mediator.ProcessQueryAsync(new GetCategoryByIdQuery(id));
 
-            if (result == null)
-            {
-                return NotFound();
-            }
+            //if (result == null)
+            //{
+            //    return NotFound();
+            //}
 
-            return new OkObjectResult(result);
+            //return new OkObjectResult(result);
         }
 
         [HttpPost]
         public async Task<ActionResult> PostAsync([FromBody] Category category)
         {
-            //            return await _mediator.ProcessRestQueryAsync(HttpMethod.Get, query);
-            var result = await _mediator.ProcessCommandAsync<int>(new CreateCategoryCommand(category));
+            return await _restMediator.ProcessRestCommandAsync<Category>(RestOperation.Create, new CreateCategoryCommand(category));
+            //var result = await _mediator.ProcessCommandAsync<int>(new CreateCategoryCommand(category));
 
-            if (result.Successful)
-            {
-                return new CreatedAtRouteResult("GetCategoryById", new {Id = result.Result}, result);
-            }
+            //if (result.Successful)
+            //{
+            //    return new CreatedAtRouteResult("GetCategoryById", new {Id = result.Result}, result);
+            //}
 
-            return StatusCode(StatusCodes.Status400BadRequest, result);
+            //return StatusCode(StatusCodes.Status400BadRequest, result);
         }
     }
 }

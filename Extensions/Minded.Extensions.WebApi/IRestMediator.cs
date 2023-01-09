@@ -9,7 +9,7 @@ namespace Minded.Extensions.WebApi
     {
         Task<ActionResult> ProcessRestQueryAsync<TResult>(RestOperation operation, IQuery<TResult> query);
 
-        Task<ActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand command);
+        Task<ActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command);
 
         Task<ActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command);
     }

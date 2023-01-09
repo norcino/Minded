@@ -5,7 +5,7 @@ using Service.Category.Command;
 
 namespace Service.Category.CommandHandler
 {
-    public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryCommand>
+    public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryCommand, Data.Entity.Category>
     {
         private readonly IMindedExampleContext _context;
 
@@ -14,12 +14,12 @@ namespace Service.Category.CommandHandler
             _context = context;
         }
 
-        public async Task<ICommandResponse> HandleAsync(CreateCategoryCommand command)
+        public async Task<ICommandResponse<Data.Entity.Category>> HandleAsync(CreateCategoryCommand command)
         {
             await _context.Categories.AddAsync(command.Category);
             await _context.SaveChangesAsync();
 
-            return new CommandResponse<int>(command.Category.Id)
+            return new CommandResponse<Data.Entity.Category>(command.Category)
             {
                 Successful = true
             };

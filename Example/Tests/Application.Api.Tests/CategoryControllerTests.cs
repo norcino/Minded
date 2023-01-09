@@ -28,7 +28,7 @@ namespace Application.Api.Tests
         {
             _builder = Builder<Category>.New();
             _mediatorMock = new Mock<IMediator>();
-            _controller = new CategoryController(_mediatorMock.Object);
+            _controller = new CategoryController(_mediatorMock.Object, null);
         }
 
         // TODO in generic test base for the controller, make sure Ordering, Filtering, Expansion and pagination is all supported
@@ -69,7 +69,7 @@ namespace Application.Api.Tests
             var category = _builder.Build(c => c.Id = 0);
             var response = _controller.PostAsync(category);
 
-            _mediatorMock.Verify(sm => sm.ProcessCommandAsync<int>(It.Is<CreateCategoryCommand>(c =>
+            _mediatorMock.Verify(sm => sm.ProcessCommandAsync<Category>(It.Is<CreateCategoryCommand>(c =>
                 c.Category.Description == category.Description &&
                 c.Category.Name == category.Name &&
                 c.Category.Active == category.Active

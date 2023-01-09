@@ -59,6 +59,21 @@ namespace Minded.Framework.Mediator
 
                     builder.QueuedCommandDecoratorsRegistrationAction.ForEach(a => a(builder,interfaceType));
                 }
+
+                commandHandlers = builder.GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<,>));
+
+                foreach (var handlerType in commandHandlers)
+                {
+                    var interfaceType = builder.GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<,>));
+
+                    // Register the handler by it's interface
+                    builder.Register(sc => sc.Add(new ServiceDescriptor(interfaceType, handlerType, lifeTime)));
+
+                    // Register the handler by it's own type
+                    builder.Register(sc => sc.Add(new ServiceDescriptor(handlerType, handlerType, lifeTime)));
+
+                    builder.QueuedCommandWithResultDecoratorsRegistrationAction.ForEach(a => a(builder, interfaceType));
+                }
             }
         }
     }

@@ -85,7 +85,7 @@ namespace Application.Api
                 b.AddMediator();
                 b.AddRestMediator();
 
-                b.AddCommandValidationDecorator()
+                b.AddCommandValidationDecorator()                
                 .AddCommandExceptionDecorator()
                 .AddCommandLoggingDecorator()
                 .RegisterCommandHandlers();
@@ -102,7 +102,7 @@ namespace Application.Api
                 options => options.EnableEndpointRouting = false
             )
             .AddApplicationPart(typeof(Controllers.BaseController).Assembly)
-            .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);            
+            .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
         }
 
         public static void RegisterContext(IServiceCollection services, IWebHostEnvironment env)

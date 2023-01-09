@@ -14,6 +14,12 @@ namespace Minded.Extensions.Validation.Decorator
             return typeof(ICommandValidator<>).MakeGenericType(interfaceType.GetGenericArguments());
         };
 
+        private static Func<Type, Type> CommandWithResultValidatorTypeGenerator = (t) =>
+        {
+            var interfaceType = t.GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommandHandler<,>));
+            return typeof(ICommandValidator<>).MakeGenericType(interfaceType.GetGenericArguments().First());
+        };
+
         /// <summary>
         /// Register the Validator classes used to validate commands and entities
         /// </summary>
@@ -25,6 +31,11 @@ namespace Minded.Extensions.Validation.Decorator
             builder.QueueCommandDecoratorRegistrationAction((b, i) => {
                 b.DecorateHandlerDescriptors(i, typeof(ValidatingCommandHandlerDecorator<>), typeof(ValidateCommandAttribute), CommandValidatorTypeGenerator);
             });
+
+            builder.QueueCommandWithResultDecoratorRegistrationAction((b, i) => {
+                b.DecorateHandlerDescriptors(i, typeof(ValidatingCommandHandlerDecorator<,>), typeof(ValidateCommandAttribute), CommandWithResultValidatorTypeGenerator);
+            });
+
             return builder;
         }
     }

@@ -1,17 +1,30 @@
-﻿namespace Minded.Extensions.WebApi
+﻿using System;
+
+namespace Minded.Extensions.WebApi
 {
-    public enum RestOperation
+    [Flags]
+    public enum RestOperation : int
     {
-        Action = 0,
-        ActionWithContent = 0,
-        Create = 1,
-        CreateWithContent = 2,
-        Delete = 3,
-        GetMany = 4,
-        GetSingle = 5,
-        Patch = 6,
-        PatchWithContent = 7,
-        Update = 8,
-        UpdateWithContent = 9
+        Any                 = 0,
+
+        Action              = 1 << 0,
+        ActionWithContent   = 1 << 1,
+        AnyAction           = Action | ActionWithContent,
+
+        Create              = 1 << 2,
+        CreateWithContent   = 1 << 3,
+        AnyCreate           = Create | CreateWithContent,
+
+        Delete              = 1 << 4,
+        GetMany             = 1 << 5,
+        GetSingle           = 1 << 6,
+
+        Patch               = 1 << 7,
+        PatchWithContent    = 1 << 8,
+        AnyPatch            = Patch | PatchWithContent,
+
+        Update              = 1 << 9,
+        UpdateWithContent   = 1 << 10,
+        AnyUpdate           = Update | UpdateWithContent
     }
 }

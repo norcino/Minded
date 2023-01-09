@@ -8,4 +8,12 @@ namespace Minded.Extensions.Logging
     public interface ILoggableCommand : ICommand, ILoggable
     {
     }
+
+    /// <summary>
+    /// Interface of a command which can be supports ILoggable trait
+    /// </summary>
+    /// <typeparam name="TResult">Command result Type</typeparam>
+    public interface ILoggableCommand<TResult> : ICommand<TResult>, ILoggable
+    {
+    }
 }

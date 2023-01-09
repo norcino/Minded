@@ -14,11 +14,10 @@ namespace Minded.Framework.CQRS.Command
     }
 
     /// <summary>
-    /// Command interface that returns a result object
+    /// Base command interface
     /// </summary>
-    /// <typeparam name="TResult">Result type</typeparam>
+    /// <typeparam name="TResult">Command result Type</typeparam>
     public interface ICommand<TResult> : ICommand
     {
-        TResult Result { get; }
     }
 }

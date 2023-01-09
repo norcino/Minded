@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Minded.Framework.CQRS.Command;
 using Minded.Framework.CQRS.Query;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Minded.Framework.Mediator
 {
@@ -32,9 +33,13 @@ namespace Minded.Framework.Mediator
         }
 
         /// <inheritdoc cref="IMediator.ProcessCommandAsync{TResult}(ICommand)"/>
-        public async Task<ICommandResponse<TResult>> ProcessCommandAsync<TResult>(ICommand command)
+        public async Task<ICommandResponse<TResult>> ProcessCommandAsync<TResult>(ICommand<TResult> command)
         {
-            var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
+            var commandType = command.GetType();
+            var resultType = typeof(TResult);
+            Type[] typeArgs = { commandType, resultType };
+
+            var handlerType = typeof(ICommandHandler<,>).MakeGenericType(typeArgs);
             dynamic handler = _services.GetService(handlerType);
             var result = await handler.HandleAsync((dynamic)command);
 

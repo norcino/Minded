@@ -31,6 +31,6 @@ namespace Minded.Framework.Mediator
         /// <typeparam name="TResult">Type of the expected command result</typeparam>
         /// <param name="command">Command to be executed</param>
         /// <returns>ICommandResponse containing the result and information about the execution</returns>
-        Task<ICommandResponse<TResult>> ProcessCommandAsync<TResult>(ICommand command);
+        Task<ICommandResponse<TResult>> ProcessCommandAsync<TResult>(ICommand<TResult> command);
     }
 }
