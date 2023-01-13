@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="Microsoft.DependencyValidation.Analyzers" Version="0.11.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -15,12 +16,38 @@
     <ProjectReference Include="..\Minded.Framework.Mediator.Abstractions\Minded.Framework.Mediator.Abstractions.csproj" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>$(AssemblyName)</PackageId>
+    <Title>$(AssemblyName)</Title>
+    <IsPackable>True</IsPackable>
+    <Authors>Manuel Salvatori</Authors>
+    <Product>Minded Framework - Clan code made easy</Product>
+    <Description>Package which allows to add the Mediator patter. Minded helps to implement a clean architecture, offering the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
+Encapsuplate all your business logic in Commands and Queries, the rest will be dealth by the framework.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+    <PackageOutputPath>$(OutputDirectory)</PackageOutputPath>
+    <PackageReleaseNotes>The changelog is available at https://github.com/norcino/Minded/blob/master/Changelog.md.</PackageReleaseNotes>
+    <Copyright>Copyright (c) 2023, Manuel Salvatori. All rights reserved.</Copyright>
+    <PackageIcon>Minded-128.png</PackageIcon>
+    <PackageTags>mediator;decorator;command query;rest;validator;clean code;clean architecture</PackageTags>
+    <LicenseUrl>https://github.com/norcino/Minded/blob/master/LICENSE</LicenseUrl>
+		<PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <Version>0.1.0</Version>
+    <RepositoryType>git</RepositoryType>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>E:\Projects\GitHub\Minded\key.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
   <ItemGroup>
-    <None Remove="Minded-128.png" />
-    <None Include="Minded-128.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
+    <None Include="Minded-128.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

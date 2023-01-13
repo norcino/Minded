@@ -25,11 +25,18 @@ steps:
     versioningScheme: byBuildNumber
 
 - task: DotNetCoreCLI@2
-  displayName: 'NuGet Push'
+  displayName: 'NuGet Push Packages'
   inputs:
     command: custom
     custom: nuget
     arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey)'
+
+  task: DotNetCoreCLI@2
+  displayName: 'NuGet Push Symbols'
+  inputs:
+    command: custom
+    custom: nuget
+    arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey)'
 
 - task: DotNetCoreCLI@2
   displayName: Publish
