@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32407.343
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded", "Minded.csproj", "{A783A543-A6EA-4AE2-9D23-92822BA1EE36}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Example", "Example", "{36B04108-D4FB-47CB-A940-868A45577D2F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Application.Api", "Example\Application.Api\Application.Api.csproj", "{4E02B562-8621-4525-86ED-D4BD04125258}"
@@ -83,10 +81,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.Validatio
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1F1A4017-C52C-4FFB-9DFA-0BEC7ABB2DF8}"
 	ProjectSection(SolutionItems) = preProject
+		azure-pipelines.yml = azure-pipelines.yml
+		LICENSE = LICENSE
+		Minded-128.png = Minded-128.png
+		minded.ico = minded.ico
+		README.md = README.md
 		ToDo.txt = ToDo.txt
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Common", "Example\Service.Common\Service.Common.csproj", "{BA6C722A-EBAF-4ECE-AFCE-5E3CAD1A9036}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Service.Common", "Example\Service.Common\Service.Common.csproj", "{BA6C722A-EBAF-4ECE-AFCE-5E3CAD1A9036}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -94,10 +97,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{A783A543-A6EA-4AE2-9D23-92822BA1EE36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A783A543-A6EA-4AE2-9D23-92822BA1EE36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A783A543-A6EA-4AE2-9D23-92822BA1EE36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A783A543-A6EA-4AE2-9D23-92822BA1EE36}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4E02B562-8621-4525-86ED-D4BD04125258}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4E02B562-8621-4525-86ED-D4BD04125258}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E02B562-8621-4525-86ED-D4BD04125258}.Release|Any CPU.ActiveCfg = Release|Any CPU

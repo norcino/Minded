@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,14 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
     <ProjectReference Include="..\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Minded-128.png" />
+    <None Include="Minded-128.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
@@ -15,6 +15,13 @@
     <ProjectReference Include="..\Minded.Extensions.Decorator\Minded.Extensions.Decorator.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Validation.Abstractions\Minded.Extensions.Validation.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Minded-128.png">
+      <PackagePath></PackagePath>
+      <Pack>True</Pack>
+    </None>
   </ItemGroup>
 
 </Project>

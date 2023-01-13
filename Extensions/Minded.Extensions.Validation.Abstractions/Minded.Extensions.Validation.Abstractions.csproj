@@ -8,4 +8,11 @@
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Minded-128.png">
+      <PackagePath></PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
 </Project>

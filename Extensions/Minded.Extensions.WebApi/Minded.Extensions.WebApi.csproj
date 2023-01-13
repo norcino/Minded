@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
@@ -12,6 +12,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator\Minded.Framework.Mediator.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Minded-128.png">
+      <Pack>True</Pack>
+    </None>
   </ItemGroup>
 
 </Project>
