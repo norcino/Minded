@@ -62,7 +62,7 @@ namespace Application.Api
                     .OrderBy(QueryOptionSetting.Allowed)
                     .MaxTop(100)
                     .Count();
-               // routeBuilder.EnableDependencyInjection();
+                routeBuilder.EnableDependencyInjection();
             });
         }
         
@@ -180,7 +180,7 @@ namespace Application.Api
                          //   options.UseLoggerFactory(AppLoggerFactory);
                         });
 
-                        services.AddSingleton<IMindedExampleContext>(s =>
+                        services.AddTransient<IMindedExampleContext>(s =>
                         {
                             var context = s.GetService<MindedExampleContext>();
                             context.Database.EnsureCreated();

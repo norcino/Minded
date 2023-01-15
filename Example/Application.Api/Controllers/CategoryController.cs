@@ -1,9 +1,13 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
+using Data.Context;
 using Data.Entity;
 using Microsoft.AspNet.OData.Query;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Service.Category.Command;
@@ -14,19 +18,25 @@ namespace Application.Api.Controllers
     [Route("api/[controller]")]
     public class CategoryController : BaseController
     {
+        private readonly IMindedExampleContext _context;
         private readonly IMediator _mediator;
         private readonly IRestMediator _restMediator;
 
-        public CategoryController(IMediator mediator, IRestMediator restMediator)
+        public CategoryController(IMindedExampleContext context, IMediator mediator, IRestMediator restMediator)
         {
+            _context = context;
             _mediator = mediator;
             _restMediator = restMediator;
         }
 
-        public Task<List<Category>> Get(ODataQueryOptions<Category> queryOptions)
+        public async Task<List<Category>> Get(ODataQueryOptions<Category> queryOptions)
         {
+            // return _context.Categories.Include(c => c.Transactions).ToList();
+            //var x = queryOptions.ApplyTo(_context.Categories).ToDynamicList<Category>(); // Cast<Category>().ToList();
+            //return (queryOptions.ApplyTo(_context.Categories) as IQueryable<Category>).ToList();
+
             var query = ApplyODataQueryConditions<Category, GetCategoriesQuery>(queryOptions, new GetCategoriesQuery());
-            return _mediator.ProcessQueryAsync(query);
+            return await _mediator.ProcessQueryAsync(query);
         }
         
         [HttpGet("{id}", Name = "GetCategoryById")]

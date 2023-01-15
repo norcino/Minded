@@ -32,7 +32,7 @@ namespace Minded.Extensions.Transaction.Decorator
  //               {
   //                  TransactionManager.LogTransactionStarting(_logger, command);
 
-                    retVal = await CommmandHandler.HandleAsync(command);
+                    //retVal = await CommmandHandler.HandleAsync(command);
 //                    transactionScope.Complete();
 
  //                   TransactionManager.LogTransactionComplete(_logger, command);
@@ -40,10 +40,10 @@ namespace Minded.Extensions.Transaction.Decorator
             }
             else
             {
-                retVal = await CommmandHandler.HandleAsync(command);
+//                retVal = await CommmandHandler.HandleAsync(command);
             }
 
-            return retVal;
+            return null; //retVal;
         }
     }
 }

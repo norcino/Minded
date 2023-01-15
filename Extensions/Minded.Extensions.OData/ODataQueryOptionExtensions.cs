@@ -3,7 +3,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.AspNet.OData.Query;
 
-namespace Application.Api
+namespace Minded.Extensions.OData
 {
     public static class ODataQueryOptionExtensions
     {
