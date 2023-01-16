@@ -33,7 +33,7 @@ steps:
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Symbols'
-    inputs:
+  inputs:
     command: custom
     custom: nuget
     arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey)'
