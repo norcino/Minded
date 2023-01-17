@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
@@ -12,6 +14,7 @@ using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Service.Category.Command;
 using Service.Category.Query;
+using Minded.Extensions.OData;
 
 namespace Application.Api.Controllers
 {
@@ -29,14 +32,22 @@ namespace Application.Api.Controllers
             _restMediator = restMediator;
         }
 
-        public async Task<List<Category>> Get(ODataQueryOptions<Category> queryOptions)
+        public IEnumerable<Category> Get(ODataQueryOptions<Category> queryOptions)
         {
-            // return _context.Categories.Include(c => c.Transactions).ToList();
-            //var x = queryOptions.ApplyTo(_context.Categories).ToDynamicList<Category>(); // Cast<Category>().ToList();
+            // OK return _context.Categories.Include(c => c.Transactions).ToList();
+
+            var xx = _context.Categories.ApplyODataQueryOptions(queryOptions);
+            return xx;
+            var x = queryOptions.ApplyTo(_context.Categories);
+
+            var y = x.ToDynamicList<Category>();
+
+            return y;
+            // Cast<Category>().ToList();
             //return (queryOptions.ApplyTo(_context.Categories) as IQueryable<Category>).ToList();
 
-            var query = ApplyODataQueryConditions<Category, GetCategoriesQuery>(queryOptions, new GetCategoriesQuery());
-            return await _mediator.ProcessQueryAsync(query);
+            //var query = ApplyODataQueryConditions<Category, GetCategoriesQuery>(queryOptions, new GetCategoriesQuery());
+            //return await _mediator.ProcessQueryAsync(query);
         }
         
         [HttpGet("{id}", Name = "GetCategoryById")]
