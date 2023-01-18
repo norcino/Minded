@@ -23,20 +23,20 @@ steps:
     command: pack    
     versioningScheme: byBuildNumber
     projects: |
-    **/Extensions/Minded.Extensions.Caching/Minded.Extensions.Caching.csproj
-    **/Extensions/Minded.Extensions.Configuration/Minded.Extensions.Configuration.csproj
-    **/Extensions/Minded.Extensions.Decorator/Minded.Extensions.Decorator.csproj
-    **/Extensions/Minded.Extensions.Exception/Minded.Extensions.Exception.csproj
-    **/Extensions/Minded.Extensions.Logging/Minded.Extensions.Logging.csproj
-    **/Extensions/Minded.Extensions.OData/Minded.Extensions.OData.csproj
-    **/Extensions/Minded.Extensions.Transaction/Minded.Extensions.Transaction.csproj
-    **/Extensions/Minded.Extensions.Validation/Minded.Extensions.Validation.csproj
-    **/Extensions/Minded.Extensions.Validation.Abstractions/Minded.Extensions.Validation.Abstractions.csproj
-    **/Extensions/Minded.Extensions.WebApi/Minded.Extensions.WebApi.csproj
-    **/Framework/Minded.Framework.CQRS/Minded.Framework.CQRS.csproj
-    **/Framework/Minded.Framework.CQRS.Abstractions/Minded.Framework.CQRS.Abstractions.csproj
-    **/Framework/Minded.Framework.Mediator/Minded.Framework.Mediator.csproj
-    **/Framework/Minded.Framework.Mediator.Abstractions/Minded.Framework.Mediator.Abstractions.csproj
+    **/Minded.Extensions.Caching.csproj
+    **/Minded.Extensions.Configuration.csproj
+    **/Minded.Extensions.Decorator.csproj
+    **/Minded.Extensions.Exception.csproj
+    **/Minded.Extensions.Logging.csproj
+    **/Minded.Extensions.OData.csproj
+    **/Minded.Extensions.Transaction.csproj
+    **/Minded.Extensions.Validation.csproj
+    **/Minded.Extensions.Validation.Abstractions.csproj
+    **/Minded.Extensions.WebApi.csproj
+    **/Minded.Framework.CQRS.csproj
+    **/Minded.Framework.CQRS.Abstractions.csproj
+    **/Minded.Framework.Mediator.csproj
+    **/Minded.Framework.Mediator.Abstractions.csproj
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Packages'
