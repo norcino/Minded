@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Minded.Extensions.Decorator;
+using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Query;
 
 namespace Minded.Extensions.Exception.Decorator

@@ -1,6 +1,6 @@
 ﻿using Minded.Framework.CQRS.Query;
 
-namespace Minded.Extensions.Decorator
+namespace Minded.Framework.Decorator
 {
     public class QueryHandlerDecoratorBase<TQuery, TResult> where TQuery : IQuery<TResult>
     {

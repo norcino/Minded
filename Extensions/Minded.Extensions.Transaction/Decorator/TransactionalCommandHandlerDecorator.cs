@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.Extensions.Logging;
-using Minded.Extensions.Decorator;
+using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Command;
 
 namespace Minded.Extensions.Transaction.Decorator
@@ -18,9 +18,9 @@ namespace Minded.Extensions.Transaction.Decorator
             _logger = logger;
         }
 
-        public async Task<ICommandResponse> HandleAsync(TCommand command)
+        public Task<ICommandResponse> HandleAsync(TCommand command)
         {
-            ICommandResponse retVal;
+            //ICommandResponse retVal;
             var attribute = (TransactionCommandAttribute)TypeDescriptor.GetAttributes(command)[typeof(TransactionCommandAttribute)];
 
             if (attribute != null)

@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Minded.Extensions.Decorator;
 using Minded.Framework.CQRS.Command;
+using Minded.Framework.Decorator;
 
 namespace Minded.Extensions.Logging.Decorator
 {

@@ -1,6 +1,6 @@
 ﻿using Minded.Framework.CQRS.Command;
 
-namespace Minded.Extensions.Decorator
+namespace Minded.Framework.Decorator
 {
     public abstract class CommandHandlerDecoratorBase<TCommand> where TCommand : ICommand
     {
