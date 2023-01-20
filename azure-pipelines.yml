@@ -34,7 +34,7 @@ steps:
     feedsToUse: 'select'
     searchPatternPush: '$(Build.ArtifactStagingDirectory)/*.nupkg;!$(Build.ArtifactStagingDirectory)/*.Tests.nupkg'
     nuGetFeedType: 'internal'
-    vstsFeed: norcino/Minded
+    vstsFeed: Minded
     publishVstsFeed: norcino/Minded
     allowPackageConflicts: true
 
