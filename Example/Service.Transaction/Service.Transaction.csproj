@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Service.Transaction</RootNamespace>
+    <IsPackable>False</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

@@ -4,6 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <UserSecretsId>6886025b-a2c9-4491-ac0a-e73b9d4569e3</UserSecretsId>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
+    <IsPackable>False</IsPackable>
     <Version>0.0.3.0</Version>
   </PropertyGroup>
 
