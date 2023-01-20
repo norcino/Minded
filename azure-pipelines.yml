@@ -32,10 +32,8 @@ steps:
   inputs:
     command: 'push'
     feedsToUse: 'select'
-    searchPatternPush: '$(Build.ArtifactStagingDirectory)/*.nupkg;!$(Build.ArtifactStagingDirectory)/*.Tests.nupkg'
-    nuGetFeedType: 'internal'
-    vstsFeed: Minded
-    publishVstsFeed: norcino/Minded
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg;!$(Build.ArtifactStagingDirectory)/*.Tests.nupkg'
+    feedPublish: norcino/Minded
     allowPackageConflicts: true
 
 - task: DotNetCoreCLI@2
