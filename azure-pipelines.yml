@@ -28,15 +28,11 @@ steps:
     verbosityPack: 'Normal'
 
 - task: NuGetCommand@2
-  displayName: 'NuGet Push to Minded'
   inputs:
     command: 'push'
-    feedsToUse: 'select'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
     nuGetFeedType: 'internal'
-    vstsFeed: norcino/Minded
-    publishVstsFeed: norcino/Minded
-    versioningScheme: 'off'
+    publishVstsFeed: '781d4237-b045-4959-bd79-25174518b8d8/b371f2d0-81c8-46d0-b653-f90e65088279'
     allowPackageConflicts: true
 
 - task: DotNetCoreCLI@2
