@@ -31,11 +31,12 @@ steps:
   displayName: 'NuGet Push to Minded'
   inputs:
     command: 'push'
+    feedsToUse: 'select'
     searchPatternPush: '$(Build.ArtifactStagingDirectory)/*.nupkg;!$(Build.ArtifactStagingDirectory)/*.Tests.nupkg'
-    feedsToUse: select
+    nuGetFeedType: 'internal'
     vstsFeed: Minded
-    nuGetFeedType: internal
     publishVstsFeed: Minded
+    allowPackageConflicts: true
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Packages'
