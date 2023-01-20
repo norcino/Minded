@@ -9,7 +9,7 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>$(AssemblyName)</PackageId>
     <Title>$(AssemblyName)</Title>
-    <IsPackable>True</IsPackable>
+    <IsPackable>False</IsPackable>
     <Authors>Manuel Salvatori</Authors>
     <Product>Minded Framework - Clan code made easy</Product>
     <Description>Package which allows to integrate OData query language in the Query handling. Minded helps to implement a clean architecture, offering the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
