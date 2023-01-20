@@ -5,10 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.DependencyValidation.Analyzers" Version="0.11.0" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
