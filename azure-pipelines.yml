@@ -34,8 +34,8 @@ steps:
     feedsToUse: 'select'
     searchPatternPush: '$(Build.ArtifactStagingDirectory)/*.nupkg;!$(Build.ArtifactStagingDirectory)/*.Tests.nupkg'
     nuGetFeedType: 'internal'
-    vstsFeed: Minded
-    publishVstsFeed: Minded
+    vstsFeed: norcino/Minded
+    publishVstsFeed: norcino/Minded
     allowPackageConflicts: true
 
 - task: DotNetCoreCLI@2
