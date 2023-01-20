@@ -23,23 +23,24 @@ steps:
     command: pack    
     versioningScheme: byBuildNumber
     projects: |
-      **/Minded.Extensions.Caching.csproj
-      **/Minded.Extensions.Configuration.csproj
-      **/Minded.Extensions.Decorator.csproj
+      #**/Minded.Extensions.Caching.csproj
+      **/Minded.Extensions.Configuration.csproj      
       **/Minded.Extensions.Exception.csproj
       **/Minded.Extensions.Logging.csproj
       **/Minded.Extensions.OData.csproj
-      **/Minded.Extensions.Transaction.csproj
+      #**/Minded.Extensions.Transaction.csproj
       **/Minded.Extensions.Validation.csproj
       **/Minded.Extensions.Validation.Abstractions.csproj
       **/Minded.Extensions.WebApi.csproj
       **/Minded.Framework.CQRS.csproj
       **/Minded.Framework.CQRS.Abstractions.csproj
+      **/Minded.Framework.Decorator.csproj
       **/Minded.Framework.Mediator.csproj
       **/Minded.Framework.Mediator.Abstractions.csproj
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Packages'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   inputs:
     command: custom
     custom: nuget
@@ -47,6 +48,7 @@ steps:
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Symbols'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   inputs:
     command: custom
     custom: nuget
