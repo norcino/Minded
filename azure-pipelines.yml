@@ -32,7 +32,10 @@ steps:
   inputs:
     command: 'push'
     searchPatternPush: '$(Build.ArtifactStagingDirectory)/*.nupkg;!$(Build.ArtifactStagingDirectory)/*.Tests.nupkg'
-    feedPublish: 'https://pkgs.dev.azure.com/norcino/Minded/_packaging/Minded/nuget/v3/index.json'
+    feedsToUse: select
+    vstsFeed: Minded
+    nuGetFeedType: internal
+    publishVstsFeed: Minded
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Packages'
