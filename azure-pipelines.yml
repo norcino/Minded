@@ -22,7 +22,7 @@ steps:
     packagesToPack: '**/Minded.Extensions.*.csproj;**/Minded.Framework.*.csproj;!**/*.Tests.csproj'
     includesymbols: true
     includesource: true
-    arguments: '--version-suffix "rc."$(Rev:.r)'
+    versionsuffix: 'rc.$(Rev:.r)'
     verbosityPack: 'Normal'
 
 - task: NuGetCommand@2
