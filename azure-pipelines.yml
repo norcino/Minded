@@ -16,6 +16,11 @@ steps:
     arguments: '--configuration $(BuildConfiguration)'
 
 - powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration)'
+  condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
+  displayName: 'Pack'
+
+- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration)'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   displayName: 'Pack'
 
 - task: NuGetCommand@2
