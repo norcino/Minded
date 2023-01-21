@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
-using Minded.Common;
-using Minded.Decorator.Validation;
-using Minded.Validation;
+using Minded.Extensions.Validation;
+using Minded.Extensions.Validation.Decorator;
+using Minded.Framework.CQRS.Abstractions;
 using Service.Category.Command;
 
 namespace Service.Category.Validator
@@ -21,7 +21,7 @@ namespace Service.Category.Validator
 
             if (command.Category == null)
             {
-                validationResult.ValidationEntries.Add(new ValidationEntry(nameof(command.Category), "{0} is mandatory"));
+                validationResult.ValidationEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory"));
 
                 return validationResult;
             }
@@ -30,9 +30,9 @@ namespace Service.Category.Validator
 
             if (command.Category.Id != 0)
             {
-                validationResult.ValidationEntries.Add(new ValidationEntry(nameof(command.Category.Id), "{0} should not be specified on creation"));
+                validationResult.ValidationEntries.Add(new OutcomeEntry(nameof(command.Category.Id), "{0} should not be specified on creation"));
             }
-            
+
             return (await result).Merge(validationResult);
         }
     }

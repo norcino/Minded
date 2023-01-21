@@ -2,10 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Minded.Validation;
 using Service.Category.Validator;
 using Builder;
 using FluentAssertions;
+using Minded.Framework.CQRS.Abstractions;
 
 namespace Service.Category.Tests
 {
@@ -40,7 +40,7 @@ namespace Service.Category.Tests
             result.ValidationEntries.Any(e =>
                     e.PropertyName == nameof(category.Name) &&
                     e.Severity == Severity.Error &&
-                    e.ErrorMessage == "{0} is mandatory")
+                    e.Message == "{0} is mandatory")
                 .Should().BeTrue();
         }
 
@@ -54,7 +54,7 @@ namespace Service.Category.Tests
             result.ValidationEntries.Any(e =>
                     e.PropertyName == nameof(category.Name) &&
                     e.Severity == Severity.Error &&
-                    e.ErrorMessage == "{0} is mandatory")
+                    e.Message == "{0} is mandatory")
                 .Should().BeTrue();
         }
 
@@ -68,7 +68,7 @@ namespace Service.Category.Tests
             result.ValidationEntries.Any(e =>
                     e.PropertyName == nameof(category.Name) &&
                     e.Severity == Severity.Error &&
-                    e.ErrorMessage == "{0} is mandatory")
+                    e.Message == "{0} is mandatory")
                 .Should().BeTrue();
         }
     }

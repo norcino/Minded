@@ -1,21 +1,19 @@
-﻿using Minded.CommandQuery.Query;
-using Minded.Log;
+﻿using System;
+using Minded.Extensions.Logging;
 
 namespace Service.Category.Query
 {
-    public class GetCategoryByIdQuery : IQuery<Data.Entity.Category>
+    public class GetCategoryByIdQuery : ILoggableQuery<Data.Entity.Category>
     {
         public int CategoryId { get; }
+        public Guid TraceId { get; } = Guid.NewGuid();
 
-        public GetCategoryByIdQuery(int categoryId)
+        public GetCategoryByIdQuery(int categoryId, Guid? traceId = null)
         {
             CategoryId = categoryId;
+            TraceId = traceId ?? TraceId;
         }
-        
-        public LogInfo ToLog()
-        {
-            const string template = "CategoryId: {CategoryId}";
-            return new LogInfo(template, CategoryId);
-        }
+
+        public LogData ToLog() => new(TraceId, "CategoryId: {CategoryId}", CategoryId);
     }
 }

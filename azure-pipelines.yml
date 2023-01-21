@@ -1,8 +1,6 @@
 pool:
   name: Azure Pipelines
   vmImage: 'ubuntu-latest'
-
-name: Minded_0.1$(Rev:.r)
     
 steps:
 - task: DotNetCoreCLI@2
@@ -17,19 +15,38 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(BuildConfiguration)'
 
-- task: DotNetCoreCLI@2
-  displayName: Pack
+- powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration)'
+  condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
+  displayName: 'Pack'
+
+- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration)'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  displayName: 'Pack'
+
+- task: NuGetCommand@2
+  displayName: 'NuGet Push Minded Feed'
   inputs:
-    command: pack
-    packagesToPack: Minded.csproj
-    versioningScheme: byBuildNumber
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '781d4237-b045-4959-bd79-25174518b8d8/b371f2d0-81c8-46d0-b653-f90e65088279'
+    allowPackageConflicts: true
 
 - task: DotNetCoreCLI@2
-  displayName: 'NuGet Push'
+  displayName: 'NuGet Push Packages'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   inputs:
     command: custom
     custom: nuget
     arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'NuGet Push Symbols'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  inputs:
+    command: custom
+    custom: nuget
+    arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey)'
 
 - task: DotNetCoreCLI@2
   displayName: Publish

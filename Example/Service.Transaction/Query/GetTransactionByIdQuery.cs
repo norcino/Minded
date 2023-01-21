@@ -1,5 +1,4 @@
-﻿using Minded.CommandQuery.Query;
-using Minded.Log;
+﻿using Minded.Framework.CQRS.Query;
 
 namespace Service.Transaction.Query
 {
@@ -12,10 +11,10 @@ namespace Service.Transaction.Query
             TransactionId = transactionId;
         }
         
-        public LogInfo ToLog()
-        {
-            const string template = "TransactionId: {TransactionId}";
-            return new LogInfo(template, TransactionId);
-        }
+        //public LogInfo ToLog()
+        //{
+        //    const string template = "TransactionId: {TransactionId}";
+        //    return new LogInfo(template, TransactionId);
+        //}
     }
 }

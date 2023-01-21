@@ -1,23 +1,21 @@
-﻿using Minded.Common;
-using Minded.Log;
+﻿using System;
+using Minded.Extensions.Logging;
 
 namespace Service.Category.Command
 {
-    public class UpdateCategoryCommand : ICommand
+    public class UpdateCategoryCommand : ILoggableCommand
     {
         public Data.Entity.Category Category { get; }
         public int CategoryId { get; }
+        public Guid TraceId { get; } = Guid.NewGuid();
 
-        public UpdateCategoryCommand(int id, Data.Entity.Category category)
+        public UpdateCategoryCommand(int id, Data.Entity.Category category, Guid? traceId = null)
         {
             CategoryId = id;
             Category = category;
+            TraceId = traceId ?? TraceId;
         }
 
-        public LogInfo ToLog()
-        {
-            const string template = "CategoryId: {Id} Category: {Name}";
-            return new LogInfo(template, Category.Id, Category.Name);
-        }
+        public LogData ToLog() => new(TraceId, "CategoryId: {Id} Category: {Name}", Category.Id, Category.Name);
     }
 }

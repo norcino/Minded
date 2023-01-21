@@ -1,23 +1,21 @@
-﻿using Minded.Common;
-using Minded.Decorator.Validation;
-using Minded.Log;
+﻿using System;
+using Minded.Extensions.Logging;
+using Minded.Extensions.Validation.Decorator;
 
 namespace Service.Category.Command
 {
     [ValidateCommand]
-    public class CreateCategoryCommand : ICommand
+    public class CreateCategoryCommand : ILoggableCommand<Data.Entity.Category>
     {
         public Data.Entity.Category Category { get; set; }
+        public Guid TraceId { get; } = Guid.NewGuid();
 
-        public CreateCategoryCommand(Data.Entity.Category category)
+        public CreateCategoryCommand(Data.Entity.Category category, Guid? traceId = null)
         {
             Category = category;
+            TraceId = traceId ?? TraceId;
         }
 
-        public LogInfo ToLog()
-        {
-            const string template = "Category: {Name}";
-            return new LogInfo(template, Category.Name);
-        }
+        public LogData ToLog() => new(TraceId, "Category: {Name}", Category.Name);
     }
 }

@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
+    <ProjectReference Include="..\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <PackageId>$(AssemblyName)</PackageId>
+    <Title>$(AssemblyName)</Title>
+    <IsPackable>True</IsPackable>
+    <Authors>Manuel Salvatori</Authors>
+    <Product>Minded Framework - Clan code made easy</Product>
+    <Description>Package containing the core CQRS classes. Minded helps to implement a clean architecture, offering the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
+Encapsuplate all your business logic in Commands and Queries, the rest will be dealth by the framework.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+    <PackageOutputPath>$(OutputDirectory)</PackageOutputPath>
+    <PackageReleaseNotes>The changelog is available at https://github.com/norcino/Minded/blob/master/Changelog.md.</PackageReleaseNotes>
+    <Copyright>Copyright (c) 2023, Manuel Salvatori. All rights reserved.</Copyright>
+    <PackageIcon>Minded-128.png</PackageIcon>
+    <PackageTags>mediator;decorator;command query;rest;validator;clean code;clean architecture</PackageTags>
+    <LicenseUrl>https://github.com/norcino/Minded/blob/master/LICENSE</LicenseUrl>
+		<PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.1.0</FileVersion>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix></VersionSuffix>
+    <RepositoryType>git</RepositoryType>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Minded-128.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

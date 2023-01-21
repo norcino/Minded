@@ -1,6 +1,5 @@
 ﻿using System;
 using Common.Configuration;
-using Minded.Configuration;
 using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNet.OData.Query;
 using Microsoft.AspNetCore.Builder;
@@ -12,6 +11,13 @@ using Microsoft.AspNetCore.Hosting;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Minded.Framework.Mediator;
+using Minded.Extensions.Configuration;
+using Minded.Extensions.Exception.Decorator;
+using Minded.Extensions.Logging.Decorator;
+using Minded.Extensions.Validation.Decorator;
+using System.Linq;
+using Minded.Extensions.WebApi;
 
 namespace Application.Api
 {
@@ -59,7 +65,7 @@ namespace Application.Api
                 routeBuilder.EnableDependencyInjection();
             });
         }
-
+        
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -74,7 +80,21 @@ namespace Application.Api
             // Entity Framework context registration
             RegisterContext(services, HostingEnvironment);
 
-            services.AddMinded(assembly => assembly.Name.StartsWith("Service."));
+            services.AddMinded(assembly => assembly.Name.StartsWith("Service."), b =>
+            {
+                b.AddMediator();
+                b.AddRestMediator();
+
+                b.AddCommandValidationDecorator()                
+                .AddCommandExceptionDecorator()
+                .AddCommandLoggingDecorator()
+                .RegisterCommandHandlers();
+
+                b.AddQueryExceptionDecorator()
+                .AddQueryLoggingDecorator()
+                .AddQueryHandlers();
+            });
+
             // Add framework services.
             services.AddOData();
 
@@ -82,7 +102,7 @@ namespace Application.Api
                 options => options.EnableEndpointRouting = false
             )
             .AddApplicationPart(typeof(Controllers.BaseController).Assembly)
-            .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);            
+            .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
         }
 
         public static void RegisterContext(IServiceCollection services, IWebHostEnvironment env)
@@ -160,7 +180,7 @@ namespace Application.Api
                          //   options.UseLoggerFactory(AppLoggerFactory);
                         });
 
-                        services.AddSingleton<IMindedExampleContext>(s =>
+                        services.AddTransient<IMindedExampleContext>(s =>
                         {
                             var context = s.GetService<MindedExampleContext>();
                             context.Database.EnsureCreated();

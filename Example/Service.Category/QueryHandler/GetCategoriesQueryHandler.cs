@@ -5,7 +5,7 @@ using Data.Common;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Minded.CommandQuery.Query;
+using Minded.Framework.CQRS.Query;
 using Service.Category.Query;
 
 namespace Service.Category.QueryHandler
@@ -20,10 +20,13 @@ namespace Service.Category.QueryHandler
             _context = context;
             _logger = logger;
         }
-   
+
         public async Task<List<Data.Entity.Category>> HandleAsync(GetCategoriesQuery query)
         {
-            return await query.ApplyTo(_context.Categories.AsQueryable()).ToListAsync();
+            return new List<Data.Entity.Category> {
+                new Data.Entity.Category { Id = 1, Active = true, Description = "a" },
+                new Data.Entity.Category { Id = 2, Active = true, Description = "b" },
+            };// await query.ApplyTo(_context.Categories.AsQueryable()).ToListAsync();
         }
     } 
 }

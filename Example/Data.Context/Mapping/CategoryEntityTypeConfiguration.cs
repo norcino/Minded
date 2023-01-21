@@ -15,6 +15,7 @@ namespace Data.Context.Mapping
             builder.Property(c => c.Name)
                     .IsRequired()
                     .HasColumnType("varchar(250)");
+            builder.HasMany(c => c.Transactions).WithOne(c => c.Category);
         }
     }
 }

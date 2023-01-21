@@ -5,8 +5,7 @@ using Microsoft.AspNet.OData.Query;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OData.Edm;
 using Microsoft.OData.UriParser;
-using Minded.CommandQuery.Query.Trait;
-using Minded.Common.Query.Trait;
+using Minded.Framework.CQRS.Query.Trait;
 
 namespace Application.Api.Controllers
 {
@@ -37,7 +36,7 @@ namespace Application.Api.Controllers
             
             if (query is ICanFilter<TEntity> f && queryOptions.Filter != null)
             {
-                f.Filter = queryOptions.Filter.GetFilterExpression<TEntity>();
+               // f.Filter = queryOptions.Filter.GetFilterExpression<TEntity>();
             }
 
             if (query is ICanOrderBy o && queryOptions.OrderBy != null)
