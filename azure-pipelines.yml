@@ -1,8 +1,6 @@
 pool:
   name: Azure Pipelines
   vmImage: 'ubuntu-latest'
-
-name: Minded_0.1$(Rev:.r)
     
 steps:
 - task: DotNetCoreCLI@2
@@ -19,15 +17,16 @@ steps:
 
 - task: DotNetCoreCLI@2
   displayName: 'Pack'
-  inputs:
+    inputs:
     command: 'pack'
     packagesToPack: '**/Minded.Extensions.*.csproj;**/Minded.Framework.*.csproj;!**/*.Tests.csproj'
     includesymbols: true
     includesource: true
-    versioningScheme: 'byBuildNumber'
+    arguments: '--version-suffix "alpha."$(Rev:.r)'
     verbosityPack: 'Normal'
 
 - task: NuGetCommand@2
+  displayName: 'NuGet Push Minded Feed'
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
