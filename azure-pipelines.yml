@@ -19,9 +19,8 @@ steps:
   displayName: 'Pack'
   inputs:
     command: 'custom'    
-    custom: 'pack'
-    packagesToPack: '**/Minded.Extensions.*.csproj;**/Minded.Framework.*.csproj;!**/*.Tests.csproj'
-    arguments: 'Minded.sln --version-suffix rc.$(Build.BuildNumber) --include-symbols --include-source --configuration $(BuildConfiguration)'
+    custom: 'pack'    
+    arguments: 'Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration)'
 
 - task: NuGetCommand@2
   displayName: 'NuGet Push Minded Feed'
