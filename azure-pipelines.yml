@@ -15,12 +15,8 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(BuildConfiguration)'
 
-- task: DotNetCoreCLI@2
+- powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration)'
   displayName: 'Pack'
-  inputs:
-    command: 'custom'    
-    custom: 'pack'    
-    arguments: 'Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration)'
 
 - task: NuGetCommand@2
   displayName: 'NuGet Push Minded Feed'
