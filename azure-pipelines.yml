@@ -17,12 +17,12 @@ steps:
 
 - task: DotNetCoreCLI@2
   displayName: 'Pack'
-    inputs:
+  inputs:
     command: 'pack'
     packagesToPack: '**/Minded.Extensions.*.csproj;**/Minded.Framework.*.csproj;!**/*.Tests.csproj'
     includesymbols: true
     includesource: true
-    arguments: '--version-suffix "alpha."$(Rev:.r)'
+    arguments: '--version-suffix "rc."$(Rev:.r)'
     verbosityPack: 'Normal'
 
 - task: NuGetCommand@2
