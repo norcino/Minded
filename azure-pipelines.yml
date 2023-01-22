@@ -15,11 +15,11 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(BuildConfiguration)'
 
-- powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+- powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) --SkipDuplicate'
   displayName: 'Pack non master version'
   condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
 
-- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) --SkipDuplicate'
   displayName: 'Pack master version'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
 
