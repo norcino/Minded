@@ -38,7 +38,7 @@ steps:
   inputs:
     command: custom
     custom: nuget
-    arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --SkipDuplicate'
+    arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --Skip-Duplicate'
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Symbols - Master only'
@@ -46,7 +46,7 @@ steps:
   inputs:
     command: custom
     custom: nuget
-    arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --SkipDuplicate'
+    arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --Skip-Duplicate'
 
 - task: DotNetCoreCLI@2
   displayName: Publish
