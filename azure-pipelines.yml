@@ -15,11 +15,11 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(BuildConfiguration)'
 
-- powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) --SkipDuplicate'
+- powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
   displayName: 'Pack non master version'
   condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
 
-- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) --SkipDuplicate'
+- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
   displayName: 'Pack master version'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
 
@@ -38,7 +38,7 @@ steps:
   inputs:
     command: custom
     custom: nuget
-    arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey)'
+    arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --SkipDuplicate'
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Symbols - Master only'
@@ -46,7 +46,7 @@ steps:
   inputs:
     command: custom
     custom: nuget
-    arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey)'
+    arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --SkipDuplicate'
 
 - task: DotNetCoreCLI@2
   displayName: Publish
