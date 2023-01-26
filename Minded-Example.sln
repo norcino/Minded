@@ -92,6 +92,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Service.Common", "Example\S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Framework.Decorator", "Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj", "{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.CQRS.EntityFrameworkCore", "Extensions\Minded.Extensions.CQRS.EntityFrameworkCore\Minded.Extensions.CQRS.EntityFrameworkCore.csproj", "{AAB2F5C3-9C1E-4776-9ACF-BFE548751790}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -222,6 +224,10 @@ Global
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAB2F5C3-9C1E-4776-9ACF-BFE548751790}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAB2F5C3-9C1E-4776-9ACF-BFE548751790}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAB2F5C3-9C1E-4776-9ACF-BFE548751790}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAB2F5C3-9C1E-4776-9ACF-BFE548751790}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -263,6 +269,7 @@ Global
 		{B0D372CC-2D21-467F-BEF9-2F9507F3DF51} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{BA6C722A-EBAF-4ECE-AFCE-5E3CAD1A9036} = {36B04108-D4FB-47CB-A940-868A45577D2F}
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C} = {C0DEFF54-65E3-4EE5-9D00-F20C0A8040FF}
+		{AAB2F5C3-9C1E-4776-9ACF-BFE548751790} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7C9F706B-19EF-445C-9AF7-246B32541C7F}

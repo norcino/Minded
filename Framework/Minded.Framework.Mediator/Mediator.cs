@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Minded.Framework.CQRS.Command;
 using Minded.Framework.CQRS.Query;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Minded.Framework.Mediator
 {

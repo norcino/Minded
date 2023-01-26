@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Microsoft.EntityFrameworkCore;
 //using System.Linq.Dynamic.Core;
 //using Microsoft.EntityFrameworkCore;
 using Minded.Framework.CQRS.Query.Trait;
@@ -12,12 +13,13 @@ namespace Minded.Framework.CQRS.Query
             if (query is ICanOrderBy o && o?.OrderBy?.Count > 0)
             {
                 var orderIndex = 0;
-                var dynamicOrderString = $"{o.OrderBy[orderIndex].PropertyName} {o.OrderBy[orderIndex].Order}";
+                //var dynamicOrderString = $"{o.OrderBy[orderIndex].PropertyName} {o.OrderBy[orderIndex].Order}";
+                //queryable = queryable.OrderBy(T => EF.Property<object>(T!, o.OrderBy[orderIndex].PropertyName));
                 for (orderIndex++; orderIndex < o.OrderBy.Count; orderIndex++)
                 {
-                    dynamicOrderString += $", {o.OrderBy[orderIndex].PropertyName} {o.OrderBy[orderIndex].Order}";
+                    //dynamicOrderString += $", {o.OrderBy[orderIndex].PropertyName} {o.OrderBy[orderIndex].Order}";
+                    //queryable = queryable.OrderByDescending OrderBy(T => EF.Property<object>(T!, o.OrderBy[orderIndex].PropertyName));
                 }
-     //           queryable = queryable.OrderBy(dynamicOrderString);
             }
 
             if (query is ICanExpand e && e.Expand?.Length > 0)

@@ -34,6 +34,10 @@ namespace Application.Api.Controllers
 
         public IEnumerable<Category> Get(ODataQueryOptions<Category> queryOptions)
         {
+            // Avoid coupling with OData
+
+
+
             // OK return _context.Categories.Include(c => c.Transactions).ToList();
 
             var xx = _context.Categories.ApplyODataQueryOptions(queryOptions);
