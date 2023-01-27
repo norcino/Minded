@@ -14,7 +14,7 @@ using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Service.Category.Command;
 using Service.Category.Query;
-using Minded.Extensions.OData;
+//using Minded.Extensions.OData;
 
 namespace Application.Api.Controllers
 {
@@ -36,8 +36,8 @@ namespace Application.Api.Controllers
         {
             // OK return _context.Categories.Include(c => c.Transactions).ToList();
 
-            var xx = _context.Categories.ApplyODataQueryOptions(queryOptions);
-            return xx;
+            //var xx = _context.Categories.ApplyODataQueryOptions(queryOptions);
+            //return xx;
             var x = queryOptions.ApplyTo(_context.Categories);
 
             var y = x.ToDynamicList<Category>();

@@ -26,13 +26,15 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OData" Version="7.6.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.13" />
+    <PackageReference Include="Minded.Extensions.Configuration" Version="0.1.28" />
+    <PackageReference Include="Minded.Extensions.Exception" Version="0.1.28" />
+    <PackageReference Include="Minded.Extensions.Validation" Version="0.1.28" />
+    <PackageReference Include="Minded.Extensions.WebApi" Version="0.1.28" />
+    <PackageReference Include="Minded.Framework.CQRS" Version="0.1.28" />
+    <PackageReference Include="Minded.Framework.Mediator" Version="0.1.28" />
+    <PackageReference Include="Minded.Framework.Mediator.Abstractions" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.OData\Minded.Extensions.OData.csproj" />
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.WebApi\Minded.Extensions.WebApi.csproj" />
-    <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator.Abstractions\Minded.Framework.Mediator.Abstractions.csproj" />
-    <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator\Minded.Framework.Mediator.csproj" />
     <ProjectReference Include="..\Common.Configuration\Common.Configuration.csproj" />
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
     <ProjectReference Include="..\Service.Category\Service.Category.csproj" />
