@@ -26,13 +26,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OData" Version="7.6.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.13" />
-    <PackageReference Include="Minded.Extensions.Configuration" Version="0.1.28" />
-    <PackageReference Include="Minded.Extensions.Exception" Version="0.1.28" />
-    <PackageReference Include="Minded.Extensions.Validation" Version="0.1.28" />
     <PackageReference Include="Minded.Extensions.WebApi" Version="0.1.28" />
-    <PackageReference Include="Minded.Framework.CQRS" Version="0.1.28" />
     <PackageReference Include="Minded.Framework.Mediator" Version="0.1.28" />
-    <PackageReference Include="Minded.Framework.Mediator.Abstractions" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common.Configuration\Common.Configuration.csproj" />

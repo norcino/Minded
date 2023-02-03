@@ -6,11 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation.Abstractions\Minded.Extensions.Validation.Abstractions.csproj" />
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation\Minded.Extensions.Validation.csproj" />
-    <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
-    <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
+    <PackageReference Include="Minded.Extensions.Validation" Version="0.1.28" />
+    <PackageReference Include="Minded.Framework.CQRS" Version="0.1.28" />
+    <PackageReference Include="Minded.Framework.CQRS.Abstractions" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Data.Common\Data.Common.csproj" />
     <ProjectReference Include="..\Data.Context\Data.Context.csproj" />
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />

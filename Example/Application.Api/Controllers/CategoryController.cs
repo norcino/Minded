@@ -14,6 +14,7 @@ using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Service.Category.Command;
 using Service.Category.Query;
+using Microsoft.AspNet.OData;
 //using Minded.Extensions.OData;
 
 namespace Application.Api.Controllers
@@ -34,14 +35,50 @@ namespace Application.Api.Controllers
 
         public IEnumerable<Category> Get(ODataQueryOptions<Category> queryOptions)
         {
+            var count = queryOptions.Count;
+            var filter = queryOptions.Filter;
+            var orderBy = queryOptions.OrderBy;
+            var skip = queryOptions.Skip;
+            var top = queryOptions.Top;
+            var selectExpand = queryOptions.SelectExpand;
+
+            var querySetting = new ODataQuerySettings
+            {
+                EnableConstantParameterization = true,
+                EnsureStableOrdering = true,
+                EnableCorrelatedSubqueryBuffering = true,
+                HandleNullPropagation = HandleNullPropagationOption.Default,
+                HandleReferenceNavigationPropertyExpandFilter = false,
+                PageSize = 100
+            };
+
+            var queryable = _context.Categories.AsQueryable();
+
+            var q = filter.ApplyTo(queryable, querySetting);
+            q = orderBy.ApplyTo(q, querySetting);
+            q = skip.ApplyTo(q, querySetting);
+            q = top.ApplyTo(q, querySetting);
+
+            if(selectExpand != null)
+            {
+                var sax = selectExpand.ApplyTo(q, querySetting);
+
+                foreach (var item in sax)
+                {
+                    var xxxx = 0;
+                }
+            }
+            
+
+            var results = q.ToDynamicList<Category>();
+            var countValue = count?.GetEntityCount(q);
+
             // OK return _context.Categories.Include(c => c.Transactions).ToList();
 
             //var xx = _context.Categories.ApplyODataQueryOptions(queryOptions);
             //return xx;
             var x = queryOptions.ApplyTo(_context.Categories);
-
             var y = x.ToDynamicList<Category>();
-
             return y;
             // Cast<Category>().ToList();
             //return (queryOptions.ApplyTo(_context.Categories) as IQueryable<Category>).ToList();
@@ -54,28 +91,12 @@ namespace Application.Api.Controllers
         public async Task<ActionResult> Get(int id)
         {
             return await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetCategoryByIdQuery(id));
-            //var result = await _mediator.ProcessQueryAsync(new GetCategoryByIdQuery(id));
-
-            //if (result == null)
-            //{
-            //    return NotFound();
-            //}
-
-            //return new OkObjectResult(result);
         }
 
         [HttpPost]
         public async Task<ActionResult> PostAsync([FromBody] Category category)
         {
-            return await _restMediator.ProcessRestCommandAsync<Category>(RestOperation.Create, new CreateCategoryCommand(category));
-            //var result = await _mediator.ProcessCommandAsync<int>(new CreateCategoryCommand(category));
-
-            //if (result.Successful)
-            //{
-            //    return new CreatedAtRouteResult("GetCategoryById", new {Id = result.Result}, result);
-            //}
-
-            //return StatusCode(StatusCodes.Status400BadRequest, result);
+            return await _restMediator.ProcessRestCommandAsync(RestOperation.Create, new CreateCategoryCommand(category));
         }
     }
 }

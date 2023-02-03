@@ -7,7 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation\Minded.Extensions.Validation.csproj" />
+    <PackageReference Include="Minded.Extensions.Validation" Version="0.1.28" />
+    <PackageReference Include="Minded.Framework.CQRS" Version="0.1.28" />
+    <PackageReference Include="Minded.Framework.CQRS.Abstractions" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Data.Context\Data.Context.csproj" />
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
   </ItemGroup>

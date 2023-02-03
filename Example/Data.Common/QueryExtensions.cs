@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Dynamic.Core;
 using System.Linq;
-using Minded.Framework.CQRS.Query.Trait;
-using Minded.Framework.CQRS.Query;
 
 namespace Data.Common
 {
