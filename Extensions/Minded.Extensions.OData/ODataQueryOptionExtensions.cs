@@ -10,7 +10,7 @@ namespace Minded.Extensions.OData
     public static class ODataQueryOptionExtensions
     {
         /// <summary>
-        /// Extract the expression used to filter teh queryable. This expression can be applied to the Context.
+        /// Extract the expression used to filter the queryable. This expression can be applied to the Context.
         /// </summary>
         /// <typeparam name="TEntity">Entity type which will be filtered</typeparam>
         /// <param name="filter">FilterQueryOption filter from the ODataQueryOption</param>

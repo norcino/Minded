@@ -14,8 +14,14 @@
     /// </summary>
     public class OrderDescriptor
     {
-        public Order Order { get; set; }
-        public string PropertyName { get; set; }
+        public OrderDescriptor(Order order, string propertyName)
+        {
+            Order = order;
+            PropertyName = propertyName;
+        }
+
+        public Order Order { get; }
+        public string PropertyName { get; }
 
         public new string ToString()
         {
