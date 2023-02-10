@@ -5,7 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.AspNet.OData.Query;
 
-namespace Minded.Extensions.OData
+namespace Minded.Extensions.CQRS.OData
 {
     public static class ODataQueryOptionExtensions
     {

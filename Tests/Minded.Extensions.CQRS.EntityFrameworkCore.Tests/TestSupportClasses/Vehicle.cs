@@ -5,6 +5,6 @@
         public int Id { get; set; }
         public string Model { get; set; }
         public Person Owner { get; set; }
-        public Corporation maker { get; set; }
+        public Corporation Maker { get; set; }
     }
 }

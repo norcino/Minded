@@ -45,4 +45,8 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Query\" />
+  </ItemGroup>
+
 </Project>

@@ -1,3 +1,10 @@
+1) in cqrs rivedi i traits se hanno senso, e trova un modo per gestire il filtering fatto con cunzione lambda
+2) aggiungere traits in odata senza parametro
+3) creare base query class che fa validazione di odata e ritorna errore se non valido
+4) valuta design di query dinamiche sul risultato per facilitare filtri guidati dai permessi
+
+
+
 [![Build status](https://dev.azure.com/norcino/Minded/_apis/build/status/GitHub%20Minded)](https://dev.azure.com/norcino/Minded/_build/latest?definitionId=1)
 
 
