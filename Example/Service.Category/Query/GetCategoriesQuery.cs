@@ -6,16 +6,19 @@ using System.Linq.Expressions;
 
 namespace Service.Category.Query
 {
-    public class GetCategoriesQuery : ILoggableQuery<List<Data.Entity.Category>>, ICanCount, ICanTop, ICanSkip, ICanExpand, ICanOrderBy, ICanFilter<Data.Entity.Category>
+    public class GetCategoriesQuery : ILoggableQuery<IEnumerable<Data.Entity.Category>>, ICanCount, ICanTop, ICanSkip, ICanExpand, ICanOrderBy, ICanFilterExpression<Data.Entity.Category>
     {
+        public bool CountOnly { get; set; }
         public bool Count { get; set; }
+        public int CountValue { get; set; }
+
         public int? Top { get; set; }
-        public int Skip { get; set; }
+        public int? Skip { get; set; }
         public string[] Expand { get; set; }
         public IList<OrderDescriptor> OrderBy { get; set; }
         public Guid TraceId { get; } = Guid.NewGuid();
 
-        public Expression<Func<Data.Entity.Category, bool>> Filter { get; set; }
+        public Expression<Func<Data.Entity.Category, bool>> Filter { get; set; }     
 
         public GetCategoriesQuery(Guid? traceId = null)
         {

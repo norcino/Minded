@@ -4,7 +4,7 @@ using Minded.Framework.CQRS.Query.Trait;
 
 namespace Minded.Framework.CQRS.Tests.TestSupportClasses
 {
-    public class VehicleQuery : IQuery<Vehicle>, ICanOrderBy
+    public class VehicleQuery : IQuery<IEnumerable<Vehicle>>, ICanOrderBy
     {
         public IList<OrderDescriptor> OrderBy { get; set; }
     }

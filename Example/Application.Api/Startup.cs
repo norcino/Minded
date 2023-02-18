@@ -101,7 +101,7 @@ namespace Application.Api
             services.AddMvc(
                 options => options.EnableEndpointRouting = false
             )
-            .AddApplicationPart(typeof(Controllers.BaseController).Assembly)
+            //.AddApplicationPart(typeof(Controllers.BaseController).Assembly)
             .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
         }
 

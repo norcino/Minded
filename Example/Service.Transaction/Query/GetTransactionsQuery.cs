@@ -1,23 +1,16 @@
-﻿using Minded.Framework.CQRS.Query;
-using Minded.Framework.CQRS.Query.Trait;
-using System;
+﻿using Microsoft.AspNet.OData.Query;
+using Minded.Framework.CQRS.Query;
 using System.Collections.Generic;
-using System.Linq.Expressions;
 
 namespace Service.Transaction.Query
 {
-    public class GetTransactionsQuery : IQuery<List<Data.Entity.Transaction>>, ICanTop, ICanSkip, ICanExpand, ICanOrderBy, ICanFilter<Data.Entity.Transaction>
+    public class GetTransactionsQuery : IQuery<List<Data.Entity.Transaction>>
     {
-        //public LogInfo ToLog()
-        //{
-        //    return new LogInfo();
-        //}
+        public GetTransactionsQuery(ODataQueryOptions<Data.Entity.Transaction> options)
+        {
+            Options = options;
+        }
 
-        public int? Top { get; set; }
-        public int Skip { get; set; }
-        public string[] Expand { get; set; }
-        public bool Count { get; set; }
-        public IList<OrderDescriptor> OrderBy { get; set; }
-        public Expression<Func<Data.Entity.Transaction, bool>> Filter { get; set; }
+        public ODataQueryOptions<Data.Entity.Transaction> Options { get; set; }
     }
 }

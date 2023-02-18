@@ -10,11 +10,5 @@ namespace Service.Transaction.Query
         {
             TransactionId = transactionId;
         }
-        
-        //public LogInfo ToLog()
-        //{
-        //    const string template = "TransactionId: {TransactionId}";
-        //    return new LogInfo(template, TransactionId);
-        //}
     }
 }

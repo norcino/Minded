@@ -7,8 +7,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Application.Api\Application.Api.csproj" />
     <ProjectReference Include="..\Common.Tests\Common.Tests.csproj" />
-    <PackageReference Include="FluentAssertions" Version="6.9.0" />
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="6.0.12" />
+    <PackageReference Include="FluentAssertions" Version="6.10.0" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="6.0.14" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
     <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />

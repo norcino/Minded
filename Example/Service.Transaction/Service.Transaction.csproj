@@ -7,12 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Minded.Extensions.Validation" Version="0.1.28" />
-    <PackageReference Include="Minded.Framework.CQRS" Version="0.1.28" />
-    <PackageReference Include="Minded.Framework.CQRS.Abstractions" Version="1.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OData" Version="7.6.4" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.OData\Minded.Extensions.CQRS.OData.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation\Minded.Extensions.Validation.csproj" />
     <ProjectReference Include="..\Data.Context\Data.Context.csproj" />
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
   </ItemGroup>

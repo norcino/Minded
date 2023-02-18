@@ -7,6 +7,7 @@ namespace Data.Context
     {
         DbSet<Category> Categories { get; set; }
         DbSet<Transaction> Transactions { get; set; }
+        DbSet<User> Users { get; set; }
         DbSet<T> Set<T>() where T : class, new();
     }
 }

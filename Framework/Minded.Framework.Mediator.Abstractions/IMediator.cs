@@ -11,7 +11,7 @@ namespace Minded.Framework.Mediator
     public interface IMediator
     {
         /// <summary>
-        /// Dynamically constructs the correct IQueryHandler for the given query and executes it's Handle method
+        /// Instantiates the IQueryHandler for the given query and executes it's Handle method
         /// </summary>
         /// <typeparam name="TResult">Result returned by the query</typeparam>
         /// <param name="query">Query to be executed</param>
@@ -19,14 +19,14 @@ namespace Minded.Framework.Mediator
         Task<TResult> ProcessQueryAsync<TResult>(IQuery<TResult> query);
 
         /// <summary>
-        /// Dynamically constructs the correct IQueryHandler for the given command and executes it's Handle method
+        /// Instantiates the ICommandHandler for the given command and executes it's Handle method
         /// </summary>
         /// <param name="command">Command to be executed</param>
         /// <returns>ICommandResponse containing the information about the execution</returns>
         Task<ICommandResponse> ProcessCommandAsync(ICommand command);
 
         /// <summary>
-        /// Dynamically constructs the correct IQueryHandler for the given command and executes it's Handle method
+        /// Instantiates the ICommandHandler for the given command and executes it's Handle method
         /// </summary>
         /// <typeparam name="TResult">Type of the expected command result</typeparam>
         /// <param name="command">Command to be executed</param>

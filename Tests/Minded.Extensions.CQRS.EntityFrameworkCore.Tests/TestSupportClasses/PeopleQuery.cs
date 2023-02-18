@@ -4,7 +4,7 @@ using Minded.Framework.CQRS.Query.Trait;
 
 namespace Minded.Framework.CQRS.Tests.TestSupportClasses
 {
-    public class PeopleQuery : IQuery<Person>, ICanOrderBy, ICanExpand
+    public class PeopleQuery : IQuery<IEnumerable<Person>>, ICanOrderBy, ICanExpand
     {
         public IList<OrderDescriptor> OrderBy { get; set; }
         public string[] Expand { get; set; }

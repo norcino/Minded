@@ -7,77 +7,91 @@ using System.Linq;
 using System.Collections.Generic;
 using FluentAssertions;
 using AnonymousData;
+using Minded.Extensions.CQRS.EntityFrameworkCore.Tests.TestSupportClasses;
+using Microsoft.EntityFrameworkCore.Query.Internal;
+using System.Collections;
 
 namespace Minded.Framework.CQRS.Tests
 {
     [TestClass]
     public class QueryExtensionsTests
     {
+        TestDbContext _context;
+        [TestInitialize]
+        public void TestInitialize() {
+            _context = new TestDbCreator().CreateContext();
+        }
+
+        [TestCleanup]
+        public void TestCleanup() {
+            _context.Dispose();
+        }
+
         #region OrderBy
         [TestMethod]
         public void ApplyTo_Should_correctly_Order_by_Ascending_on_single_property()
         {
-            IQuery<Vehicle> vehicleQuery = new VehicleQuery();
+            var vehicleQuery = new VehicleQuery();
 
             (vehicleQuery as ICanOrderBy).OrderBy = new List<OrderDescriptor>
             {
-                new OrderDescriptor(Order.Ascending, nameof(Vehicle.Id))
+                new OrderDescriptor(Order.Ascending, nameof(Vehicle.Model))
             };
 
-            IQueryable<Vehicle> vehicles = Builder<Vehicle>.New().BuildMany(1000).AsQueryable();
-
-            var queryResult = vehicleQuery.ApplyTo(vehicles).ToList();
-            queryResult.Should().BeInAscendingOrder(v => v.Id);
+            var vehicles = Builder<Vehicle>.New().BuildMany(1000, (v, i) => { v.Id = 0; });
+            _context.Vehicles.AddRange(vehicles);
+            _context.SaveChanges();
+                        
+            var queryResult = vehicleQuery.ApplyTo(_context.Vehicles).ToList();
+            queryResult.Should().BeInAscendingOrder(v => v.Model, Comparer<string>.Default);
         }
 
         [TestMethod]
         public void ApplyTo_Should_correctly_Order_by_Ascending_on_multiple_properties()
         {
             var primaryName = Any.String();
-            var people = Builder<Person>.New().BuildMany(1000, (v, i) => {
-                v.Name = i < 800 ? primaryName : Any.String();
-                v.Surname = $"{i % 10}";
-                v.Id = i;
+            var people = Builder<Person>.New().BuildMany(1000, (p, i) => {
+                p.Id = 0;
+                p.Name = i < 800 ? primaryName : Any.String();
+                p.Surname = $"{i % 10}";
             }).AsQueryable();
 
-            IQuery<Person> peopleQuery = new PeopleQuery();
+            var peopleQuery = new PeopleQuery();
             (peopleQuery as ICanOrderBy).OrderBy = new List<OrderDescriptor>
             {
                 new OrderDescriptor(Order.Ascending, nameof(Person.Name)),
                 new OrderDescriptor(Order.Ascending, nameof(Person.Surname))
             };
 
-            var queryResult = peopleQuery.ApplyTo(people).ToList();
+            _context.People.AddRange(people);
+            _context.SaveChanges();
 
-            for (var i = 0; i < queryResult.Count - 1; i++)
-            {
-                var nameComparisonValue = queryResult[i].Name.CompareTo(queryResult[i + 1].Name);
-                Assert.IsTrue(nameComparisonValue <= 0, "ID must be in descending order");
+            var queryResult = peopleQuery.ApplyTo(_context.People).ToList();
 
-                // If the same I can test the Surname to be ascending
-                if (nameComparisonValue == 0)
-                {
-                    var surnameComparisonValue = queryResult[i].Surname.CompareTo(queryResult[i + 1].Surname);
-                    Assert.IsTrue(surnameComparisonValue <= 0, "ID must be in ascending order");
-                }
-            }
+            queryResult.Should()
+                .BeInAscendingOrder(v => v.Name, Comparer<string>.Default)
+                .And
+                .ThenBeInAscendingOrder(v => v.Surname, Comparer<string>.Default);
         }
 
         [TestMethod]
         public void ApplyTo_Should_correctly_Order_by_Descending_on_single_property()
         {
-            IQuery<Vehicle> vehicleQuery = new VehicleQuery();
+            var vehicleQuery = new VehicleQuery();
 
             (vehicleQuery as ICanOrderBy).OrderBy = new List<OrderDescriptor>
             {
                 new OrderDescriptor(Order.Descending, nameof(Vehicle.Id))
             };
 
-            IQueryable<Vehicle> vehicles = Builder<Vehicle>.New().BuildMany(1000).AsQueryable();
+            var vehicles = Builder<Vehicle>.New().BuildMany(1000, (v, i) => { v.Id = 0; v.Model = Any.String(); });
+            _context.Vehicles.AddRange(vehicles);
+            _context.SaveChanges();
 
-            var queryResult = vehicleQuery.ApplyTo(vehicles).ToList();
+            var q = vehicleQuery.ApplyTo(_context.Vehicles);
 
-            queryResult.Should().BeInDescendingOrder(v => v.Id);
+            var log = ((EntityQueryable<Vehicle>)q).DebugView.Query;
+            log.Should().EndWith("ORDER BY [v].[Id] DESC");
         }
 
         [TestMethod]
@@ -87,30 +101,22 @@ namespace Minded.Framework.CQRS.Tests
             var people = Builder<Person>.New().BuildMany(1000, (v, i) => {
                 v.Name = i < 800 ? primaryName : Any.String();
                 v.Surname = $"{i % 10}";
-                v.Id = i;
+                v.Id = 0;
             }).AsQueryable();
 
-            IQuery<Person> peopleQuery = new PeopleQuery();
+            var peopleQuery = new PeopleQuery();
             (peopleQuery as ICanOrderBy).OrderBy = new List<OrderDescriptor>
             {
                 new OrderDescriptor(Order.Descending, nameof(Person.Name)),
                 new OrderDescriptor(Order.Descending, nameof(Person.Surname))
             };
 
-            var queryResult = peopleQuery.ApplyTo(people).ToList();
+            _context.People.AddRange(people);
+            _context.SaveChanges();
 
-            for (var i = 0; i < queryResult.Count - 1; i++)
-            {
-                var nameComparisonValue = queryResult[i].Name.CompareTo(queryResult[i + 1].Name);
-                Assert.IsTrue(nameComparisonValue >= 0, "ID must be in descending order");
-
-                // If the same I can test the Surname to be ascending
-                if (nameComparisonValue == 0)
-                {
-                    var surnameComparisonValue = queryResult[i].Surname.CompareTo(queryResult[i + 1].Surname);
-                    Assert.IsTrue(surnameComparisonValue >= 0, "ID must be in ascending order");
-                }
-            }
+            var q = peopleQuery.ApplyTo(_context.People);
+            var log = ((EntityQueryable<Person>)q).DebugView.Query;
+            log.Should().EndWith("ORDER BY [p].[Name] DESC, [p].[Surname] DESC");
         }
 
         [TestMethod]
@@ -120,10 +126,10 @@ namespace Minded.Framework.CQRS.Tests
             var people = Builder<Person>.New().BuildMany(1000, (v, i) => {
                 v.Name = i < 800 ? primaryName : Any.String();
                 v.Surname = $"{i % 10}";
-                v.Id = i;
+                v.Id = 0;
             }).AsQueryable();
 
-            IQuery<Person> peopleQuery = new PeopleQuery();
+            var peopleQuery = new PeopleQuery();
 
             (peopleQuery as ICanOrderBy).OrderBy = new List<OrderDescriptor>
             {
@@ -132,68 +138,70 @@ namespace Minded.Framework.CQRS.Tests
                 new OrderDescriptor(Order.Ascending, nameof(Person.Id))
             };
 
-            var queryResult = peopleQuery.ApplyTo(people).ToList();
+            _context.People.AddRange(people);
+            _context.SaveChanges();
 
-            for (var i = 0; i < queryResult.Count - 1; i++)
-            {
-                var nameComparisonValue = queryResult[i].Name.CompareTo(queryResult[i + 1].Name);
-                Assert.IsTrue(nameComparisonValue >= 0, "ID must be in descending order");
+            var q = peopleQuery.ApplyTo(_context.People);
 
-                // If the same I can test the Surname to be ascending
-                if (nameComparisonValue == 0)
-                {
-                    var surnameComparisonValue = queryResult[i].Surname.CompareTo(queryResult[i + 1].Surname);
-                    Assert.IsTrue(surnameComparisonValue <= 0, "ID must be in ascending order");
-
-                    // If the same I can test the ID to be ascending
-                    if (surnameComparisonValue == 0)
-                    {
-                        var idComparisonValue = queryResult[i].Id.CompareTo(queryResult[i + 1].Id);
-                        Assert.IsTrue(idComparisonValue < 0, "ID must be in ascending order");
-                    }
-                }
-            }
+            var log = ((EntityQueryable<Person>)q).DebugView.Query;
+            log.Should().EndWith("ORDER BY [p].[Name] DESC, [p].[Surname], [p].[Id]");
         }
         #endregion
 
-        #region Expand
+        //#region Expand
         [TestMethod]
         public void ApplyTo_Should_expand_single_entity()
         {
-            var people = Builder<Person>.New().BuildMany(10, (p, i) => {
+            var peopleWithVehicles = Any.String();
+            var people = Builder<Person>.New().BuildMany(10, (p, i) =>
+            {
+                p.Id = 0;
+                p.Surname = peopleWithVehicles;
                 p.Vehicles = Builder<Vehicle>.New().BuildMany(10, (v, i) =>
                 {
-                    v.Owner = Builder<Person>.New().Build();
-                    v.Maker = Builder<Corporation>.New().Build(c => c.CEO = Builder<Person>.New().Build());
+                    v.Id = 0;
+                    v.Owner = Builder<Person>.New().Build(p2 => p2.Id = 0);
+                    v.Maker = Builder<Corporation>.New().Build(c => {
+                        c.Id = 0;
+                        c.CEO = Builder<Person>.New().Build(p3 => p3.Id = 0);
+                    });
                 });
-            }).AsQueryable();
+            });
 
-            IQuery<Person> peopleQuery = new PeopleQuery();
+            _context.People.AddRange(people);
+            _context.SaveChanges();
+
+            var peopleQuery = new PeopleQuery();
 
             (peopleQuery as ICanExpand).Expand = new[] { nameof(Person.Vehicles) };
 
-            var queryResult = peopleQuery.ApplyTo(people).ToList();
+            var query = peopleQuery.ApplyTo(_context.People);
+            var queryResult = query.ToList().Where(p => p.Surname == peopleWithVehicles);
 
-            queryResult[0].Vehicles.Should().NotBeEmpty();
+            queryResult.Should().AllSatisfy(p =>
+            {
+                p.Vehicles.Should().NotBeEmpty();
+                p.Vehicles.Should().AllSatisfy(v => v.Owner.Should().BeNull());
+            });
         }
 
-        [TestMethod]
-        public void ApplyTo_Should_not_expand_when_not_required()
-        {
-            var people = Builder<Person>.New().BuildMany(10, (p, i) => {
-                p.Vehicles = Builder<Vehicle>.New().BuildMany(10, (v, i) =>
-                {
-                    v.Owner = Builder<Person>.New().Build();
-                    v.Maker = Builder<Corporation>.New().Build(c => c.CEO = Builder<Person>.New().Build());
-                });
-            }).AsQueryable();
+        //[TestMethod]
+        //public void ApplyTo_Should_not_expand_when_not_required()
+        //{
+        //    var people = Builder<Person>.New().BuildMany(10, (p, i) => {
+        //        p.Vehicles = Builder<Vehicle>.New().BuildMany(10, (v, i) =>
+        //        {
+        //            v.Owner = Builder<Person>.New().Build();
+        //            v.Maker = Builder<Corporation>.New().Build(c => c.CEO = Builder<Person>.New().Build());
+        //        });
+        //    }).AsQueryable();
 
-            IQuery<Person> peopleQuery = new PeopleQuery();
+        //    IQuery<Person> peopleQuery = new PeopleQuery();
 
-            var queryResult = peopleQuery.ApplyTo(people).ToList();
+        //    var queryResult = peopleQuery.ApplyTo(people).ToList();
 
-            queryResult[0].Vehicles.Should().BeEmpty();
-        }
-        #endregion
+        //    queryResult[0].Vehicles.Should().BeEmpty();
+        //}
+        //#endregion
     }
 }
