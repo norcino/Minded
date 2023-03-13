@@ -1,6 +1,6 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
+using FluentAssertions.Primitives;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Common.Tests.FluentAssertion

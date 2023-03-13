@@ -26,16 +26,22 @@ namespace Application.Api.Controllers
             return await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
         }
         
-        [HttpGet("{id}", Name = "GetCategoryById")]
+        [HttpGet("{id}")]
         public async Task<ActionResult> Get(int id)
         {
             return await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetCategoryByIdQuery(id));
         }
 
         [HttpPost]
-        public async Task<ActionResult> PostAsync([FromBody] Category category)
+        public async Task<ActionResult> Post([FromBody] Category category)
         {
-            return await _restMediator.ProcessRestCommandAsync(RestOperation.Create, new CreateCategoryCommand(category));
+            return await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, new CreateCategoryCommand(category));
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            return await _restMediator.ProcessRestCommandAsync(RestOperation.Delete, new DeleteCategoryCommand(id));
         }
     }
 }

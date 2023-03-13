@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Net;
-using Microsoft.AspNetCore.Http;
 using Minded.Framework.CQRS.Command;
 
 namespace Minded.Extensions.WebApi
 {
     public class QueryRestRule : IQueryRestRule
     {
-        public QueryRestRule(RestOperation operation, HttpStatusCode resultStatusCode, bool addContent, Func<object, bool> ruleCondition = null)
+        public QueryRestRule(RestOperation operation, HttpStatusCode resultStatusCode, ContentResponse contentResponse, Func<object, bool> ruleCondition = null)
         {
             Operation = operation;
             ResultStatusCode = resultStatusCode;
-            AddContent = addContent;
+            ContentResponse = contentResponse;
             RuleCondition = ruleCondition;
         }
 
@@ -19,18 +18,18 @@ namespace Minded.Extensions.WebApi
 
         public HttpStatusCode ResultStatusCode { get; }
 
-        public bool AddContent { get; }
+        public ContentResponse ContentResponse { get; }
 
         public Func<object, bool> RuleCondition { get; }
     }
 
     public class CommandRestRule : ICommandRestRule
     {
-        public CommandRestRule(RestOperation operation, HttpStatusCode resultStatusCode, bool addContent, Func<ICommandResponse, bool> ruleCondition = null)
+        public CommandRestRule(RestOperation operation, HttpStatusCode resultStatusCode, ContentResponse contentResponse, Func<ICommandResponse, bool> ruleCondition = null)
         {
             Operation = operation;
             ResultStatusCode = resultStatusCode;
-            AddContent = addContent;
+            ContentResponse = contentResponse;
             RuleCondition = ruleCondition;
         }
 
@@ -38,7 +37,7 @@ namespace Minded.Extensions.WebApi
 
         public HttpStatusCode ResultStatusCode { get; }
 
-        public bool AddContent { get; }
+        public ContentResponse ContentResponse { get; }
 
         public Func<ICommandResponse, bool> RuleCondition { get; }
     }

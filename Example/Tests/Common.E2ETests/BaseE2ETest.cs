@@ -1,6 +1,5 @@
 ﻿using Data.Context;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,21 +9,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using Moq;
-using System.Linq;
 using System.Threading.Tasks;
 using Data.Entity;
-using System.Linq.Expressions;
-using Builder;
-using FluentAssertions;
 using Common.Tests;
 using Common.Configuration;
 using Application.Api;
-using System.Reflection;
-using AnonymousData;
-using System.Threading;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Data.Common;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Mvc.Testing;
+using QM.Common.Testing;
+using System.Linq.Expressions;
+using System.Linq;
 
 namespace Common.E2ETests
 {
@@ -38,17 +33,18 @@ namespace Common.E2ETests
     {
         protected const int MaxPageItemNumber = 100;
         protected HttpClient _sutClient;
-        private TestServer _server;
         private IServiceCollection _serviceCollection;
         private DbConnection _connection;
         private IMindedExampleContext _context;
-        private TestingProfile _currentTestingProfile;
+        private static TestingProfile _currentTestingProfile;
         private IConfigurationRoot _configuration;
         private Mock<IMindedExampleContext> _mockIMindedExampleContext;
+        private ServiceProvider _serviceProvider;
+        private Seeder _seeder;
 
         public BaseE2ETest()
         {
-            _sutClient = CreateServer().CreateClient();
+            _sutClient = CreateTestApplication();
         }
 
         [TestInitialize]
@@ -57,12 +53,11 @@ namespace Common.E2ETests
             ResetDb();
         }
 
-        //[TestCleanup]
-        //public void BaseTestTestCleanup()
-        //{
-        //    _server.Dispose();
-        //    _sutClient.Dispose();
-        //}
+        [TestCleanup]
+        public void BaseTestTestCleanup()
+        {
+            _sutClient.Dispose();
+        }
 
         /// <summary>
         /// This method is used to Seed data consumed by the tested application and components.
@@ -79,12 +74,9 @@ namespace Common.E2ETests
         /// <param name="buildAction">Action to customize the creation of the entities</param>
         /// <param name="quantity">Number of entities to be created</param>
         /// <returns>List of created entities</returns>
-
-        // TODO handle composite key
-        // TODO add seed single entity
         protected T SeedOne<T>(Expression<Func<T, int>> id) where T : class, new()
         {
-            return Seed<T>(id, 1, default).First(); ;
+            return Seed<T>(id, 1, default).First();
         }
 
         protected IEnumerable<T> Seed<T>(Expression<Func<T, int>> id) where T : class, new()
@@ -97,107 +89,20 @@ namespace Common.E2ETests
             return Seed<T>(id, quantity, default);
         }
 
-        // TODO Convert int in TP and use new Builder function to generate a value
+        
         protected IEnumerable<T> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default) where T : class, new()
         {
-            List<T> entities = null;
-
-            if (_currentTestingProfile == TestingProfile.UnitTesting)
-            {
-                entities = Builder<T>.New().BuildMany(quantity, (e,i) =>
-                {
-                    // Execute custom action initialization if present
-                    if (buildAction != default)
-                        buildAction(e, i);
-
-                    // Set the primary key
-                    SetPrimaryKey(id, e);
-                });
-                var property = _context.GetType().GetProperties()
-                    .First(p =>
-                        p.PropertyType.IsGenericType &&
-                        p.PropertyType == typeof(DbSet<T>));
-
-                var parameter = Expression.Parameter(typeof(IMindedExampleContext));
-                var body = Expression.PropertyOrField(parameter, property.Name);
-                var lambdaExpression = Expression.Lambda<Func<IMindedExampleContext, DbSet<T>>>(body, parameter);
-
-                var mockDbSet = entities.GetMockDbSet();
-
-                mockDbSet.Setup(s => s.AddAsync(It.IsAny<T>(), It.IsAny<CancellationToken>()))
-                    .Callback((T added, CancellationToken ct) =>
-                {
-                    // Create the setter to simulate the creation of the ID in the entity
-                    SetPrimaryKey(id, added);
-
-                    var currentEntities = mockDbSet.Object.ToList<T>();
-                    currentEntities.Add(added);
-                    mockDbSet = currentEntities.GetMockDbSet();
-                    _mockIMindedExampleContext.SetupGet(lambdaExpression).Returns(mockDbSet.Object);
-                });
-
-                _mockIMindedExampleContext.SetupGet(lambdaExpression).Returns(mockDbSet.Object);
-            }
-            else if (_currentTestingProfile == TestingProfile.E2ELive)
-            {
-                entities = Builder<T>.New().BuildMany(quantity, (e,i) => {
-                    // Execute custom action initialization if present
-                    if (buildAction != default)
-                        buildAction(e, i);
-
-                    // Set the primary key
-                    SetPrimaryKey(id, e);
-                });
-                var property = _context.GetType().GetProperties()
-                    .First(p =>
-                        p.PropertyType.IsGenericType &&
-                        p.PropertyType == typeof(DbSet<T>));
-
-                DbSet<T> dbSet = (DbSet<T>)property.GetValue(_context);
-                dbSet.AddRange(entities);
-                _context.SaveChanges();
-            }
-            else // E2E
-            {
-                entities = Builder<T>.New().BuildMany(quantity, buildAction);
-                var property = _context.GetType().GetProperties()
-                    .First(p =>
-                        p.PropertyType.IsGenericType &&
-                        p.PropertyType == typeof(DbSet<T>));
-
-                DbSet<T> dbSet = (DbSet<T>)property.GetValue(_context);
-                dbSet.AddRange(entities);
-                _context.SaveChanges();
-            }
-
-            return entities;
-        }
-
-        private static void SetPrimaryKey<T>(Expression<Func<T, int>> id, T e) where T : class, new()
-        {
-            var parameter1 = Expression.Parameter(typeof(T));
-            var parameter2 = Expression.Parameter(typeof(int));
-
-            var member = (MemberExpression)id.Body;
-            var propertyInfo = (PropertyInfo)member.Member;
-
-            var property = Expression.Property(parameter1, propertyInfo);
-            var assignment = Expression.Assign(property, parameter2);
-
-            var setter = Expression.Lambda<Action<T, int>>(assignment, parameter1, parameter2);
-
-            setter.Compile()(e, Any.Int());
+            return _seeder.Seed(id, quantity, buildAction);
         }
 
         /// <summary>
-        /// Create the Server with the possibility to customize the service collection setup and custom configuration override
+        /// Create the HttpClient with the possibility to customize the service collection setup and custom configuration override
         /// </summary>
         /// <param name="resetDd">Allow to specify if the database must be reset, default is true</param>
         /// <param name="serviceCollectionSetup">The service collection action to customize</param>
         /// <param name="configurationOverride">Custom configuration which will override the config file</param>
-        /// <returns>TestServer</returns>
-        protected TestServer CreateServer(Action<IServiceCollection> serviceCollectionSetup = null,
-            Dictionary<string, string> configurationOverride = null)
+        /// <returns>HttpClient</returns>
+        protected HttpClient CreateTestApplication(Action<IServiceCollection> serviceCollectionSetup = null, Dictionary<string, string> configurationOverride = null)
         {
             // Load application configuration from the test folder
             _configuration = new ConfigurationBuilder()
@@ -207,7 +112,7 @@ namespace Common.E2ETests
                 .Build();
 
             // Load the configured testing profile
-            _currentTestingProfile = (TestingProfile)Enum.Parse(typeof(TestingProfile), _configuration.GetValue<string>("TestingProfile"));
+            _currentTestingProfile = (TestingProfile) Enum.Parse(typeof(TestingProfile), _configuration.GetValue<string>("TestingProfile"));
 
             // Setup mocked environment object
             var mockEnv = new Mock<IWebHostEnvironment>();
@@ -217,36 +122,27 @@ namespace Common.E2ETests
             mockEnv.SetupProperty(p => p.WebRootPath, AppContext.BaseDirectory);
             var env = mockEnv.Object;
 
-            ServiceProvider serviceProvider = null;
             _mockIMindedExampleContext = new Mock<IMindedExampleContext>(MockBehavior.Strict);
             SetupDbContextMockObject();
 
-            var applicationStartup = new Startup(_configuration, env);
-            var builder = new WebHostBuilder().UseConfiguration(_configuration);
-
-            builder.Configure(app =>
+            var applicationFactory = new WebApplicationFactory<Startup>().WithWebHostBuilder(builder =>
             {
-                // Application configuration
-                applicationStartup.Configure(app);
-            });
-            builder.ConfigureServices(services =>
-            {
-                // Application service configuration
-                applicationStartup.ConfigureServices(services);
+                builder.ConfigureTestServices(services => {
+                    ConfigureContext(services);
 
-                ConfigureContext(services);
+                    // Execute overrides as passed in the test
+                    serviceCollectionSetup?.Invoke(services);
 
-                // Execute overrides as passed in the test
-                serviceCollectionSetup?.Invoke(services);
+                    _serviceProvider = services.BuildServiceProvider();
+                });
 
-                serviceProvider = services.BuildServiceProvider();
+                builder.UseConfiguration(_configuration);
             });
 
-            _server = new TestServer(builder);
+            var client = applicationFactory.CreateClient();
+            _context = _serviceProvider.GetService<IMindedExampleContext>();
 
-            _context = serviceProvider.GetService<IMindedExampleContext>();
-
-            return _server;
+            return client;
         }
 
         /// <summary>
@@ -257,17 +153,8 @@ namespace Common.E2ETests
             _mockIMindedExampleContext.Setup(c => c.Dispose());
             _mockIMindedExampleContext.Setup<Task<int>>(c => c.SaveChangesAsync()).ReturnsAsync(1);
 
-            var c = new List<Category>().GetMockDbSet();
-            var t = new List<Transaction>().GetMockDbSet();
-
-            c.Setup(s => s.AddAsync(It.IsAny<Category>(), It.IsAny<CancellationToken>())).Callback((Category added, CancellationToken ct) =>
-            {                
-                // TODO
-                //added.Id = Any.Int();
-            });
-            
-            _mockIMindedExampleContext.SetupGet(c => c.Categories).Returns(c.Object);
-            _mockIMindedExampleContext.SetupGet(c => c.Transactions).Returns(t.Object);
+            _mockIMindedExampleContext.SetupGet(c => c.Categories).Returns(new List<Category>().GetMockDbSet().Object);
+            _mockIMindedExampleContext.SetupGet(t => t.Transactions).Returns(new List<Transaction>().GetMockDbSet().Object);
         }
 
         /// <summary>
@@ -284,24 +171,24 @@ namespace Common.E2ETests
             {
                 case TestingProfile.UnitTesting:
                     services.OverrideAddScoped(_mockIMindedExampleContext.Object);
+                    _seeder = new Seeder(_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
                     break;
                 case TestingProfile.E2ELive:
                     // Use SQLite in memory database for testing
                     services.AddDbContext<MindedExampleContext>(options =>
                     {
                         options.UseSqlite($"DataSource='file::memory:?cache=shared'");
+                        //options.UseSqlite("DataSource=:memory:");
                         options.EnableSensitiveDataLogging();
                         options.EnableDetailedErrors();
                     });
 
-                    // Use singleton context when using SQLite in memory if the connection is closed the database is going to be destroyed
-                    // so must use a singleton context, open the connection and manually close it when disposing the context
-                    services.AddSingleton<IMindedExampleContext>(s =>
+                    services.AddScoped<IMindedExampleContext>(s =>
                     {
                         _context = s.GetService<MindedExampleContext>();
-                        //_context.Database.OpenConnection();
                         _connection = _context.Database.GetDbConnection();
                         _context.Database.EnsureCreated();
+                        _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
                         return _context;
                     });
                     break;
@@ -314,11 +201,11 @@ namespace Common.E2ETests
 
                     services.AddTransient<IMindedExampleContext>(s =>
                     {
-                        var context = s.GetService<MindedExampleContext>();
-                        context.Database.EnsureCreated();
-                        return context;
+                        _context = s.GetService<MindedExampleContext>();
+                        _context.Database.EnsureCreated();
+                        _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
+                        return _context;
                     });
-
                     break;
             }
         }
@@ -334,15 +221,24 @@ namespace Common.E2ETests
                 SetupDbContextMockObject();
                 return;
             }
-            
+
             if (_currentTestingProfile == TestingProfile.E2ELive)
             {
                 _connection.Close();
+                _connection.Dispose();
+
+                _context.Dispose();
+
+                _context = _serviceProvider.GetService<IMindedExampleContext>();
+
                 _context.Database.OpenConnection();
                 _connection = _context.Database.GetDbConnection(); // TODO DB Never destroyed
+
+                _context.Database.EnsureDeleted();
                 _context.Database.EnsureCreated();
                 return;
             }
+
             _context.Database.EnsureDeleted();
             _context.Database.EnsureCreated();
         }

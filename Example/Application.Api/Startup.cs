@@ -85,7 +85,7 @@ namespace Application.Api
                 b.AddMediator();
                 b.AddRestMediator();
 
-                b.AddCommandValidationDecorator()                
+                b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
                 .AddCommandLoggingDecorator()
                 .RegisterCommandHandlers();
@@ -105,7 +105,7 @@ namespace Application.Api
             .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
         }
 
-        public static void RegisterContext(IServiceCollection services, IWebHostEnvironment env)
+        private static void RegisterContext(IServiceCollection services, IWebHostEnvironment env)
         {
             if (services == null)
                 throw new ArgumentNullException(nameof(services));

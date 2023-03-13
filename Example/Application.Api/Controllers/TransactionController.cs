@@ -18,16 +18,16 @@ namespace Application.Api.Controllers
             _mediator = mediator;
         }
 
-        [HttpGet("{id}", Name = "GetTransactionById")]
-        public async Task<ActionResult> GetByIdAsync(int id)
-        {
-            return await _mediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetTransactionByIdQuery(id));
-        }
-
         public Task<ActionResult> Get(ODataQueryOptions<Transaction> queryOptions)
         {
             var query = new GetTransactionsQuery(queryOptions);
             return _mediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
+        }
+
+        [HttpGet("{id}", Name = "GetTransactionById")]
+        public async Task<ActionResult> Get(int id)
+        {
+            return await _mediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetTransactionByIdQuery(id));
         }
 
         [HttpPost]
