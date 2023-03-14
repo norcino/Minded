@@ -2,11 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 1.0.2 (2023-03-14)
+
+Primary stable version fit for production use.
+Providers the features described in the documentation.
 
 #### Added
+* Added new __Minded.Extensions.WebApi__ Nuget package
+* Introduced `IRestMediator` which allows to process queries and commands to automatically return the appropriate `ActionResult` calculated using rule processors
+* Added new __Minded.Extensions.CQRS.OData__ Nuget package
+* Added extension method `IQuery<T>.ApplyODataQueryOptions<T>(ODataQueryOptions)` to apply `ODataQueryOptions` to `IQuery`
+* Added extension method `IQueryable<T>.ApplyODataQueryOptions<T>(ODataQueryOptions)` to apply `ODataQueryOptions` to `IQueryable`
+* Added new __Minded.Extensions.CQRS.EntityFramework__ Nuget package
+* Added extension method `IQuery<IEnumberable<T>>.ApplyQueryTo<T>(IQueryable<T>)` which applies directly query traits to an `IQueryable`
+* Added extension method `IQuery<T>.ApplyQueryTo<T>(IQueryable<T>)` which applies directly query traits to an `IQueryable`
+* Added `ICommandHandler<ICommand<TResult>, TResult>` to strongly type return value from command executions
 
-* Splitted projects and configuration of multiple NuGet packages
+#### Fixed
+
+* Traits not supporting nullable value have been fixed
+
+#### Changed
+
+* Updated sample API project to use the new Minded.Extensions.WebApi
 
 ## 0.1.3 (2022-12-16)
 
