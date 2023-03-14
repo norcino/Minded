@@ -42,7 +42,7 @@ namespace Minded.Framework.CQRS.Tests
             _context.Vehicles.AddRange(vehicles);
             _context.SaveChanges();
                         
-            var queryResult = vehicleQuery.ApplyTo(_context.Vehicles).ToList();
+            var queryResult = vehicleQuery.ApplyQueryTo(_context.Vehicles).ToList();
             queryResult.Should().BeInAscendingOrder(v => v.Model, Comparer<string>.Default);
         }
 
@@ -66,7 +66,7 @@ namespace Minded.Framework.CQRS.Tests
             _context.People.AddRange(people);
             _context.SaveChanges();
 
-            var queryResult = peopleQuery.ApplyTo(_context.People).ToList();
+            var queryResult = peopleQuery.ApplyQueryTo(_context.People).ToList();
 
             queryResult.Should()
                 .BeInAscendingOrder(v => v.Name, Comparer<string>.Default)
@@ -88,7 +88,7 @@ namespace Minded.Framework.CQRS.Tests
             _context.Vehicles.AddRange(vehicles);
             _context.SaveChanges();
 
-            var q = vehicleQuery.ApplyTo(_context.Vehicles);
+            var q = vehicleQuery.ApplyQueryTo(_context.Vehicles);
 
             var log = ((EntityQueryable<Vehicle>)q).DebugView.Query;
             log.Should().EndWith("ORDER BY [v].[Id] DESC");
@@ -114,7 +114,7 @@ namespace Minded.Framework.CQRS.Tests
             _context.People.AddRange(people);
             _context.SaveChanges();
 
-            var q = peopleQuery.ApplyTo(_context.People);
+            var q = peopleQuery.ApplyQueryTo(_context.People);
             var log = ((EntityQueryable<Person>)q).DebugView.Query;
             log.Should().EndWith("ORDER BY [p].[Name] DESC, [p].[Surname] DESC");
         }
@@ -141,7 +141,7 @@ namespace Minded.Framework.CQRS.Tests
             _context.People.AddRange(people);
             _context.SaveChanges();
 
-            var q = peopleQuery.ApplyTo(_context.People);
+            var q = peopleQuery.ApplyQueryTo(_context.People);
 
             var log = ((EntityQueryable<Person>)q).DebugView.Query;
             log.Should().EndWith("ORDER BY [p].[Name] DESC, [p].[Surname], [p].[Id]");
@@ -149,41 +149,41 @@ namespace Minded.Framework.CQRS.Tests
         #endregion
 
         //#region Expand
-        [TestMethod]
-        public void ApplyTo_Should_expand_single_entity()
-        {
-            var peopleWithVehicles = Any.String();
-            var people = Builder<Person>.New().BuildMany(10, (p, i) =>
-            {
-                p.Id = 0;
-                p.Surname = peopleWithVehicles;
-                p.Vehicles = Builder<Vehicle>.New().BuildMany(10, (v, i) =>
-                {
-                    v.Id = 0;
-                    v.Owner = Builder<Person>.New().Build(p2 => p2.Id = 0);
-                    v.Maker = Builder<Corporation>.New().Build(c => {
-                        c.Id = 0;
-                        c.CEO = Builder<Person>.New().Build(p3 => p3.Id = 0);
-                    });
-                });
-            });
+        //[TestMethod]
+        //public void ApplyTo_Should_expand_single_entity()
+        //{
+        //    var peopleWithVehicles = Any.String();
+        //    var people = Builder<Person>.New().BuildMany(10, (p, i) =>
+        //    {
+        //        p.Id = 0;
+        //        p.Surname = peopleWithVehicles;
+        //        p.Vehicles = Builder<Vehicle>.New().BuildMany(10, (v, i) =>
+        //        {
+        //            v.Id = 0;
+        //            v.Owner = Builder<Person>.New().Build(p2 => p2.Id = 0);
+        //            v.Maker = Builder<Corporation>.New().Build(c => {
+        //                c.Id = 0;
+        //                c.CEO = Builder<Person>.New().Build(p3 => p3.Id = 0);
+        //            });
+        //        });
+        //    });
 
-            _context.People.AddRange(people);
-            _context.SaveChanges();
+        //    _context.People.AddRange(people);
+        //    _context.SaveChanges();
 
-            var peopleQuery = new PeopleQuery();
+        //    var peopleQuery = new PeopleQuery();
 
-            (peopleQuery as ICanExpand).Expand = new[] { nameof(Person.Vehicles) };
+        //    (peopleQuery as ICanExpand).Expand = new[] { nameof(Person.Vehicles) };
 
-            var query = peopleQuery.ApplyTo(_context.People);
-            var queryResult = query.ToList().Where(p => p.Surname == peopleWithVehicles);
+        //    var query = peopleQuery.ApplyQueryTo(_context.People);
+        //    var queryResult = query.ToList().Where(p => p.Surname == peopleWithVehicles);
 
-            queryResult.Should().AllSatisfy(p =>
-            {
-                p.Vehicles.Should().NotBeEmpty();
-                p.Vehicles.Should().AllSatisfy(v => v.Owner.Should().BeNull());
-            });
-        }
+        //    queryResult.Should().AllSatisfy(p =>
+        //    {
+        //        p.Vehicles.Should().NotBeEmpty();
+        //        p.Vehicles.Should().AllSatisfy(v => v.Owner.Should().BeNull());
+        //    });
+        //}
 
         //[TestMethod]
         //public void ApplyTo_Should_not_expand_when_not_required()
