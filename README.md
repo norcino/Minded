@@ -1,6 +1,5 @@
 [![Build status](https://dev.azure.com/norcino/Minded/_apis/build/status/GitHub%20Minded)](https://dev.azure.com/norcino/Minded/_build/latest?definitionId=1)
 
-
 # Minded
 Clean code and architecture made simple with Mediator, Command Query and Decorator patterns.
 
@@ -91,12 +90,3 @@ _NOTE: The Validation decorator can be a terminal handler if the validation does
 
 ## Recommendations
 [...]
-
-## A bit of history and thanks
-A first draft of this architecture was originally designed by me and my team when I was working as Tech Lead in a company where we were trying o rewrite a monolitic legacy application into a more modern and cleaner architecture where the first goal was to create simplified maitainable code, with the possibility to scale.
-
-The original implementation was made in .net Framework and been used for years proving itself to be a very effective solution to deliver good code, easy to maintain and test.
-Encapsulating the business logic in commands, has also facilitated the migration from syncronous operations to asynchronous, wrapping Commands and CommandHandlers in a Distributed Messageing System commands and handlers, allowing us the break down in smaller services the logic which was more I/O intensive to, and to support the execution of batches of commands.
-
-In the last few years I wrote from scratch the code in this repository, with the intent to apply the best practices I was using and improve them with new ideas, implementing the whole in .net Core, nowdays the future of .net.
-The last step has been the migration to this public repository to share it with the world, and make it a NuGet package, so that it will be easier for me and everyone else to use it.

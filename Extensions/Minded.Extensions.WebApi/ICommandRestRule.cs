@@ -8,7 +8,7 @@ namespace Minded.Extensions.WebApi
     {
         RestOperation Operation { get; }
         HttpStatusCode ResultStatusCode { get; }
-        bool AddContent { get; }
+        ContentResponse ContentResponse { get; }
         Func<ICommandResponse, bool> RuleCondition { get; }
     }
 }

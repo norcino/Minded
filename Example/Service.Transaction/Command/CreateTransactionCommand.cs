@@ -5,7 +5,7 @@ using Minded.Extensions.Validation.Decorator;
 namespace Service.Transaction.Command
 {
     [ValidateCommand]
-    public class CreateTransactionCommand : ILoggableCommand
+    public class CreateTransactionCommand : ILoggableCommand<int>
     {
         public Data.Entity.Transaction Transaction { get; set; }
         public Guid TraceId { get; } = Guid.NewGuid();

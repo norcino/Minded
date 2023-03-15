@@ -80,62 +80,63 @@ namespace Minded.Extensions.WebApi
         private static Func<ICommandResponse, bool> UnsuccessfulWithNotAuthenticatedCode = (r) => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.NotAuthenticated);
         private static Func<ICommandResponse, bool> UnsuccessfulWithNotAuthorizationCode = (r) => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.NotAuthorized);
 
-        // Any 201 Unouthorized
-        private ICommandRestRule NotAuthorizedCommand        = new CommandRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, true, UnsuccessfulWithNotAuthorizationCode);
-        private ICommandRestRule NotAuthenticatedCommand     = new CommandRestRule(RestOperation.Any, HttpStatusCode.Forbidden, true, UnsuccessfulWithNotAuthenticatedCode);
+        // Any 201 Unauthorized
+        private ICommandRestRule NotAuthorizedCommand           = new CommandRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, ContentResponse.Full, UnsuccessfulWithNotAuthorizationCode);
+        private ICommandRestRule NotAuthenticatedCommand        = new CommandRestRule(RestOperation.Any, HttpStatusCode.Forbidden, ContentResponse.Full, UnsuccessfulWithNotAuthenticatedCode);
 
         // Get(key) 200 Ok
-        private IQueryRestRule GetSingleSuccessfully = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.OK, true, QueryHasNoContent);
+        private IQueryRestRule GetSingleSuccessfully            = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.OK, ContentResponse.Result, QueryHasNoContent);
         // Get(key) 404 NotFound
-        private IQueryRestRule GetSingleUnsuccessfully = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.NotFound, true, QueryHasContent);
+        private IQueryRestRule GetSingleUnsuccessfully          = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.NotFound, ContentResponse.Full, QueryHasContent);
         // Get() 200 Ok
-        private IQueryRestRule GetManySuccessfully = new QueryRestRule(RestOperation.GetMany, HttpStatusCode.OK, true);
+        private IQueryRestRule GetManySuccessfully              = new QueryRestRule(RestOperation.GetMany, HttpStatusCode.OK, ContentResponse.Result);
 
         // Post() 201 Created
-        private ICommandRestRule CreateSuccessfully = new CommandRestRule(RestOperation.Create, HttpStatusCode.Created, false, SuccessfulCommand);
-        private ICommandRestRule CreateWithContentSuccessfully = new CommandRestRule(RestOperation.CreateWithContent, HttpStatusCode.Created, true, SuccessfulCommand);
+        private ICommandRestRule CreateSuccessfully             = new CommandRestRule(RestOperation.Create, HttpStatusCode.Created, ContentResponse.None, SuccessfulCommand);
+        private ICommandRestRule CreateWithContentSuccessfully  = new CommandRestRule(RestOperation.CreateWithContent, HttpStatusCode.Created, ContentResponse.Result, SuccessfulCommand);
         // Post() 400 BadRequest
-        private ICommandRestRule CreateWithContentInvalid = new CommandRestRule(RestOperation.CreateWithContent, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
-        private ICommandRestRule CreateInvalid = new CommandRestRule(RestOperation.Create, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
+        private ICommandRestRule CreateWithContentInvalid       = new CommandRestRule(RestOperation.CreateWithContent, HttpStatusCode.BadRequest, ContentResponse.Full, UnsuccessfulCommand);
+        private ICommandRestRule CreateInvalid                  = new CommandRestRule(RestOperation.Create, HttpStatusCode.BadRequest, ContentResponse.Full, UnsuccessfulCommand);
 
         // Put() 
         // Success - 200 Ok - Return the updated object
-        private ICommandRestRule UpdateWithContentSuccessfully = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.OK, true, SuccessfulCommand);
+        private ICommandRestRule UpdateWithContentSuccessfully  = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.OK, ContentResponse.Result, SuccessfulCommand);
         // Success - 204 NoContent
-        private ICommandRestRule UpdateSuccessfully = new CommandRestRule(RestOperation.Update, HttpStatusCode.NoContent, false, SuccessfulCommand);
+        private ICommandRestRule UpdateSuccessfully             = new CommandRestRule(RestOperation.Update, HttpStatusCode.NoContent, ContentResponse.None, SuccessfulCommand);
         // Failure - 404 NotFound - The targeted entity identifier does not exist
-        private ICommandRestRule UpdateNotfound = new CommandRestRule(RestOperation.Update, HttpStatusCode.NotFound, false, UnsuccessfulCommandWithNotFoundCode);
-        private ICommandRestRule UpdateWithContentNotfound = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.NotFound, false, UnsuccessfulCommandWithNotFoundCode);
+        private ICommandRestRule UpdateNotfound                 = new CommandRestRule(RestOperation.Update, HttpStatusCode.NotFound, ContentResponse.None, UnsuccessfulCommandWithNotFoundCode);
+        private ICommandRestRule UpdateWithContentNotfound      = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.NotFound, ContentResponse.Full, UnsuccessfulCommandWithNotFoundCode);
         // Failure - 400 Invalid request - Return details about the failure        
-        private ICommandRestRule UpdateInvalid = new CommandRestRule(RestOperation.Update, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
-        private ICommandRestRule UpdateWithContentInvalid = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
+        private ICommandRestRule UpdateInvalid                  = new CommandRestRule(RestOperation.Update, HttpStatusCode.BadRequest, ContentResponse.None, UnsuccessfulCommand);
+        private ICommandRestRule UpdateWithContentInvalid       = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.BadRequest, ContentResponse.Full, UnsuccessfulCommand);
 
         // Patch()
         // Success - 200 Ok - Return the patched object
-        private ICommandRestRule PatchWithContentSuccessfully = new CommandRestRule(RestOperation.PatchWithContent, HttpStatusCode.OK, true, SuccessfulCommand);
+        private ICommandRestRule PatchWithContentSuccessfully   = new CommandRestRule(RestOperation.PatchWithContent, HttpStatusCode.OK, ContentResponse.Result, SuccessfulCommand);
         // Success - 204 NoContent
-        private ICommandRestRule PatchSuccessfully = new CommandRestRule(RestOperation.Patch, HttpStatusCode.NoContent, false, SuccessfulCommand);
+        private ICommandRestRule PatchSuccessfully              = new CommandRestRule(RestOperation.Patch, HttpStatusCode.NoContent, ContentResponse.None, SuccessfulCommand);
         // Failure - 404 NotFound - The targeted entity identifier does not exist
-        private ICommandRestRule PatchWithContentNotfound = new CommandRestRule(RestOperation.PatchWithContent, HttpStatusCode.NotFound, false, UnsuccessfulCommandWithNotFoundCode);
-        private ICommandRestRule PatchNotfound = new CommandRestRule(RestOperation.Patch, HttpStatusCode.NotFound, false, UnsuccessfulCommandWithNotFoundCode);
+        private ICommandRestRule PatchWithContentNotfound       = new CommandRestRule(RestOperation.PatchWithContent, HttpStatusCode.NotFound, ContentResponse.Full, UnsuccessfulCommandWithNotFoundCode);
+        private ICommandRestRule PatchNotfound                  = new CommandRestRule(RestOperation.Patch, HttpStatusCode.NotFound, ContentResponse.None, UnsuccessfulCommandWithNotFoundCode);
         // Failure - 400 Invalid request - Return details about the failure
-        private ICommandRestRule PatchWithContentInvalid = new CommandRestRule(RestOperation.PatchWithContent, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
-        private ICommandRestRule PatchInvalid = new CommandRestRule(RestOperation.Patch, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
+        private ICommandRestRule PatchWithContentInvalid        = new CommandRestRule(RestOperation.PatchWithContent, HttpStatusCode.BadRequest, ContentResponse.Full, UnsuccessfulCommand);
+        private ICommandRestRule PatchInvalid                   = new CommandRestRule(RestOperation.Patch, HttpStatusCode.BadRequest, ContentResponse.None, UnsuccessfulCommand);
 
         // Delete()
         // Success - 200 Ok - No content
-        private ICommandRestRule DeleteSuccessfully = new CommandRestRule(RestOperation.Delete, HttpStatusCode.OK, false, SuccessfulCommand);
+        private ICommandRestRule DeleteSuccessfully             = new CommandRestRule(RestOperation.Delete, HttpStatusCode.OK, ContentResponse.None, SuccessfulCommand);
         // Failure - 404 NotFound - The targeted entity identifier does not exist
-        private ICommandRestRule DeleteNotfound = new CommandRestRule(RestOperation.Delete, HttpStatusCode.NotFound, false, UnsuccessfulCommandWithNotFoundCode);
+        private ICommandRestRule DeleteNotfound                 = new CommandRestRule(RestOperation.Delete, HttpStatusCode.NotFound, ContentResponse.None, UnsuccessfulCommandWithNotFoundCode);
 
         // Post() (Action)
         // Success - 200 Ok - Return content where appropriate
-        private ICommandRestRule PostWithContentSuccessfully = new CommandRestRule(RestOperation.ActionWithContent, HttpStatusCode.OK, true, SuccessfulCommand);
+        private ICommandRestRule PostWithContentSuccessfully    = new CommandRestRule(RestOperation.ActionWithContent, HttpStatusCode.OK, ContentResponse.Full, SuccessfulCommand);
+        private ICommandRestRule PostWithResultContentSuccessfully = new CommandRestRule(RestOperation.ActionWithResultContent, HttpStatusCode.OK, ContentResponse.Result, SuccessfulCommand);
         // Success - 204 NoContent
-        private ICommandRestRule PostSuccessfully = new CommandRestRule(RestOperation.Action, HttpStatusCode.OK, false, SuccessfulCommand);
+        private ICommandRestRule PostSuccessfully               = new CommandRestRule(RestOperation.Action, HttpStatusCode.OK, ContentResponse.None, SuccessfulCommand);
         // Failure - 400 - Return details about the failure
-        private ICommandRestRule PostInvalid = new CommandRestRule(RestOperation.Action, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
-        private ICommandRestRule PostWithContentInvalid = new CommandRestRule(RestOperation.ActionWithContent, HttpStatusCode.BadRequest, true, UnsuccessfulCommand);
+        private ICommandRestRule PostInvalid                    = new CommandRestRule(RestOperation.Action, HttpStatusCode.BadRequest, ContentResponse.Full, UnsuccessfulCommand);
+        private ICommandRestRule PostWithContentInvalid         = new CommandRestRule(RestOperation.ActionWithContent, HttpStatusCode.BadRequest, ContentResponse.Full, UnsuccessfulCommand);
 
         public IEnumerable<IQueryRestRule> GetQueryRules() => new[]
         {
@@ -165,6 +166,7 @@ namespace Minded.Extensions.WebApi
             DeleteSuccessfully,
             DeleteNotfound,
             PostWithContentSuccessfully,
+            PostWithResultContentSuccessfully,
             PostSuccessfully,
             PostInvalid,
             PostWithContentInvalid,

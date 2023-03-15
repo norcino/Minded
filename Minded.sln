@@ -13,8 +13,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.Validatio
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.WebApi", "Extensions\Minded.Extensions.WebApi\Minded.Extensions.WebApi.csproj", "{F3325ED4-5E4C-403F-900C-24F1A757E594}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.OData", "Extensions\Minded.Extensions.OData\Minded.Extensions.OData.csproj", "{C9A6263F-94DA-496A-9C3C-B1E70781F07A}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.Transaction", "Extensions\Minded.Extensions.Transaction\Minded.Extensions.Transaction.csproj", "{3544E88D-658B-4353-B1FA-15E435BAE41A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.Configuration", "Extensions\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj", "{7E96D1C1-22CB-494D-A3DE-8E7669EB2FC8}"
@@ -41,10 +39,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Minded-128.png = Minded-128.png
 		minded.ico = minded.ico
 		README.md = README.md
-		ToDo.txt = ToDo.txt
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Framework.Decorator", "Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj", "{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{E07D3C91-DBD9-496E-AD65-FE84A33303A9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.CQRS.EntityFrameworkCore.Tests", "Tests\Minded.Extensions.CQRS.EntityFrameworkCore.Tests\Minded.Extensions.CQRS.EntityFrameworkCore.Tests.csproj", "{43F87CC3-0840-4C5C-8E5F-BD45782EF234}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.CQRS.EntityFrameworkCore", "Extensions\Minded.Extensions.CQRS.EntityFrameworkCore\Minded.Extensions.CQRS.EntityFrameworkCore.csproj", "{25D3E4ED-FFA5-44B0-89BD-A0DE85491A00}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.CQRS.OData", "Extensions\Minded.Extensions.CQRS.OData\Minded.Extensions.CQRS.OData.csproj", "{BE0B9DF0-B693-4A6F-928C-9B5C9B2E71AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,10 +73,6 @@ Global
 		{F3325ED4-5E4C-403F-900C-24F1A757E594}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F3325ED4-5E4C-403F-900C-24F1A757E594}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F3325ED4-5E4C-403F-900C-24F1A757E594}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C9A6263F-94DA-496A-9C3C-B1E70781F07A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C9A6263F-94DA-496A-9C3C-B1E70781F07A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C9A6263F-94DA-496A-9C3C-B1E70781F07A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C9A6263F-94DA-496A-9C3C-B1E70781F07A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3544E88D-658B-4353-B1FA-15E435BAE41A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3544E88D-658B-4353-B1FA-15E435BAE41A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3544E88D-658B-4353-B1FA-15E435BAE41A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -108,6 +109,18 @@ Global
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43F87CC3-0840-4C5C-8E5F-BD45782EF234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43F87CC3-0840-4C5C-8E5F-BD45782EF234}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43F87CC3-0840-4C5C-8E5F-BD45782EF234}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43F87CC3-0840-4C5C-8E5F-BD45782EF234}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25D3E4ED-FFA5-44B0-89BD-A0DE85491A00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25D3E4ED-FFA5-44B0-89BD-A0DE85491A00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25D3E4ED-FFA5-44B0-89BD-A0DE85491A00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25D3E4ED-FFA5-44B0-89BD-A0DE85491A00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE0B9DF0-B693-4A6F-928C-9B5C9B2E71AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE0B9DF0-B693-4A6F-928C-9B5C9B2E71AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE0B9DF0-B693-4A6F-928C-9B5C9B2E71AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE0B9DF0-B693-4A6F-928C-9B5C9B2E71AC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -117,7 +130,6 @@ Global
 		{30CB80EA-E175-447D-B4EA-301FD46E2C31} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{33154598-6349-4ADB-800B-39322B975921} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{F3325ED4-5E4C-403F-900C-24F1A757E594} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
-		{C9A6263F-94DA-496A-9C3C-B1E70781F07A} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{3544E88D-658B-4353-B1FA-15E435BAE41A} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{7E96D1C1-22CB-494D-A3DE-8E7669EB2FC8} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{15832468-08B9-4A3F-9780-8C2E82DA8B30} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
@@ -127,6 +139,9 @@ Global
 		{B9136789-AE91-4487-BDA0-B78411629BA8} = {C0DEFF54-65E3-4EE5-9D00-F20C0A8040FF}
 		{B0D372CC-2D21-467F-BEF9-2F9507F3DF51} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{7BD1C3DC-8A45-4906-82F0-962E8FA8F70C} = {C0DEFF54-65E3-4EE5-9D00-F20C0A8040FF}
+		{43F87CC3-0840-4C5C-8E5F-BD45782EF234} = {E07D3C91-DBD9-496E-AD65-FE84A33303A9}
+		{25D3E4ED-FFA5-44B0-89BD-A0DE85491A00} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
+		{BE0B9DF0-B693-4A6F-928C-9B5C9B2E71AC} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7C9F706B-19EF-445C-9AF7-246B32541C7F}

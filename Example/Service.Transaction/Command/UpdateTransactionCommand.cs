@@ -3,7 +3,7 @@ using Minded.Extensions.Logging;
 
 namespace Service.Transaction.Command
 {
-    public class UpdateTransactionCommand : ILoggableCommand
+    public class UpdateTransactionCommand : ILoggableCommand<int>
     {
         public int TransactionId { get; set; }
         public Data.Entity.Transaction Transaction { get; set; }

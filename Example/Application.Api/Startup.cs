@@ -18,6 +18,7 @@ using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Validation.Decorator;
 using System.Linq;
 using Minded.Extensions.WebApi;
+using Serilog;
 
 namespace Application.Api
 {
@@ -39,6 +40,13 @@ namespace Application.Api
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();
+
+            Log.Logger = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .Enrich.WithThreadId()
+                .WriteTo.File("log-.log", rollingInterval: RollingInterval.Day)
+                .WriteTo.Console()
+                .CreateLogger();
         }
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -85,7 +93,7 @@ namespace Application.Api
                 b.AddMediator();
                 b.AddRestMediator();
 
-                b.AddCommandValidationDecorator()                
+                b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
                 .AddCommandLoggingDecorator()
                 .RegisterCommandHandlers();
@@ -101,11 +109,13 @@ namespace Application.Api
             services.AddMvc(
                 options => options.EnableEndpointRouting = false
             )
-            .AddApplicationPart(typeof(Controllers.BaseController).Assembly)
+            //.AddApplicationPart(typeof(Controllers.BaseController).Assembly)
             .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
+
+            services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
         }
 
-        public static void RegisterContext(IServiceCollection services, IWebHostEnvironment env)
+        private static void RegisterContext(IServiceCollection services, IWebHostEnvironment env)
         {
             if (services == null)
                 throw new ArgumentNullException(nameof(services));

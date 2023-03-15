@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
+using Minded.Extensions.CQRS.OData;
 using System.Threading.Tasks;
 using Data.Context;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 using Service.Transaction.Query;
+using System.Linq;
 
 namespace Service.Transaction.QueryHandler
 {
@@ -22,7 +22,7 @@ namespace Service.Transaction.QueryHandler
 
         public Task<List<Data.Entity.Transaction>> HandleAsync(GetTransactionsQuery query)
         {
-            return null;// query.ApplyTo(_context.Transactions.AsQueryable()).ToListAsync();
+            return Task.FromResult(_context.Transactions.AsQueryable().ApplyODataQueryOptions(query.Options).ToList());
         }
     }
 }

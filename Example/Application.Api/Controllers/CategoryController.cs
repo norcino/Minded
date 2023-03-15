@@ -1,81 +1,47 @@
-﻿using System.Collections;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Dynamic.Core;
-using System.Threading.Tasks;
-using Data.Context;
+﻿using System.Threading.Tasks;
 using Data.Entity;
 using Microsoft.AspNet.OData.Query;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Minded.Extensions.WebApi;
-using Minded.Framework.Mediator;
 using Service.Category.Command;
 using Service.Category.Query;
-using Minded.Extensions.OData;
+using Minded.Extensions.CQRS.OData;
 
 namespace Application.Api.Controllers
 {
     [Route("api/[controller]")]
-    public class CategoryController : BaseController
+    public class CategoryController : Controller
     {
-        private readonly IMindedExampleContext _context;
-        private readonly IMediator _mediator;
         private readonly IRestMediator _restMediator;
 
-        public CategoryController(IMindedExampleContext context, IMediator mediator, IRestMediator restMediator)
+        public CategoryController(IRestMediator restMediator)
         {
-            _context = context;
-            _mediator = mediator;
             _restMediator = restMediator;
         }
 
-        public IEnumerable<Category> Get(ODataQueryOptions<Category> queryOptions)
+        public async Task<ActionResult> Get(ODataQueryOptions<Category> queryOptions)
         {
-            // OK return _context.Categories.Include(c => c.Transactions).ToList();
-
-            var xx = _context.Categories.ApplyODataQueryOptions(queryOptions);
-            return xx;
-            var x = queryOptions.ApplyTo(_context.Categories);
-
-            var y = x.ToDynamicList<Category>();
-
-            return y;
-            // Cast<Category>().ToList();
-            //return (queryOptions.ApplyTo(_context.Categories) as IQueryable<Category>).ToList();
-
-            //var query = ApplyODataQueryConditions<Category, GetCategoriesQuery>(queryOptions, new GetCategoriesQuery());
-            //return await _mediator.ProcessQueryAsync(query);
+            var query = new GetCategoriesQuery();
+            query.ApplyODataQueryOptions(queryOptions);
+            return await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
         }
         
-        [HttpGet("{id}", Name = "GetCategoryById")]
+        [HttpGet("{id}")]
         public async Task<ActionResult> Get(int id)
         {
             return await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetCategoryByIdQuery(id));
-            //var result = await _mediator.ProcessQueryAsync(new GetCategoryByIdQuery(id));
-
-            //if (result == null)
-            //{
-            //    return NotFound();
-            //}
-
-            //return new OkObjectResult(result);
         }
 
         [HttpPost]
-        public async Task<ActionResult> PostAsync([FromBody] Category category)
+        public async Task<ActionResult> Post([FromBody] Category category)
         {
-            return await _restMediator.ProcessRestCommandAsync<Category>(RestOperation.Create, new CreateCategoryCommand(category));
-            //var result = await _mediator.ProcessCommandAsync<int>(new CreateCategoryCommand(category));
+            return await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, new CreateCategoryCommand(category));
+        }
 
-            //if (result.Successful)
-            //{
-            //    return new CreatedAtRouteResult("GetCategoryById", new {Id = result.Result}, result);
-            //}
-
-            //return StatusCode(StatusCodes.Status400BadRequest, result);
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            return await _restMediator.ProcessRestCommandAsync(RestOperation.Delete, new DeleteCategoryCommand(id));
         }
     }
 }

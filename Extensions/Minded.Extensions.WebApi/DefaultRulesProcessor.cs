@@ -38,7 +38,7 @@ namespace Minded.Extensions.WebApi
                 }
             }
 
-            if (rule.AddContent)
+            if (rule.ContentResponse != ContentResponse.None)
             {
                 return new ObjectResult(result)
                 {
@@ -76,7 +76,7 @@ namespace Minded.Extensions.WebApi
                 }
             }
 
-            if (rule.AddContent)
+            if (rule.ContentResponse != ContentResponse.None)
             {
                 return new ObjectResult(result)
                 {
@@ -115,9 +115,19 @@ namespace Minded.Extensions.WebApi
                 }
             }
 
-            if (rule.AddContent)
+            if (rule.ContentResponse != ContentResponse.None)
             {
-                return new ObjectResult(result)
+                object resultObject;
+                if(rule.ContentResponse == ContentResponse.Full)
+                {
+                    resultObject = result;
+                }
+                else
+                {
+                    resultObject = result.Result;
+                }
+
+                return new ObjectResult(resultObject)
                 {
                     StatusCode = (int)rule.ResultStatusCode
                 };

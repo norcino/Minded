@@ -14,6 +14,7 @@ namespace Data.Context
 
         public virtual DbSet<Category> Categories { get; set; }
         public virtual DbSet<Transaction> Transactions { get; set; }
+        public virtual DbSet<User> Users { get; set; }
 
         public new DbSet<T> Set<T>() where T : class, new()
         {

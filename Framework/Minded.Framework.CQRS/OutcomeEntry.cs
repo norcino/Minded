@@ -1,4 +1,6 @@
-﻿namespace Minded.Framework.CQRS.Abstractions
+﻿using System.Text.Json.Serialization;
+
+namespace Minded.Framework.CQRS.Abstractions
 {
     /// <inheritdoc cref="IOutcomeEntry"/>
     public class OutcomeEntry : IOutcomeEntry
@@ -6,17 +8,18 @@
         /// <summary>
         /// Creates a new ValidationEntry.
         /// </summary>
-        public OutcomeEntry(string propertyName, string error) : this(propertyName, error, null)
+        public OutcomeEntry(string propertyName, string message) : this(propertyName, message, null)
         {
         }
 
         /// <summary>
         /// Creates a new ValidationEntry.
         /// </summary>
-        public OutcomeEntry(string propertyName, string error, object attemptedValue)
+        [JsonConstructor]
+        public OutcomeEntry(string propertyName, string message, object attemptedValue)
         {
             PropertyName = propertyName;
-            Message = error;
+            Message = message;
             AttemptedValue = attemptedValue;
         }
 
