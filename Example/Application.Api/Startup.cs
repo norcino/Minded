@@ -73,7 +73,7 @@ namespace Application.Api
                 routeBuilder.EnableDependencyInjection();
             });
         }
-        
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -96,7 +96,7 @@ namespace Application.Api
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
                 .AddCommandLoggingDecorator()
-                .RegisterCommandHandlers();
+                .AddCommandHandlers();
 
                 b.AddQueryExceptionDecorator()
                 .AddQueryLoggingDecorator()
