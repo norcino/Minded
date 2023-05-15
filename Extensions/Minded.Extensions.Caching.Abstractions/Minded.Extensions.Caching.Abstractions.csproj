@@ -9,7 +9,7 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>$(AssemblyName)</PackageId>
     <Title>$(AssemblyName)</Title>
-    <IsPackable>False</IsPackable>
+    <IsPackable>True</IsPackable>
     <Authors>Manuel Salvatori</Authors>
     <Product>Minded Framework - Clan code made easy</Product>
     <Description>Package which allows to add the Caching support.</Description>
@@ -28,7 +28,7 @@
     <AssemblyVersion>1.0.3</AssemblyVersion>
     <FileVersion>1.0.3</FileVersion>
     <VersionPrefix>1.0.3</VersionPrefix>
-    <VersionSuffix>alpha</VersionSuffix>
+    <VersionSuffix></VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>

@@ -9,7 +9,7 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>$(AssemblyName)</PackageId>
     <Title>$(AssemblyName)</Title>
-    <IsPackable>False</IsPackable>
+    <IsPackable>True</IsPackable>
     <Authors>Manuel Salvatori</Authors>
     <Product>Minded Framework - Clan code made easy</Product>
     <Description>Package which allows to add the Memory Caching Decorator and contains the base classes necessary for it's customization. Minded helps to implement a clean architecture, offering the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
@@ -29,7 +29,7 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
     <AssemblyVersion>1.0.3</AssemblyVersion>
     <FileVersion>1.0.3</FileVersion>
     <VersionPrefix>1.0.3</VersionPrefix>
-    <VersionSuffix>alpha</VersionSuffix>
+    <VersionSuffix></VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
