@@ -16,9 +16,12 @@ using Minded.Extensions.Configuration;
 using Minded.Extensions.Exception.Decorator;
 using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Validation.Decorator;
+using Minded.Extensions.Caching.Memory.Decorator;
 using System.Linq;
 using Minded.Extensions.WebApi;
 using Serilog;
+using Minded.Extensions.Caching.Decorator;
+using Minded.Extensions.Caching.Abstractions.Decorator;
 
 namespace Application.Api
 {
@@ -88,6 +91,8 @@ namespace Application.Api
             // Entity Framework context registration
             RegisterContext(services, HostingEnvironment);
 
+            services.AddMemoryCache();
+
             services.AddMinded(assembly => assembly.Name.StartsWith("Service."), b =>
             {
                 b.AddMediator();
@@ -100,6 +105,7 @@ namespace Application.Api
 
                 b.AddQueryExceptionDecorator()
                 .AddQueryLoggingDecorator()
+                .AddQueryCacheDecorator()
                 .AddQueryHandlers();
             });
 

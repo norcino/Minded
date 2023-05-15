@@ -9,13 +9,16 @@ The Minded framework take it's name in a stretchy way from "**M**ed**I**ator com
 
 Correct, this is not the silver bullet framework and will not magically turn people in experienced professionals, but it will help.
 
+### Mediator
+The Mediator is a design pattern that promotes loose coupling and enhances code maintainability. It reduces the direct communication between objects, so changes in one object don't have a ripple effect on others. This is achieved by introducing a mediator object that controls how objects interact with each other. The primary benefits include improved modularity, easier reuse of individual components, and simpler communication protocols. In complex systems where a multitude of classes interact, employing the Mediator pattern can significantly simplify the system architecture, making it easier to understand, modify, and extend. It also fosters the Single Responsibility Principle, where each class is responsible for a single part of the application's functionality, contributing to the overall robustness and resilience of the system.
+
+### Decorator
+The Decorator pattern is a design pattern in object-oriented programming that allows behavior to be added to an individual object, either statically or dynamically, without affecting the behavior of other objects from the same class. This is particularly useful when you need to add responsibilities to objects without subclassing. It enhances flexibility and is in line with the Single Responsibility and Open/Closed principles of SOLID design principles, as it allows functionality to be divided between classes with unique areas of concern and enables the behavior of an object to be extended without modifying its source code. Decorators provide a flexible alternative to subclassing for extending functionality, allowing for a large number of distinct behaviors. Additionally, Decorator offers a more scalable solution than static inheritance, as you can add or remove responsibilities from an object at runtime by wrapping it in different decorator classes.
 
 ### Requirements
 This framework requires [.net Core](https://dotnet.microsoft.com/learn/dotnet/what-is-dotnet) 2.0 upward, it can be used in brand new applications or retrofitted in existing applications where it can be used to break down monolitic components.
 
-
 ### How does it work
-
 
 **The entry point (Mediator)**
 
@@ -65,7 +68,34 @@ First of all install the [Minded Nuget Package](https://www.nuget.org/packages/M
 
 
 ### Service configuration
+In your `Program.cs` file, you will register the Minded Framework in the DI container. The `AddMinded` extension method is used to configure the Minded Framework and it takes two parameters:
 
+1. A function that filters the assemblies you want to scan for Handlers. The function takes an `AssemblyName` object and returns a boolean value. Return `true` for the assemblies you wish to include.
+
+2. An action delegate that allows you to configure the Minded Framework. This delegate receives a `MindedBuilder` object that you can use to add Mediators, Handlers, and Decorators.
+
+Here's an example of what this looks like:
+
+```csharp
+services.AddMinded(assembly => assembly.Name.StartsWith("Service."), b =>
+{
+    b.AddMediator();
+    b.AddRestMediator(); // Available with Minded.Extensions.WebApi
+
+    b.AddCommandValidationDecorator() // Execution order 1
+    .AddCommandExceptionDecorator() // Execution order 2
+    .AddCommandLoggingDecorator() // Execution order 3
+    .AddCommandHandlers(); // Execution order 4
+
+    b.AddQueryExceptionDecorator()
+    .AddQueryLoggingDecorator()
+    .AddQueryHandlers();
+});
+```
+The AddMediator and AddRestMediator methods are used to add the Mediator and RestMediator services to the DI container.
+The AddCommandValidationDecorator, AddCommandExceptionDecorator, and AddCommandLoggingDecorator methods are used to add decorators that provide validation, exception handling, and logging for your command handlers.
+The AddCommandHandlers method scans the assemblies you specified for any classes that implement the ICommandHandler<> or ICommandHandler<,> interfaces and registers them in the DI container.
+Similar to the command handlers, AddQueryExceptionDecorator, AddQueryLoggingDecorator, and AddQueryHandlers methods are used to add decorators and handlers for your queries.
 
 ## Decorators
 Decorators are provided with the framework for both Query and Command handling.
@@ -84,6 +114,12 @@ Probably the best example on how decorators can be used with their great potenti
 When the decorator is invoked, it takes the command as parameter, this is inspected and if the attribute is found, the injected [ICommandValidator](https://github.com/norcino/Minded/blob/master/Decorator/Validation/ICommandValidator.cs) implementation, is used to validate the command. If the command is valid, the next handler will be invoked, otherwhise and instance of [CommandResponse](https://github.com/norcino/Minded/blob/master/CommandQuery/Command/CommandResponse.cs) will be returned straight away.
 
 _NOTE: The Validation decorator can be a terminal handler if the validation does not succeed, interrupting the execution pipeline and preventing the next handlers to be called._
+
+### Caching decorator
+The caching decorator allows to configure caching for query results.
+The _IQuery_ must implement ```IGenerateCacheKey``` in order to provide a unique identifier.
+Additionally ```IGlobalCacheKeyPrefixProvider``` can be implemented and registered in the dependency injection configuration to provide a prefix which can guarantee global uniqueness.
+A common example is to provide the Tenant ID in a multitenant system.
 
 ### Transaction decorator
 [...]

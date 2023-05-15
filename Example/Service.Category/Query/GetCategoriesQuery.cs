@@ -18,7 +18,7 @@ namespace Service.Category.Query
         public IList<OrderDescriptor> OrderBy { get; set; }
         public Guid TraceId { get; } = Guid.NewGuid();
 
-        public Expression<Func<Data.Entity.Category, bool>> Filter { get; set; }     
+        public Expression<Func<Data.Entity.Category, bool>> Filter { get; set; }
 
         public GetCategoriesQuery(Guid? traceId = null)
         {

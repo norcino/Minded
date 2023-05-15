@@ -48,27 +48,29 @@ namespace Minded.Extensions.Validation.Decorator
         /// <returns>An instance of <see cref="ICommandResponse"/> representing the output of the command</returns>
         public async Task<ICommandResponse> HandleAsync(TCommand command)
         {
-            if (Shared.IsValidatingCommand(command))
+            if (!Shared.IsValidatingCommand(command))
             {
-                _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
-
-                var valResult = await _commandValidator.ValidateAsync(command);
-
-                _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
-
-                if (!valResult.IsValid)
-                {
-                    _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.ValidationEntries.Select(e => e.Message).ToArray());
-
-                    return new CommandResponse
-                    {
-                        Successful = false,
-                        OutcomeEntries = valResult.ValidationEntries.ToList()
-                    };
-                }
+                return await InnerCommandHandler.HandleAsync(command);
             }
 
-            return await InnerCommandHandler.HandleAsync(command);
+            _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
+
+            var valResult = await _commandValidator.ValidateAsync(command);
+
+            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
+
+            if (!valResult.IsValid)
+            {
+                return await InnerCommandHandler.HandleAsync(command);
+            }
+
+            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.ValidationEntries.Select(e => e.Message).ToArray());
+
+            return new CommandResponse
+            {
+                Successful = false,
+                OutcomeEntries = valResult.ValidationEntries.ToList()
+            };
         }
     }
 
