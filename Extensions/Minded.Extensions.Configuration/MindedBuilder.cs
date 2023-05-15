@@ -23,11 +23,11 @@ namespace Minded.Extensions.Configuration
         public List<Action<MindedBuilder, Type>> QueuedCommandDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
         public List<Action<MindedBuilder, Type>> QueuedCommandWithResultDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
 
-        internal IServiceCollection serviceCollection;
+        public IServiceCollection ServiceCollection { get; }
 
         public MindedBuilder(IServiceCollection serviceCollection, Func<AssemblyName, bool> assemblyNameFilter = null)
         {
-            this.serviceCollection = serviceCollection;
+            ServiceCollection = serviceCollection;
             AssemblyFilter = assemblyNameFilter;
         }
 
@@ -150,7 +150,7 @@ namespace Minded.Extensions.Configuration
         /// <param name="action"></param>
         public void Register(Action<IServiceCollection> action)
         {
-            action(serviceCollection);
+            action(ServiceCollection);
         }
 
         #region Helper methods
@@ -167,7 +167,7 @@ namespace Minded.Extensions.Configuration
                 foreach (var validatorType in validatorTypes)
                 {
                     var interfaceType = GetGenericInterfaceInType(validatorType, genericInterface);
-                    serviceCollection.Add(new ServiceDescriptor(interfaceType, validatorType, ServiceLifetime.Transient));
+                    ServiceCollection.Add(new ServiceDescriptor(interfaceType, validatorType, ServiceLifetime.Transient));
                 }
             }
         }
@@ -217,7 +217,7 @@ namespace Minded.Extensions.Configuration
         /// <returns>List of service descriptors matching the give Type</returns>
         private List<ServiceDescriptor> GetDescriptors(Type serviceType)
         {
-            var descriptors = serviceCollection.Where(service => service.ServiceType == serviceType).ToList();
+            var descriptors = ServiceCollection.Where(service => service.ServiceType == serviceType).ToList();
 
             if (descriptors.Count == 0)
             {
@@ -269,15 +269,55 @@ namespace Minded.Extensions.Configuration
                     if(optionalDependencyType != null)
                         dependantType = optionalDependencyType(handler.GetType());
 
-                    return dependantType == null
-                        // Standard decorator and handler constructor
-                        ? Activator.CreateInstance(decoratorType, handler, serviceProvider.GetService(loggerType))
-                        // Custom decorator constructor that receives an additional type
-                        : Activator.CreateInstance(decoratorType, handler, serviceProvider.GetService(loggerType), serviceProvider.GetService(dependantType));
+                    if(dependantType == null)
+                    {
+                        return CreateInstance(serviceProvider, decoratorType, new[] { handler });
+                    }
+
+                    return CreateInstance(serviceProvider, decoratorType, new[] { handler, serviceProvider.GetService(dependantType) });
                 }
 
-                serviceCollection.Replace(ServiceDescriptor.Describe(descriptor.ServiceType, Factory, ServiceLifetime.Transient));
+                ServiceCollection.Replace(ServiceDescriptor.Describe(descriptor.ServiceType, Factory, ServiceLifetime.Transient));
             }
+        }
+
+        public object CreateInstance(IServiceProvider serviceProvider, Type instanceType, object[] additionalArguments)
+        {
+            // Find the appropriate constructor
+            var constructor = instanceType.GetConstructors().FirstOrDefault();
+            if (constructor == null)
+            {
+                throw new InvalidOperationException($"No public constructors defined for {instanceType}");
+            }
+
+            // Prepare a list to hold the constructor parameters
+            var parameters = new List<object>();
+
+            // Iterate over the constructor parameters
+            foreach (var parameter in constructor.GetParameters())
+            {
+                // If the parameter is one of the additional arguments, add it
+                var additionalArgument = additionalArguments.FirstOrDefault(arg => parameter.ParameterType.IsAssignableFrom(arg.GetType()));
+                if (additionalArgument != null)
+                {
+                    parameters.Add(additionalArgument);
+                    continue;
+                }
+
+                // Otherwise, attempt to resolve the parameter type from the service provider
+                var resolvedService = serviceProvider.GetService(parameter.ParameterType);
+                if (resolvedService != null)
+                {
+                    parameters.Add(resolvedService);
+                    continue;
+                }
+
+                // If we cannot find a suitable service, throw an exception
+                throw new InvalidOperationException($"Cannot resolve parameter {parameter.Name} of type {parameter.ParameterType} for constructor of {instanceType}");
+            }
+
+            // Finally, use the Activator class to create an instance of the type
+            return Activator.CreateInstance(instanceType, parameters.ToArray());
         }
 
         /// <summary>

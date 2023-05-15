@@ -40,7 +40,7 @@ namespace Minded.Framework.Mediator
         /// </summary>
         /// <param name="builder"></param>
         /// <param name="lifeTime"></param>
-        public static void RegisterCommandHandlers(this MindedBuilder builder, Func<AssemblyName, bool> assemblyFilter = null, ServiceLifetime lifeTime = ServiceLifetime.Transient)
+        public static void AddCommandHandlers(this MindedBuilder builder, Func<AssemblyName, bool> assemblyFilter = null, ServiceLifetime lifeTime = ServiceLifetime.Transient)
         {
             foreach (var assembly in builder.SourceAssemblies(assemblyFilter ?? builder.AssemblyFilter))
             {

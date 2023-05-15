@@ -8,9 +8,9 @@ namespace Minded.Framework.Decorator
 
         protected readonly IQueryHandler<TQuery, TResult> DecoratedQueryHandler;
 
-        public QueryHandlerDecoratorBase(IQueryHandler<TQuery, TResult> decoratedQueryHandler)
+        public QueryHandlerDecoratorBase(IQueryHandler<TQuery, TResult> queryHandler)
         {
-            DecoratedQueryHandler = decoratedQueryHandler;
+            DecoratedQueryHandler = queryHandler;
         }
     }
 }

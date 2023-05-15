@@ -1,9 +1,12 @@
 ﻿using System;
+using Minded.Extensions.Caching.Decorator;
+using Minded.Extensions.Caching.Memory.Decorator;
 using Minded.Extensions.Logging;
 
 namespace Service.Category.Query
 {
-    public class GetCategoryByIdQuery : ILoggableQuery<Data.Entity.Category>
+    [MemoryCache(ExpirationInSeconds = 300)]
+    public class GetCategoryByIdQuery : ILoggableQuery<Data.Entity.Category>, IGenerateCacheKey
     {
         public int CategoryId { get; }
         public Guid TraceId { get; } = Guid.NewGuid();
@@ -15,5 +18,6 @@ namespace Service.Category.Query
         }
 
         public LogData ToLog() => new(TraceId, "CategoryId: {CategoryId}", CategoryId);
+        public string GetCacheKey() => $"{CategoryId}";
     }
 }

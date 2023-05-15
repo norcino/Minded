@@ -20,6 +20,10 @@ namespace Minded.Framework.Mediator
         {
             var handlerType = typeof(IQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResult));
             dynamic handler = _services.GetService(handlerType);
+
+            if (handler == null)
+                throw new InvalidOperationException($"Unable to retrieve the handler for query: {handlerType.FullName}");
+
             return await handler.HandleAsync((dynamic)query);
         }
 
@@ -28,6 +32,10 @@ namespace Minded.Framework.Mediator
         {
             var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
             dynamic handler = _services.GetService(handlerType);
+
+            if (handler == null)
+                throw new InvalidOperationException($"Unable to retrieve the handler for command: {handlerType.FullName}");
+
             return await handler.HandleAsync((dynamic)command);
         }
 
@@ -40,6 +48,10 @@ namespace Minded.Framework.Mediator
 
             var handlerType = typeof(ICommandHandler<,>).MakeGenericType(typeArgs);
             dynamic handler = _services.GetService(handlerType);
+
+            if (handler == null)
+                throw new InvalidOperationException($"Unable to retrieve the handler for command: {handlerType.FullName}");
+
             var result = await handler.HandleAsync((dynamic)command);
 
             if (result == null || result.GetType() == typeof(CommandResponse<TResult>))

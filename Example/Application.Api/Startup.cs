@@ -16,9 +16,12 @@ using Minded.Extensions.Configuration;
 using Minded.Extensions.Exception.Decorator;
 using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Validation.Decorator;
+using Minded.Extensions.Caching.Memory.Decorator;
 using System.Linq;
 using Minded.Extensions.WebApi;
 using Serilog;
+using Minded.Extensions.Caching.Decorator;
+using Minded.Extensions.Caching.Abstractions.Decorator;
 
 namespace Application.Api
 {
@@ -73,7 +76,7 @@ namespace Application.Api
                 routeBuilder.EnableDependencyInjection();
             });
         }
-        
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -88,6 +91,8 @@ namespace Application.Api
             // Entity Framework context registration
             RegisterContext(services, HostingEnvironment);
 
+            services.AddMemoryCache();
+
             services.AddMinded(assembly => assembly.Name.StartsWith("Service."), b =>
             {
                 b.AddMediator();
@@ -96,10 +101,11 @@ namespace Application.Api
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
                 .AddCommandLoggingDecorator()
-                .RegisterCommandHandlers();
+                .AddCommandHandlers();
 
                 b.AddQueryExceptionDecorator()
                 .AddQueryLoggingDecorator()
+                .AddQueryCacheDecorator()
                 .AddQueryHandlers();
             });
 

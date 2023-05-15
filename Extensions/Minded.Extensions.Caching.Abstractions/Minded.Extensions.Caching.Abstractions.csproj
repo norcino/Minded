@@ -12,8 +12,7 @@
     <IsPackable>False</IsPackable>
     <Authors>Manuel Salvatori</Authors>
     <Product>Minded Framework - Clan code made easy</Product>
-    <Description>Package which allows to add the Caching Decorator and contains the base classes necessary for it's customization. Minded helps to implement a clean architecture, offering the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
-Encapsuplate all your business logic in Commands and Queries, the rest will be dealth by the framework.</Description>
+    <Description>Package which allows to add the Caching support.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageOutputPath>$(OutputDirectory)</PackageOutputPath>
@@ -26,9 +25,9 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
 		<RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>1.0.2</AssemblyVersion>
-    <FileVersion>1.0.2</FileVersion>
-    <VersionPrefix>1.0.2</VersionPrefix>
+    <AssemblyVersion>1.0.3</AssemblyVersion>
+    <FileVersion>1.0.3</FileVersion>
+    <VersionPrefix>1.0.3</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>
@@ -37,6 +36,16 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
 
   <ItemGroup>
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />
+    <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
   </ItemGroup>
 
 </Project>

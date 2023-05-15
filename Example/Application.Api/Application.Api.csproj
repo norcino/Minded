@@ -33,6 +33,7 @@
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Caching.Memory\Minded.Extensions.Caching.Memory.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.EntityFrameworkCore\Minded.Extensions.CQRS.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.OData\Minded.Extensions.CQRS.OData.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />

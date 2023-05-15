@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.3 (2023-05-15)
+Added caching support using decorators.
+
+#### Added
+* Added new __Minded.Extensions.Caching.Abstractions__ and __Minded.Extensions.Caching.Memory__ Nuget packages
+* Added `MemoryCacheAttribute` to activate the `MemoryCacheQueryHandlerDecorator` as long as the `IQuery` implements also `IGenerateCacheKey`
+* Added `IGlobalCacheKeyPrefixProvider` which can be used to control global generation of cache prefixe
+
 ## 1.0.2 (2023-03-14)
 
 Primary stable version fit for production use.
