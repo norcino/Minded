@@ -9,7 +9,7 @@ using Minded.Framework.CQRS.Command;
  * Create
  * ---------------------------------------------------------------------
  * Success - 201 Created - Return created object
- * Failure - 400 Invalid request - Return details about the failure
+ * Failure - 400 Bad Request - Return details about the failure
  * Async fire and forget operation - 202 Accepted - Optionally return url for polling status
  * 
  * Update
@@ -17,7 +17,7 @@ using Minded.Framework.CQRS.Command;
  * Success - 200 Ok - Return the updated object
  * Success - 204 NoContent
  * Failure - 404 NotFound - The targeted entity identifier does not exist
- * Failure - 400 Invalid request - Return details about the failure
+ * Failure - 400 Bad Request - Return details about the failure
  * Async fire and forget operation - 202 Accepted - Optionally return url for polling status
  * 
  * Patch
@@ -25,7 +25,7 @@ using Minded.Framework.CQRS.Command;
  * Success - 200 Ok - Return the patched object
  * Success - 204 NoContent
  * Failure - 404 NotFound - The targeted entity identifier does not exist
- * Failure - 400 Invalid request - Return details about the failure
+ * Failure - 400 Bad Request - Return details about the failure
  * Async fire and forget operation - 202 Accepted - Optionally return url for polling status
  * 
  * Delete
@@ -48,7 +48,7 @@ using Minded.Framework.CQRS.Command;
  * ---------------------------------------------------------------------
  * Success - 200 Ok - Return content where appropriate
  * Success - 204 NoContent
- * Failure - 400 - Return details about the failure
+ * Failure - 400 Bad Request - Return details about the failure
  * Async fire and forget operation - 202 Accepted - Optionally return url for polling status
  * 
  * Generic results

@@ -19,9 +19,10 @@ namespace Minded.Extensions.Caching.Abstractions.Decorator
         /// </summary>
         public int SlidingExpiration { get; set; }
 
-        ///// <summary>
-        ///// Date and time when the cache entry will be evicted
-        ///// </summary>
-        public DateTimeOffset AbsoluteExpiration { get; set; }
+        /// <summary>
+        /// Date and time when the cache entry will be evicted.
+        /// The accepted format is ISO 8601 representation 'e.g. 2023-06-30T12:00:00Z'.
+        /// </summary>
+        public string AbsoluteExpiration { get; set; }
     }
 }

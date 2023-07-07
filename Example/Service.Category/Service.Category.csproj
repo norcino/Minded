@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Caching.Memory\Minded.Extensions.Caching.Memory.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.EntityFrameworkCore\Minded.Extensions.CQRS.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation.Abstractions\Minded.Extensions.Validation.Abstractions.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation\Minded.Extensions.Validation.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />

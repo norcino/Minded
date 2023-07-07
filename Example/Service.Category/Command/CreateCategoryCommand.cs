@@ -1,21 +1,24 @@
 ﻿using System;
 using Minded.Extensions.Logging;
 using Minded.Extensions.Validation.Decorator;
+using Minded.Framework.CQRS.Command;
 
 namespace Service.Category.Command
 {
     [ValidateCommand]
-    public class CreateCategoryCommand : ILoggableCommand<Data.Entity.Category>
+    public class CreateCategoryCommand : ICommand<Data.Entity.Category>, ILoggable
     {
         public Data.Entity.Category Category { get; set; }
-        public Guid TraceId { get; } = Guid.NewGuid();
 
         public CreateCategoryCommand(Data.Entity.Category category, Guid? traceId = null)
         {
             Category = category;
             TraceId = traceId ?? TraceId;
         }
+        public Guid TraceId { get; } = Guid.NewGuid();
 
-        public LogData ToLog() => new(TraceId, "Category: {Name}", Category.Name);
+        public string LoggingTemplate => "CategoryName {Name}";
+
+        public object[] LoggingParameters => new object[] { Category.Name };
     }
 }

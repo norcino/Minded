@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Minded.Extensions.Configuration;
 using Minded.Extensions.Exception.Decorator;
@@ -18,17 +19,15 @@ using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Extensions.Caching.Memory.Decorator;
 using System.Linq;
-using Minded.Extensions.WebApi;
 using Serilog;
-using Minded.Extensions.Caching.Decorator;
-using Minded.Extensions.Caching.Abstractions.Decorator;
+
 
 namespace Application.Api
 {
     public class Startup
     {
         public static readonly ILoggerFactory AppLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
-        public IConfigurationRoot Configuration { get; }
+        public IConfiguration Configuration { get; }
         public IWebHostEnvironment HostingEnvironment { get; }
 
         public Startup(IConfiguration configuration, IWebHostEnvironment env)
@@ -100,12 +99,12 @@ namespace Application.Api
 
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
-                .AddCommandLoggingDecorator()
+                .AddCommandLoggingDecorator(Configuration)
                 .AddCommandHandlers();
 
                 b.AddQueryExceptionDecorator()
-                .AddQueryLoggingDecorator()
-                .AddQueryCacheDecorator()
+                .AddQueryLoggingDecorator(Configuration)
+                .AddQueryMemoryCacheDecorator()
                 .AddQueryHandlers();
             });
 

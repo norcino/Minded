@@ -21,17 +21,17 @@ namespace Service.Transaction.Validator
 
             if (command.Transaction == null)
             {
-                validationResult.ValidationEntries.Add(new OutcomeEntry(nameof(command.Transaction), "{0} is mandatory"));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction), "{0} is mandatory"));
 
                 return validationResult;
             }
 
             if (command.Transaction.Id != 0)
             {
-                validationResult.ValidationEntries.Add(new OutcomeEntry(nameof(command.Transaction.Id), "{0} should not be specified on creation"));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.Id), "{0} should not be specified on creation"));
             }
 
-            var result = _categoryValidator.ValidateAsync(command.Transaction);           
+            var result = _categoryValidator.ValidateAsync(command.Transaction);
             return (await result).Merge(validationResult);
         }
     }

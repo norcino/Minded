@@ -9,13 +9,13 @@ namespace Minded.Extensions.Caching.Memory.Decorator
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Add the Caching decorator for Queries
+        /// Add the Memory Cache decorator for Queries and configures the EmptyGlobackCacheKeyPrefixProvider as default IGlobalCacheKeyPrefixProvider
         /// </summary>
-        public static MindedBuilder AddQueryCacheDecorator(this MindedBuilder builder)
+        public static MindedBuilder AddQueryMemoryCacheDecorator(this MindedBuilder builder)
         {
             if(!builder.ServiceCollection.Any(serviceDescriptor => serviceDescriptor.ServiceType == typeof(IGlobalCacheKeyPrefixProvider)))
             {
-                builder.ServiceCollection.AddScoped<IGlobalCacheKeyPrefixProvider, NullGlobalCacheKeyPrefixProvider>();
+                builder.ServiceCollection.AddScoped<IGlobalCacheKeyPrefixProvider, EmptyGlobalCacheKeyPrefixProvider>();
             }
 
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(MemoryCacheQueryHandlerDecorator<,>)));

@@ -59,8 +59,16 @@ namespace Minded.Extensions.Caching.Memory.Decorator
             var cacheEntryOptions = new MemoryCacheEntryOptions();
 
             if (cacheAttribute.AbsoluteExpiration != default)
-                cacheEntryOptions.AbsoluteExpiration = cacheAttribute.AbsoluteExpiration;
-                //ExpirationTokens = null,
+            {
+                if(DateTimeOffset.TryParse(cacheAttribute.AbsoluteExpiration, out DateTimeOffset dateTimeOffset))
+                {
+                    cacheEntryOptions.AbsoluteExpiration = dateTimeOffset;
+                }
+                else
+                {
+                    throw new ArgumentException("The CacheAttribute.AbsoluteExpiration string format is not a valid DateTimeOffset, use ISO 8601.");
+                }
+            }
 
             if (cacheAttribute.ExpirationInSeconds != default)
                 cacheEntryOptions.AbsoluteExpirationRelativeToNow =

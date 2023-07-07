@@ -14,9 +14,9 @@ namespace Minded.Extensions.Validation
         bool IsValid { get; }
 
         /// <summary>
-        /// List of all <see cref="ValidationEntries"/> result of the validation
+        /// List of all <see cref="OutcomeEntries"/> result of the validation
         /// </summary>
-        IList<IOutcomeEntry> ValidationEntries { get; }
+        IList<IOutcomeEntry> OutcomeEntries { get; }
 
         /// <summary>
         /// Allows to merge two different validation results, if one is not valid the resulting <see cref="IValidationResult"/> will be not valid

@@ -64,12 +64,12 @@ namespace Minded.Extensions.Validation.Decorator
                 return await InnerCommandHandler.HandleAsync(command);
             }
 
-            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.ValidationEntries.Select(e => e.Message).ToArray());
+            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
             return new CommandResponse
             {
                 Successful = false,
-                OutcomeEntries = valResult.ValidationEntries.ToList()
+                OutcomeEntries = valResult.OutcomeEntries.ToList()
             };
         }
     }
@@ -103,12 +103,12 @@ namespace Minded.Extensions.Validation.Decorator
 
                 if (!valResult.IsValid)
                 {
-                    _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.ValidationEntries.Select(e => e.Message).ToArray());
+                    _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
                     return new CommandResponse<TResult>
                     {
                         Successful = false,
-                        OutcomeEntries = valResult.ValidationEntries.ToList()
+                        OutcomeEntries = valResult.OutcomeEntries.ToList()
                     };
                 }
             }

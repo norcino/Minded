@@ -1,12 +1,12 @@
 ﻿using System;
 using Minded.Extensions.Logging;
+using Minded.Framework.CQRS.Command;
 
 namespace Service.Category.Command
 {
-    public class DeleteCategoryCommand : ILoggableCommand
+    public class DeleteCategoryCommand : ICommand, ILoggable
     {
         public int CategoryId { get; }
-        public Guid TraceId { get; } = Guid.NewGuid();
 
         public DeleteCategoryCommand(int id, Guid? traceId = null)
         {
@@ -14,6 +14,10 @@ namespace Service.Category.Command
             TraceId = traceId ?? TraceId;
         }
 
-        public LogData ToLog() => new(TraceId, "CategoryId: {Id}", CategoryId);
+        public Guid TraceId { get; } = Guid.NewGuid();
+
+        public string LoggingTemplate => "CategoryId: {Id}";
+
+        public object[] LoggingParameters => new object[] { CategoryId };
     }
 }

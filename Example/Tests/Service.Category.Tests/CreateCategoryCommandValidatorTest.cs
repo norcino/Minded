@@ -29,7 +29,7 @@ namespace Service.Category.Tests
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result.IsValid);
-            Assert.IsFalse(result.ValidationEntries.Any());
+            Assert.IsFalse(result.OutcomeEntries.Any());
         }
 
         [TestMethod]
@@ -40,7 +40,7 @@ namespace Service.Category.Tests
 
             Assert.IsNotNull(result);
             Assert.IsFalse(result.IsValid);
-            Assert.IsTrue(result.ValidationEntries.Any(e =>
+            Assert.IsTrue(result.OutcomeEntries.Any(e =>
                 e.PropertyName == nameof(command.Category) &&
                 e.Severity == Severity.Error &&
                 e.Message == "{0} is mandatory"));
@@ -60,7 +60,7 @@ namespace Service.Category.Tests
 
             Assert.IsNotNull(result);
             Assert.IsFalse(result.IsValid);
-            Assert.IsTrue(result.ValidationEntries.Any(e =>
+            Assert.IsTrue(result.OutcomeEntries.Any(e =>
                 e.PropertyName == nameof(command.Category.Id) &&
                 e.Severity == Severity.Error &&
                 e.Message == "{0} should not be specified on creation"));

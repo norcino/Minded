@@ -1,3 +1,37 @@
+Logging decorator or diagnostic decorator?
+Test logging decorator
+Log outcomeentry in case of failure or validation error?
+Exception decorator and logging decorator relationscip
+
+
+
+
+
+
+I want to enable/diable easily the recording for diagnostic purpose
+- show commands or queries which are executed in the system or both
+- optionally show the detail of the query
+- optionally show the tracking
+- optionally show performance and outcome
+- no code changes needed to support
+- no possibility to forget to add it
+
+> Enabled
+> Outcome
+> Duration
+> Tracking
+> DataIDs (ILoggable)
+> DataAll (ILoggable)
+
+
+
+
+Exception configuration to hide sensitive data
+Exception configuration to break or wrap in result
+
+
+
+
 [![Build status](https://dev.azure.com/norcino/Minded/_apis/build/status/GitHub%20Minded)](https://dev.azure.com/norcino/Minded/_build/latest?definitionId=1)
 
 # Minded

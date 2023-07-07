@@ -1,16 +1,12 @@
-﻿using System;
+﻿using Minded.Framework.CQRS.Abstractions;
 
 namespace Minded.Framework.CQRS.Command
 {
     /// <summary>
     /// Base command interface
     /// </summary>
-    public interface ICommand
+    public interface ICommand : IMessage
     {
-        /// <summary>
-        /// Tracing Id used to track all command and queries coming from the same request
-        /// </summary>
-        Guid TraceId { get; }
     }
 
     /// <summary>

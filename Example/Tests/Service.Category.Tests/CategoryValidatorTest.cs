@@ -26,7 +26,7 @@ namespace Service.Category.Tests
             var category = Builder<Data.Entity.Category>.New().Build();
             var result = await _sut.ValidateAsync(category);
 
-            result.ValidationEntries.Should().BeEmpty();
+            result.OutcomeEntries.Should().BeEmpty();
             result.IsValid.Should().BeTrue();
         }
 
@@ -37,7 +37,7 @@ namespace Service.Category.Tests
             var result = await _sut.ValidateAsync(category);
 
             result.IsValid.Should().BeFalse();
-            result.ValidationEntries.Any(e =>
+            result.OutcomeEntries.Any(e =>
                     e.PropertyName == nameof(category.Name) &&
                     e.Severity == Severity.Error &&
                     e.Message == "{0} is mandatory")
@@ -51,7 +51,7 @@ namespace Service.Category.Tests
             var result = await _sut.ValidateAsync(category);
 
             result.IsValid.Should().BeFalse();
-            result.ValidationEntries.Any(e =>
+            result.OutcomeEntries.Any(e =>
                     e.PropertyName == nameof(category.Name) &&
                     e.Severity == Severity.Error &&
                     e.Message == "{0} is mandatory")
@@ -65,7 +65,7 @@ namespace Service.Category.Tests
             var result = await _sut.ValidateAsync(category);
 
             result.IsValid.Should().BeFalse();
-            result.ValidationEntries.Any(e =>
+            result.OutcomeEntries.Any(e =>
                     e.PropertyName == nameof(category.Name) &&
                     e.Severity == Severity.Error &&
                     e.Message == "{0} is mandatory")

@@ -2,7 +2,7 @@
 
 namespace Minded.Extensions.Caching.Abstractions.Decorator
 {
-    public class NullGlobalCacheKeyPrefixProvider : IGlobalCacheKeyPrefixProvider
+    public class EmptyGlobalCacheKeyPrefixProvider : IGlobalCacheKeyPrefixProvider
     {
         public string GetGlobalCacheKeyPrefix() => "";
     }

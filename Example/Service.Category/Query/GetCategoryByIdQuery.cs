@@ -2,14 +2,14 @@
 using Minded.Extensions.Caching.Decorator;
 using Minded.Extensions.Caching.Memory.Decorator;
 using Minded.Extensions.Logging;
+using Minded.Framework.CQRS.Query;
 
 namespace Service.Category.Query
 {
     [MemoryCache(ExpirationInSeconds = 300)]
-    public class GetCategoryByIdQuery : ILoggableQuery<Data.Entity.Category>, IGenerateCacheKey
+    public class GetCategoryByIdQuery : IQuery<Data.Entity.Category>, IGenerateCacheKey, ILoggable
     {
         public int CategoryId { get; }
-        public Guid TraceId { get; } = Guid.NewGuid();
 
         public GetCategoryByIdQuery(int categoryId, Guid? traceId = null)
         {
@@ -17,7 +17,12 @@ namespace Service.Category.Query
             TraceId = traceId ?? TraceId;
         }
 
-        public LogData ToLog() => new(TraceId, "CategoryId: {CategoryId}", CategoryId);
-        public string GetCacheKey() => $"{CategoryId}";
+        public Guid TraceId { get; } = Guid.NewGuid();
+
+        public string LoggingTemplate => "CategoryId: {CategoryId}";
+
+        public object[] LoggingParameters => new object[] { CategoryId };
+
+        public string GetCacheKey() => $"CategoryId-{CategoryId}";
     }
 }

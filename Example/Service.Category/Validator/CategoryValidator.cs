@@ -1,6 +1,6 @@
-﻿using Minded.Extensions.Validation;
+﻿using System.Threading.Tasks;
+using Minded.Extensions.Validation;
 using Minded.Framework.CQRS.Abstractions;
-using System.Threading.Tasks;
 
 namespace Service.Category.Validator
 {
@@ -12,7 +12,7 @@ namespace Service.Category.Validator
 
             if (string.IsNullOrWhiteSpace(subject.Name))
             {
-                validationResult.ValidationEntries.Add(new OutcomeEntry(nameof(subject.Name), "{0} is mandatory"));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(subject.Name), "{0} is mandatory"));
             }
 
             return await Task.FromResult(validationResult);

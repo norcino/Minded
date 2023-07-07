@@ -9,5 +9,15 @@ namespace Minded.Extensions.Caching.Memory.Decorator
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public class MemoryCacheAttribute : CacheAttribute
     {
+        public MemoryCacheAttribute()
+        {
+        }
+
+        public MemoryCacheAttribute(int expirationInSeconds = default, int slidingExpiration = default, string absoluteExpiration = default)
+        {
+            ExpirationInSeconds = expirationInSeconds;
+            SlidingExpiration = slidingExpiration;
+            AbsoluteExpiration = absoluteExpiration;
+        }
     }
 }

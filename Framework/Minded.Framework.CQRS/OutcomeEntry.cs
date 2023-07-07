@@ -6,14 +6,14 @@ namespace Minded.Framework.CQRS.Abstractions
     public class OutcomeEntry : IOutcomeEntry
     {
         /// <summary>
-        /// Creates a new ValidationEntry.
+        /// Creates a new OutcomeEntry.
         /// </summary>
         public OutcomeEntry(string propertyName, string message) : this(propertyName, message, null)
         {
         }
 
         /// <summary>
-        /// Creates a new ValidationEntry.
+        /// Creates a new OutcomeEntry.
         /// </summary>
         [JsonConstructor]
         public OutcomeEntry(string propertyName, string message, object attemptedValue)

@@ -5,6 +5,14 @@
     /// </summary>
     public interface ILoggable
     {
-        LogData ToLog();
+        /// <summary>
+        /// Template to be used for string interpolation
+        /// </summary>
+        string LoggingTemplate { get; }
+
+        /// <summary>
+        /// List of parameters which will be substituted in the template
+        /// </summary>
+        object[] LoggingParameters { get; }
     }
 }
