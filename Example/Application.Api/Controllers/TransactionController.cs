@@ -18,26 +18,26 @@ namespace Application.Api.Controllers
             _mediator = mediator;
         }
 
-        public Task<ActionResult> Get(ODataQueryOptions<Transaction> queryOptions)
+        public Task<IActionResult> Get(ODataQueryOptions<Transaction> queryOptions)
         {
             var query = new GetTransactionsQuery(queryOptions);
             return _mediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
         }
 
         [HttpGet("{id}", Name = "GetTransactionById")]
-        public async Task<ActionResult> Get(int id)
+        public async Task<IActionResult> Get(int id)
         {
             return await _mediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetTransactionByIdQuery(id));
         }
 
         [HttpPost]
-        public async Task<ActionResult> PostAsync([FromBody] Transaction transaction)
+        public async Task<IActionResult> PostAsync([FromBody] Transaction transaction)
         {
             return await _mediator.ProcessRestCommandAsync<int>(RestOperation.CreateWithContent, new CreateTransactionCommand(transaction));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> PutAsync(int id, [FromBody] Transaction transaction)
+        public async Task<IActionResult> PutAsync(int id, [FromBody] Transaction transaction)
         {
             return await _mediator.ProcessRestCommandAsync<int>(RestOperation.UpdateWithContent, new UpdateTransactionCommand(id, transaction));
         }

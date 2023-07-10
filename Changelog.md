@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.5 (2023-07-10)
+Added LinkSource to all packages and updated Logging configuration setup.
+
+### Affected
+* All
+
+### Changed
+
+* Logging Decorator allows semplified configuration passing the Type of the `IGlobalCacheKeyPrefixProvider`.
+* Configuration method AddMinded accepts `IConfiguration` to make it available to extension methods used to setup decorators.
+
 ## 1.0.4 (2023-07-03)
 Logging Extension has been refactored to reduce the amount of code needed when creating commands and queries in order to be logged. 
 

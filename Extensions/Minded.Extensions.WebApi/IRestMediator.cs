@@ -15,7 +15,7 @@ namespace Minded.Extensions.WebApi
         /// <param name="operation"></param>
         /// <param name="query"></param>
         /// <returns></returns>
-        Task<ActionResult> ProcessRestQueryAsync<TResult>(RestOperation operation, IQuery<TResult> query);
+        Task<IActionResult> ProcessRestQueryAsync<TResult>(RestOperation operation, IQuery<TResult> query);
 
         /// <summary>
         /// Instantiates the ICommandHandler for the given command and executes it's Handle method
@@ -24,7 +24,7 @@ namespace Minded.Extensions.WebApi
         /// <param name="operation"></param>
         /// <param name="command"></param>
         /// <returns></returns>
-        Task<ActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command);
+        Task<IActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command);
 
         /// <summary>
         /// Instantiates the ICommandHandler for the given command and executes it's Handle method
@@ -34,6 +34,6 @@ namespace Minded.Extensions.WebApi
         /// <param name="operation"></param>
         /// <param name="command"></param>
         /// <returns></returns>
-        Task<ActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command);
+        Task<IActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command);
     }
 }

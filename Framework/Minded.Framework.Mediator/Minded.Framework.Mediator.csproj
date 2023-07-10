@@ -1,19 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
-
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
-    <ProjectReference Include="..\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
-    <ProjectReference Include="..\Minded.Framework.Mediator.Abstractions\Minded.Framework.Mediator.Abstractions.csproj" />
-  </ItemGroup>
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
@@ -39,15 +27,26 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <AssemblyVersion>1.0.2</AssemblyVersion>
     <FileVersion>1.0.2</FileVersion>
-    <VersionPrefix>1.0.2</VersionPrefix>
+    <VersionPrefix>1.0.3</VersionPrefix>
     <VersionSuffix></VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+    <SourceLinkUrl>https://github.com/norcino/Minded/tree/master/Framework/Minded.Framework.Mediator</SourceLinkUrl>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
+    <ProjectReference Include="..\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
+    <ProjectReference Include="..\Minded.Framework.Mediator.Abstractions\Minded.Framework.Mediator.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
 
 </Project>

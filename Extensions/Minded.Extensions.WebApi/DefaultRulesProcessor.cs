@@ -22,7 +22,7 @@ namespace Minded.Extensions.WebApi
         /// <param name="operation"></param>
         /// <param name="result"></param>
         /// <returns></returns>
-        public virtual ActionResult ProcessQueryRules(RestOperation operation, object result)
+        public virtual IActionResult ProcessQueryRules(RestOperation operation, object result)
         {
             var rule = GetQueryRule(operation, result);
 
@@ -55,7 +55,7 @@ namespace Minded.Extensions.WebApi
         /// <param name="operation">API Operation</param>
         /// <param name="result">CommandResponse result of the proccessing of the command</param>
         /// <returns>ActionResult to be returned to the API</returns>
-        public virtual ActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result)
+        public virtual IActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result)
         {
             var rule = GetCommandRule(operation, result);
 
@@ -94,7 +94,7 @@ namespace Minded.Extensions.WebApi
         /// <param name="operation">API Operation</param>
         /// <param name="result">CommandResponse result of the proccessing of the command</param>
         /// <returns>ActionResult to be returned to the API</returns>
-        public virtual ActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result)
+        public virtual IActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result)
         {
             var rule = GetCommandRule(operation, result);
 

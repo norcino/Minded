@@ -5,8 +5,8 @@ namespace Minded.Extensions.WebApi
 {
     public interface IRulesProcessor
     {
-        ActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result);
-        ActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result);
-        ActionResult ProcessQueryRules(RestOperation operation, object result);
+        IActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result);
+        IActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result);
+        IActionResult ProcessQueryRules(RestOperation operation, object result);
     }
 }

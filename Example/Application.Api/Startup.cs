@@ -92,18 +92,18 @@ namespace Application.Api
 
             services.AddMemoryCache();
 
-            services.AddMinded(assembly => assembly.Name.StartsWith("Service."), b =>
+            services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), b =>
             {
                 b.AddMediator();
                 b.AddRestMediator();
 
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
-                .AddCommandLoggingDecorator(Configuration)
+                .AddCommandLoggingDecorator()
                 .AddCommandHandlers();
 
                 b.AddQueryExceptionDecorator()
-                .AddQueryLoggingDecorator(Configuration)
+                .AddQueryLoggingDecorator()
                 .AddQueryMemoryCacheDecorator()
                 .AddQueryHandlers();
             });

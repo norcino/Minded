@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Logging;
@@ -24,11 +25,13 @@ namespace Minded.Extensions.Configuration
         public List<Action<MindedBuilder, Type>> QueuedCommandWithResultDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
 
         public IServiceCollection ServiceCollection { get; }
+        public IConfiguration Configuration { get; }
 
-        public MindedBuilder(IServiceCollection serviceCollection, Func<AssemblyName, bool> assemblyNameFilter = null)
+        public MindedBuilder(IServiceCollection serviceCollection, IConfiguration configuration, Func<AssemblyName, bool> assemblyNameFilter = null)
         {
             ServiceCollection = serviceCollection;
             AssemblyFilter = assemblyNameFilter;
+            Configuration = configuration;
         }
 
         public void QueueCommandDecoratorRegistrationAction(Action<MindedBuilder, Type> decoratorRegistrationAction)

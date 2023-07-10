@@ -21,5 +21,16 @@ namespace Minded.Extensions.Caching.Memory.Decorator
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(MemoryCacheQueryHandlerDecorator<,>)));
             return builder;
         }
+
+        public static MindedBuilder AddQueryMemoryCacheDecorator<T>(this MindedBuilder builder) where T : class, IGlobalCacheKeyPrefixProvider
+        {
+            if (!builder.ServiceCollection.Any(serviceDescriptor => serviceDescriptor.ServiceType == typeof(IGlobalCacheKeyPrefixProvider)))
+            {
+                builder.ServiceCollection.AddScoped<IGlobalCacheKeyPrefixProvider, T>();
+            }
+
+            builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(MemoryCacheQueryHandlerDecorator<,>)));
+            return builder;
+        }
     }
 }

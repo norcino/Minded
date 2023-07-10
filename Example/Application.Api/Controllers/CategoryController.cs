@@ -19,7 +19,7 @@ namespace Application.Api.Controllers
             _restMediator = restMediator;
         }
 
-        public async Task<ActionResult> Get(ODataQueryOptions<Category> queryOptions)
+        public async Task<IActionResult> Get(ODataQueryOptions<Category> queryOptions)
         {
             var query = new GetCategoriesQuery();
             query.ApplyODataQueryOptions(queryOptions);
@@ -27,19 +27,19 @@ namespace Application.Api.Controllers
         }
         
         [HttpGet("{id}")]
-        public async Task<ActionResult> Get(int id)
+        public async Task<IActionResult> Get(int id)
         {
             return await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, new GetCategoryByIdQuery(id));
         }
 
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] Category category)
+        public async Task<IActionResult> Post([FromBody] Category category)
         {
             return await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, new CreateCategoryCommand(category));
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             return await _restMediator.ProcessRestCommandAsync(RestOperation.Delete, new DeleteCategoryCommand(id));
         }
