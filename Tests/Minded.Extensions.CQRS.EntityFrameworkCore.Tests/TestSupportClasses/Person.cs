@@ -10,7 +10,7 @@ namespace Minded.Framework.CQRS.Tests.TestSupportClasses
         {
             builder.HasKey(c => c.Id);
             builder.Property(c => c.Name);
-            builder.Property(c => c.Surname);            
+            builder.Property(c => c.Surname);
             builder.HasMany(c => c.Vehicles).WithOne(c => c.Owner);
         }
     }
