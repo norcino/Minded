@@ -20,7 +20,7 @@ using Minded.Framework.CQRS.Command;
  * Failure - 400 Bad Request - Return details about the failure
  * Async fire and forget operation - 202 Accepted - Optionally return url for polling status
  * 
- * Patch
+ * Patch/Put
  * ---------------------------------------------------------------------
  * Success - 200 Ok - Return the patched object
  * Success - 204 NoContent
@@ -80,7 +80,7 @@ namespace Minded.Extensions.WebApi
         private static Func<ICommandResponse, bool> UnsuccessfulWithNotAuthenticatedCode = (r) => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.NotAuthenticated);
         private static Func<ICommandResponse, bool> UnsuccessfulWithNotAuthorizationCode = (r) => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.NotAuthorized);
 
-        // Any 201 Unauthorized
+        // Any 401 Unauthorized
         private ICommandRestRule NotAuthorizedCommand           = new CommandRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, ContentResponse.Full, UnsuccessfulWithNotAuthorizationCode);
         private ICommandRestRule NotAuthenticatedCommand        = new CommandRestRule(RestOperation.Any, HttpStatusCode.Forbidden, ContentResponse.Full, UnsuccessfulWithNotAuthenticatedCode);
 
@@ -106,7 +106,7 @@ namespace Minded.Extensions.WebApi
         // Failure - 404 NotFound - The targeted entity identifier does not exist
         private ICommandRestRule UpdateNotfound                 = new CommandRestRule(RestOperation.Update, HttpStatusCode.NotFound, ContentResponse.None, UnsuccessfulCommandWithNotFoundCode);
         private ICommandRestRule UpdateWithContentNotfound      = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.NotFound, ContentResponse.Full, UnsuccessfulCommandWithNotFoundCode);
-        // Failure - 400 Invalid request - Return details about the failure        
+        // Failure - 400 Invalid request - Return details about the failure
         private ICommandRestRule UpdateInvalid                  = new CommandRestRule(RestOperation.Update, HttpStatusCode.BadRequest, ContentResponse.None, UnsuccessfulCommand);
         private ICommandRestRule UpdateWithContentInvalid       = new CommandRestRule(RestOperation.UpdateWithContent, HttpStatusCode.BadRequest, ContentResponse.Full, UnsuccessfulCommand);
 

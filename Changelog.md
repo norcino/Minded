@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.6 (2023-07-13)
+Fixed issues introduced in previous versions.
+
+### Affected
+* Minded.Extensions.Validation
+* Minded.Extensions.Logging
+
+### Changed
+* Fixed logging decorator failing when a command was using the new ICommandHandler<C,R>
+* Fixed validation decorator failing when using ICommandHandler without result type with a successful validation
+
 ## 1.0.5 (2023-07-10)
 Added LinkSource to all packages and updated Logging configuration setup.
 

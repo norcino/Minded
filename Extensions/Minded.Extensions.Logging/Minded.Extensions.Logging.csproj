@@ -21,9 +21,9 @@ Encapsuplate all your business logic in Commands and Queries, the rest will be d
 		<RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>1.0.5</AssemblyVersion>
-    <FileVersion>1.0.5</FileVersion>
-    <VersionPrefix>1.0.5</VersionPrefix>
+    <AssemblyVersion>1.0.6</AssemblyVersion>
+    <FileVersion>1.0.6</FileVersion>
+    <VersionPrefix>1.0.6</VersionPrefix>
     <VersionSuffix></VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>

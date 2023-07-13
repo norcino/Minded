@@ -34,8 +34,8 @@ namespace Minded.Extensions.Validation.Decorator
         private readonly ICommandValidator<TCommand> _commandValidator;
         private readonly ILogger _logger;
         
-        public ValidatingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler,
-            ILogger<ValidatingCommandHandlerDecorator<TCommand>> logger, ICommandValidator<TCommand> commandValidator) : base(commandHandler)
+        public ValidatingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, ILogger<ValidatingCommandHandlerDecorator<TCommand>> logger,
+            ICommandValidator<TCommand> commandValidator) : base(commandHandler)
         {
             _commandValidator = commandValidator;
             _logger = logger;
@@ -59,7 +59,7 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
 
-            if (!valResult.IsValid)
+            if (valResult.IsValid)
             {
                 return await InnerCommandHandler.HandleAsync(command);
             }
@@ -77,10 +77,10 @@ namespace Minded.Extensions.Validation.Decorator
     public class ValidatingCommandHandlerDecorator<TCommand, TResult> : CommandHandlerDecoratorBase<TCommand, TResult>, ICommandHandler<TCommand, TResult> where TCommand : ICommand<TResult>
     {
         private readonly ICommandValidator<TCommand> _commandValidator;
-        private readonly ILogger _logger;
+        private readonly ILogger<ValidatingCommandHandlerDecorator<TCommand, TResult>> _logger;
 
         public ValidatingCommandHandlerDecorator(ICommandHandler<TCommand, TResult> commandHandler,
-            ILogger logger, ICommandValidator<TCommand> commandValidator) : base(commandHandler)
+            ILogger<ValidatingCommandHandlerDecorator<TCommand, TResult>> logger, ICommandValidator<TCommand> commandValidator) : base(commandHandler)
         {
             _commandValidator = commandValidator;
             _logger = logger;
@@ -93,27 +93,29 @@ namespace Minded.Extensions.Validation.Decorator
         /// <returns>An instance of <see cref="ICommandResponse{TResult}"/> representing the output of the command</returns>
         public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command)
         {
-            if (Shared.IsValidatingCommand(command))
+            if (!Shared.IsValidatingCommand(command))
             {
-                _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
-
-                var valResult = await _commandValidator.ValidateAsync(command);
-
-                _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
-
-                if (!valResult.IsValid)
-                {
-                    _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
-
-                    return new CommandResponse<TResult>
-                    {
-                        Successful = false,
-                        OutcomeEntries = valResult.OutcomeEntries.ToList()
-                    };
-                }
+                return await InnerCommandHandler.HandleAsync(command);
             }
 
-            return await InnerCommandHandler.HandleAsync(command);
+            _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
+
+            var valResult = await _commandValidator.ValidateAsync(command);
+
+            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
+
+            if (valResult.IsValid)
+            {
+                return await InnerCommandHandler.HandleAsync(command);
+            }
+
+            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+
+            return new CommandResponse<TResult>
+            {
+                Successful = false,
+                OutcomeEntries = valResult.OutcomeEntries.ToList()
+            };
         }
     }
 }

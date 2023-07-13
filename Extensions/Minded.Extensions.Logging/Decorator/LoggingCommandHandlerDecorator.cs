@@ -20,7 +20,7 @@ namespace Minded.Extensions.Logging.Decorator
         private readonly ILogger _logger;
         private readonly IOptions<LoggingOptions> _options;
 
-        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, ILogger logger, IOptions<LoggingOptions> options) : base(commandHandler)
+        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, ILogger<LoggingCommandHandlerDecorator<TCommand>> logger, IOptions<LoggingOptions> options) : base(commandHandler)
         {
             _logger = logger;
             _options = options;
@@ -66,7 +66,7 @@ namespace Minded.Extensions.Logging.Decorator
         private readonly ILogger _logger;
         private readonly IOptions<LoggingOptions> _options;
 
-        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand, TResult> commandHandler, ILogger logger, IOptions<LoggingOptions> options) : base(commandHandler)
+        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand, TResult> commandHandler, ILogger<LoggingCommandHandlerDecorator<TCommand, TResult>> logger, IOptions<LoggingOptions> options) : base(commandHandler)
         {
             _logger = logger;
             _options = options;
