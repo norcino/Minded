@@ -28,6 +28,12 @@
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
     <SourceLinkUrl>https://github.com/norcino/Minded/tree/master/Extensions/Minded.Extensions.Caching.Abstractions</SourceLinkUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TF_BUILD)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,11 +42,18 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <SourceLinkGitHubHost Include="github.com" ContentUrl="https://raw.githubusercontent.com" />
   </ItemGroup>
 </Project>

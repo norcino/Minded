@@ -19,7 +19,7 @@ steps:
   displayName: 'Pack non master version'
   condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
 
-- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) /p:ContinuousIntegrationBuild=true'
   displayName: 'Pack master version'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
 
