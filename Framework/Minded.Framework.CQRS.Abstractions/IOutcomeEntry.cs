@@ -17,6 +17,11 @@
         string ErrorCode { get; set; }
 
         /// <summary>
+        /// Unique identifier of an error, can be used to create a dictionary of known errors
+        /// </summary>
+        string UniqueErrorCode { get; set; }
+
+        /// <summary>
         /// The details message
         /// </summary>
         string Message { get; }

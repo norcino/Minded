@@ -36,49 +36,78 @@ namespace Minded.Extensions.Caching.Memory.Decorator
 
         public async Task<TResult> HandleAsync(TQuery query)
         {
-            if (!Shared.IsCachedQuery(query))
+            MemoryCacheAttribute cacheAttribute = null;
+            TResult result;
+            string cacheKey = "";
+            bool failed = false;
+
+            try
             {
-                // If the attribute is not set, just run the query as usual
-                return await InnerQueryHandler.HandleAsync(query);
+                if (!Shared.IsCachedQuery(query))
+                {
+                    // If the attribute is not set, just run the query as usual
+                    return await InnerQueryHandler.HandleAsync(query);
+                }
+
+                cacheAttribute = (MemoryCacheAttribute)Attribute.GetCustomAttribute(query.GetType(), typeof(CacheAttribute));
+
+                // If the attribute is set, use the cache
+                cacheKey = $"{_globalCacheKeyPrefixProvider.GetGlobalCacheKeyPrefix()}-{((IGenerateCacheKey)query).GetCacheKey()}";
+
+                if (_cache.TryGetValue(cacheKey, out result))
+                {
+                    // If the result is in the cache, return it
+                    return result;
+                }
             }
-
-            var cacheAttribute = (MemoryCacheAttribute)Attribute.GetCustomAttribute(query.GetType(), typeof(CacheAttribute));
-
-            // If the attribute is set, use the cache
-            string cacheKey = $"{_globalCacheKeyPrefixProvider.GetGlobalCacheKeyPrefix()}-{((IGenerateCacheKey)query).GetCacheKey()}";
-
-            if (_cache.TryGetValue(cacheKey, out TResult result))
+            catch(Exception)
             {
-                // If the result is in the cache, return it
-                return result;
+                failed = true;
+                if (cacheAttribute != null && cacheAttribute.FailOnError)
+                {
+                    throw;
+                }
             }
 
             // If the result is not in the cache, fetch it and add it to the cache
             result = await InnerQueryHandler.HandleAsync(query);
 
-            var cacheEntryOptions = new MemoryCacheEntryOptions();
-
-            if (cacheAttribute.AbsoluteExpiration != default)
+            try
             {
-                if(DateTimeOffset.TryParse(cacheAttribute.AbsoluteExpiration, out DateTimeOffset dateTimeOffset))
+                if (failed || cacheAttribute == null)
+                    return result;
+
+                var cacheEntryOptions = new MemoryCacheEntryOptions();
+
+                if (cacheAttribute.AbsoluteExpiration != default)
                 {
-                    cacheEntryOptions.AbsoluteExpiration = dateTimeOffset;
+                    if(DateTimeOffset.TryParse(cacheAttribute.AbsoluteExpiration, out DateTimeOffset dateTimeOffset))
+                    {
+                        cacheEntryOptions.AbsoluteExpiration = dateTimeOffset;
+                    }
+                    else
+                    {
+                        throw new ArgumentException("The CacheAttribute.AbsoluteExpiration string format is not a valid DateTimeOffset, use ISO 8601.");
+                    }
                 }
-                else
+
+                if (cacheAttribute.ExpirationInSeconds != default)
+                    cacheEntryOptions.AbsoluteExpirationRelativeToNow =
+                        TimeSpan.FromSeconds(cacheAttribute.ExpirationInSeconds);
+
+                if (cacheAttribute.SlidingExpiration != default)
+                    cacheEntryOptions.SlidingExpiration =
+                        TimeSpan.FromSeconds(cacheAttribute.SlidingExpiration);
+
+                _cache.Set(cacheKey, result, cacheEntryOptions);
+            }
+            catch (Exception)
+            {
+                if (cacheAttribute.FailOnError)
                 {
-                    throw new ArgumentException("The CacheAttribute.AbsoluteExpiration string format is not a valid DateTimeOffset, use ISO 8601.");
+                    throw;
                 }
             }
-
-            if (cacheAttribute.ExpirationInSeconds != default)
-                cacheEntryOptions.AbsoluteExpirationRelativeToNow =
-                    TimeSpan.FromSeconds(cacheAttribute.ExpirationInSeconds);
-
-            if (cacheAttribute.SlidingExpiration != default)
-                cacheEntryOptions.SlidingExpiration =
-                    TimeSpan.FromSeconds(cacheAttribute.SlidingExpiration);
-
-            _cache.Set(cacheKey, result, cacheEntryOptions);
 
             return result;
         }

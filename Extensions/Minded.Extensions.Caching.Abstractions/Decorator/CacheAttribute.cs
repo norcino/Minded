@@ -24,5 +24,11 @@ namespace Minded.Extensions.Caching.Abstractions.Decorator
         /// The accepted format is ISO 8601 representation 'e.g. 2023-06-30T12:00:00Z'.
         /// </summary>
         public string AbsoluteExpiration { get; set; }
+
+        /// <summary>
+        /// Errors are cought and suppressed by default, if caching is mandator set this
+        /// property to break the application flow and throw the excetion
+        /// </summary>
+        public bool FailOnError{ get; set; }
     }
 }

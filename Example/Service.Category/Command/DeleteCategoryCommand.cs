@@ -16,7 +16,7 @@ namespace Service.Category.Command
 
         public Guid TraceId { get; } = Guid.NewGuid();
 
-        public string LoggingTemplate => "CategoryId: {Id}";
+        public string LoggingTemplate => "CategoryId: {CategoryId}";
 
         public object[] LoggingParameters => new object[] { CategoryId };
     }

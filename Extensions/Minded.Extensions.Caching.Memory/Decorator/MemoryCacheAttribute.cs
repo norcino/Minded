@@ -13,11 +13,12 @@ namespace Minded.Extensions.Caching.Memory.Decorator
         {
         }
 
-        public MemoryCacheAttribute(int expirationInSeconds = default, int slidingExpiration = default, string absoluteExpiration = default)
+        public MemoryCacheAttribute(int expirationInSeconds = default, int slidingExpiration = default, string absoluteExpiration = default, bool failOnError = false)
         {
             ExpirationInSeconds = expirationInSeconds;
             SlidingExpiration = slidingExpiration;
             AbsoluteExpiration = absoluteExpiration;
+            FailOnError = failOnError;
         }
     }
 }
