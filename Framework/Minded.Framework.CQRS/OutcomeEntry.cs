@@ -41,6 +41,9 @@ namespace Minded.Framework.CQRS.Abstractions
         /// <inheritdoc cref="IOutcomeEntry.ResourceName"/>
         public string ResourceName { get; set; }
 
+        /// <inheritdoc cref="IOutcomeEntry.UniqueErrorCode"/>
+        public string UniqueErrorCode { get; set; }
+
         /// <inheritdoc cref="IOutcomeEntry.ToString"/>
         public override string ToString()
         {
