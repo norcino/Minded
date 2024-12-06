@@ -53,6 +53,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.CQRS.ODat
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.Caching.Abstractions", "Extensions\Minded.Extensions.Caching.Abstractions\Minded.Extensions.Caching.Abstractions.csproj", "{ADCAE30F-8605-425D-B9F4-1B3122D7C423}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minded.Extensions.Configuration.Tests", "Tests\Minded.Extensions.Configuration.Tests\Minded.Extensions.Configuration.Tests.csproj", "{51C56B3E-58C1-4BF9-A10D-D2C1213A0412}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -127,6 +129,10 @@ Global
 		{ADCAE30F-8605-425D-B9F4-1B3122D7C423}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADCAE30F-8605-425D-B9F4-1B3122D7C423}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADCAE30F-8605-425D-B9F4-1B3122D7C423}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51C56B3E-58C1-4BF9-A10D-D2C1213A0412}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51C56B3E-58C1-4BF9-A10D-D2C1213A0412}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51C56B3E-58C1-4BF9-A10D-D2C1213A0412}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51C56B3E-58C1-4BF9-A10D-D2C1213A0412}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -149,6 +155,7 @@ Global
 		{25D3E4ED-FFA5-44B0-89BD-A0DE85491A00} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{BE0B9DF0-B693-4A6F-928C-9B5C9B2E71AC} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{ADCAE30F-8605-425D-B9F4-1B3122D7C423} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
+		{51C56B3E-58C1-4BF9-A10D-D2C1213A0412} = {E07D3C91-DBD9-496E-AD65-FE84A33303A9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7C9F706B-19EF-445C-9AF7-246B32541C7F}

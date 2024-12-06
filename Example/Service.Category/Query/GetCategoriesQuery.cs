@@ -1,4 +1,5 @@
 ﻿using Minded.Extensions.Logging;
+using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Query;
 using Minded.Framework.CQRS.Query.Trait;
 using System;
@@ -7,7 +8,8 @@ using System.Linq.Expressions;
 
 namespace Service.Category.Query
 {
-    public class GetCategoriesQuery : IQuery<IEnumerable<Data.Entity.Category>>, ICanCount, ICanTop, ICanSkip, ICanExpand, ICanOrderBy, ICanFilterExpression<Data.Entity.Category>, ILoggable
+    [ValidateQuery]
+    public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Data.Entity.Category>>>, ICanCount, ICanTop, ICanSkip, ICanExpand, ICanOrderBy, ICanFilterExpression<Data.Entity.Category>, ILoggable
     {
         public bool CountOnly { get; set; }
         public bool Count { get; set; }

@@ -1,6 +1,21 @@
 # Minded Framework Changelog
 
 All notable changes to this project will be documented in this file.
+## 1.0.7 (2024-12-06)
+Added IQueryResponse support, upgraded to .net 8
+
+### Affected
+* Minded.Extensions.Validation
+* Minded.Extensions.Logging
+
+### Added
+* TypeHelper class to help with types operations
+* IQueryResponse to mimic ICommandResponse and IMessageResponse
+* Added ValidatingQueryHandlerDecorator with ValidateQuery attribute to validate queries like already available for Commands
+
+### Changed
+* Updated packages to target .net 8 instead of .net 6 which is out of support
+* ICommandResponse now implements IMessageResponse where the properties are defined
 
 ## 1.0.6 (2023-07-13)
 Fixed issues introduced in previous versions.
