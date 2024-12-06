@@ -34,6 +34,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1F1A4017-C52C-4FFB-9DFA-0BEC7ABB2DF8}"
 	ProjectSection(SolutionItems) = preProject
 		azure-pipelines.yml = azure-pipelines.yml
+		Changelog.md = Changelog.md
 		key.snk = key.snk
 		LICENSE = LICENSE
 		Minded-128.png = Minded-128.png
@@ -53,7 +54,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.CQRS.ODat
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.Caching.Abstractions", "Extensions\Minded.Extensions.Caching.Abstractions\Minded.Extensions.Caching.Abstractions.csproj", "{ADCAE30F-8605-425D-B9F4-1B3122D7C423}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minded.Extensions.Configuration.Tests", "Tests\Minded.Extensions.Configuration.Tests\Minded.Extensions.Configuration.Tests.csproj", "{51C56B3E-58C1-4BF9-A10D-D2C1213A0412}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minded.Extensions.Configuration.Tests", "Tests\Minded.Extensions.Configuration.Tests\Minded.Extensions.Configuration.Tests.csproj", "{51C56B3E-58C1-4BF9-A10D-D2C1213A0412}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
