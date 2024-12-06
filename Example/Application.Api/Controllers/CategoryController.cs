@@ -19,6 +19,7 @@ namespace Application.Api.Controllers
             _restMediator = restMediator;
         }
 
+        [HttpGet]
         public async Task<IActionResult> Get(ODataQueryOptions<Category> queryOptions)
         {
             var query = new GetCategoriesQuery();
