@@ -77,15 +77,17 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogInformation(QueryStaticHelper.ValidationFailureTemplate, _queryValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
+            if (result == null)
+            {
+                Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
+                var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
+                result = (TResult) Activator.CreateInstance(queryResponseType);
+            }
 
-            Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
-            var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
-            var queryResponse = Activator.CreateInstance(queryResponseType);
+            ((IMessageResponse)result).Successful = valResult.IsValid;
+            ((IMessageResponse)result).OutcomeEntries = valResult.OutcomeEntries.ToList();
 
-            ((IMessageResponse) queryResponse).Successful = false;
-            ((IMessageResponse) queryResponse).OutcomeEntries = valResult.OutcomeEntries.ToList();
-
-            return (TResult) queryResponse;
+            return result;
         }
     }
 }
