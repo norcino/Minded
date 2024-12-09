@@ -4,25 +4,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Minded.Extensions.Caching.Abstractions.Decorator;
 using Minded.Extensions.Caching.Decorator;
+using Minded.Extensions.Configuration;
 using Minded.Framework.CQRS.Query;
 using Minded.Framework.Decorator;
 
 namespace Minded.Extensions.Caching.Memory.Decorator
 {
-    internal static class Shared
-    {
-        /// <summary>
-        /// Determine if the query requires caching
-        /// </summary>
-        /// <param name="query">Subject Query</param>
-        /// <returns>True if the query requires validation</returns>
-        internal static bool IsCachedQuery(object query)
-        {
-            bool implementsTheInterface = query is IGenerateCacheKey;
-            return implementsTheInterface && TypeDescriptor.GetAttributes(query)[typeof(CacheAttribute)] != null;
-        }
-    }
-
     public class MemoryCacheQueryHandlerDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>, IQueryHandler<TQuery, TResult> where TQuery : IQuery<TResult>
     {
         private readonly IMemoryCache _cache;
@@ -43,7 +30,8 @@ namespace Minded.Extensions.Caching.Memory.Decorator
 
             try
             {
-                if (!Shared.IsCachedQuery(query))
+                // If the query doesn't implement IGenerateCacheKey or doesn't have the MemoryCacheAttribute, just run the query as usual
+                if (!((query is IGenerateCacheKey) && TypeDescriptor.GetAttributes(query)[typeof(MemoryCacheAttribute)] != null))
                 {
                     // If the attribute is not set, just run the query as usual
                     return await InnerQueryHandler.HandleAsync(query);
@@ -74,7 +62,12 @@ namespace Minded.Extensions.Caching.Memory.Decorator
 
             try
             {
-                if (failed || cacheAttribute == null)
+                // If the result is null or fail on error is disabled and was it gailed, skip the cache set
+                if (failed || cacheAttribute == null || result == null)
+                    return result;
+
+                // If the query response type is IQueryResponse and it is not successful, do not cache the result
+                if (TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), typeof(TResult)) && !(result as IQueryResponse<TResult>).Successful)
                     return result;
 
                 var cacheEntryOptions = new MemoryCacheEntryOptions();
