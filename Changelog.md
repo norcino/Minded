@@ -1,6 +1,18 @@
 # Minded Framework Changelog
 
 All notable changes to this project will be documented in this file.
+
+## 1.0.7 (2024-12-09)
+Changed memory query decorator to not save if operation unsuccessful.
+
+### Affected
+* Minded.Extensions.Caching.Memory
+* Minded.Extensions.Configuration
+
+### Changed
+* If query or command are not successful the result is not cached
+
+
 ## 1.0.7 (2024-12-06)
 Added IQueryResponse support, upgraded to .net 8
 
