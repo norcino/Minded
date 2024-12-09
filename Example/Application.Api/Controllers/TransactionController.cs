@@ -18,6 +18,7 @@ namespace Application.Api.Controllers
             _mediator = mediator;
         }
 
+        [HttpGet]
         public Task<IActionResult> Get(ODataQueryOptions<Transaction> queryOptions)
         {
             var query = new GetTransactionsQuery(queryOptions);

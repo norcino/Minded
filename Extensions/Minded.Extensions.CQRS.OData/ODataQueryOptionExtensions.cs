@@ -86,6 +86,74 @@ namespace Minded.Extensions.CQRS.OData
             }
         }
 
+        public static void ApplyODataQueryOptions<T>(this IQuery<IQueryResponse<T>> query, ODataQueryOptions options)
+        {
+            var filter = options.Filter;
+            var orderBy = options.OrderBy;
+            var skip = options.Skip;
+            var top = options.Top;
+            var selectExpand = options.SelectExpand;
+            var count = options.Count;
+
+            if (count != null && query is ICanCount)
+            {
+                (query as ICanCount).Count = count.Value;
+            }
+
+            if (filter != null && query.GetType().GetInterfaces().Where(i => i.IsGenericType).Select(i => i.GetGenericTypeDefinition()).Contains(typeof(ICanFilterExpression<>)))
+            {
+                try
+                {
+                    if (!typeof(T).IsGenericType)
+                    {
+                        (query as ICanFilterExpression<T>).Filter = filter.GetFilterExpression<T>();
+                    }
+                    else
+                    {
+                        var genericTypeArgs = typeof(T).GenericTypeArguments;
+
+                        if (genericTypeArgs != null && genericTypeArgs.Count() == 1)
+                        {
+                            var method = typeof(ODataQueryOptionExtensions).GetMethod("GetFilterExpression", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).MakeGenericMethod(genericTypeArgs[0]);
+                            query.GetType().GetProperty("Filter").SetValue(query, method.Invoke(null, new[] { filter }));
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Unable to extract Odata Filter, the filter might not be supported or incorrect syntax", e);
+                }
+            }
+
+            if (top != null && query is ICanTop)
+            {
+                (query as ICanTop).Top = top.Value;
+            }
+
+            if (skip != null && query is ICanSkip)
+            {
+                (query as ICanSkip).Skip = skip.Value;
+            }
+
+            if (selectExpand?.RawExpand != null && query is ICanExpand)
+            {
+                (query as ICanExpand).Expand = new[] { selectExpand.RawExpand.Replace("/", ".") };
+            }
+
+            if (orderBy != null && query is ICanOrderBy)
+            {
+                var orderDescriptors = new List<OrderDescriptor>();
+                foreach (var orderByNode in orderBy.OrderByNodes)
+                {
+                    orderDescriptors.Add(
+                        new OrderDescriptor(
+                            orderByNode.Direction.ToString() == Order.Ascending.ToString() ? Order.Ascending : Order.Descending,
+                            ((EdmNamedElement)((OrderByPropertyNode)orderByNode).Property).Name));
+                }
+                (query as ICanOrderBy).OrderBy = orderDescriptors;
+            }
+        }
+
         /// <summary>
         /// Applies the ODataQueryOptions to the IQueryable depending on the traits used on the Query
         /// </summary>
@@ -117,7 +185,7 @@ namespace Minded.Extensions.CQRS.OData
         /// <returns>Expression which can be uset to filter an IQueryable of TEntity</returns>
         private static Expression<Func<TEntity, bool>> GetFilterExpression<TEntity>(this FilterQueryOption filter)
         {
-            var enumerable = Enumerable.Empty<TEntity>().AsQueryable();
+            IQueryable<TEntity> enumerable = Enumerable.Empty<TEntity>().AsQueryable();
             var param = Expression.Parameter(typeof(TEntity));
 
             if (filter != null)

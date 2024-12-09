@@ -8,20 +8,23 @@ using Service.Category.Query;
 
 namespace Service.Category.QueryHandler
 {
-    public class GetCategoriesQueryHandler : IQueryHandler<GetCategoriesQuery, IEnumerable<Data.Entity.Category>>
+    public class GetCategoriesQueryHandler : IQueryHandler<GetCategoriesQuery, IQueryResponse<IEnumerable<Data.Entity.Category>>>
     {
         private readonly IMindedExampleContext _context;
-        private readonly ILogger<IQueryHandler<GetCategoriesQuery, IEnumerable<Data.Entity.Category>>> _logger;
+        private readonly ILogger<IQueryHandler<GetCategoriesQuery, IQueryResponse<IEnumerable<Data.Entity.Category>>>> _logger;
 
-        public GetCategoriesQueryHandler(IMindedExampleContext context, ILogger<IQueryHandler<GetCategoriesQuery, IEnumerable<Data.Entity.Category>>> logger)
+        public GetCategoriesQueryHandler(IMindedExampleContext context, ILogger<IQueryHandler<GetCategoriesQuery, IQueryResponse<IEnumerable<Data.Entity.Category>>>> logger)
         {
             _context = context;
             _logger = logger;
         }
 
-        public async Task<IEnumerable<Data.Entity.Category>> HandleAsync(GetCategoriesQuery query)
+        public async Task<IQueryResponse<IEnumerable<Data.Entity.Category>>> HandleAsync(GetCategoriesQuery query)
         {
-            return await query.ApplyQueryTo(_context.Categories.AsQueryable()).ToListAsync();
+            var result = await query.ApplyQueryTo(_context.Categories.AsQueryable()).ToListAsync();
+            var response = new QueryResponse<IEnumerable<Data.Entity.Category>>(result);
+
+            return response;
         }
     } 
 }

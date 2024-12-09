@@ -1,6 +1,8 @@
 ﻿using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Minded.Extensions.Configuration;
 using Minded.Framework.CQRS.Command;
+using Minded.Framework.CQRS.Query;
 
 namespace Minded.Extensions.WebApi
 {
@@ -34,6 +36,10 @@ namespace Minded.Extensions.WebApi
                 }
                 else
                 {
+                    if (TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), result.GetType()))
+                    {
+                        return new OkObjectResult((result as IQueryResponse<object>).Result);
+                    }
                     return new OkObjectResult(result);
                 }
             }

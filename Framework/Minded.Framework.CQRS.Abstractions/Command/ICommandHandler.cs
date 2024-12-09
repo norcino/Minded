@@ -19,7 +19,9 @@ namespace Minded.Framework.CQRS.Command
     }
 
     /// <summary>
-    /// 
+    /// Describes an handler responsible to process the specified type of command, which returns an ICommandResponse with result.
+    /// If the command type is a base type, the handler will be invoked to process all the command type implementations.
+    /// More than one handler can be created to process a single command type.
     /// </summary>
     /// <typeparam name="TCommand"></typeparam>
     /// <typeparam name="TResult"></typeparam>

@@ -6,11 +6,9 @@ namespace Minded.Framework.CQRS.Command
     /// <summary>
     /// Default command response whit information about the success of the command and optionally a list of <see cref="OutcomeEntry"/>.
     /// </summary>
-    public interface ICommandResponse
+    public interface ICommandResponse : IMessageResponse
     {
-        bool Successful { get; set; }
 
-        List<IOutcomeEntry> OutcomeEntries { get; set; }
     }
     
     /// <summary>

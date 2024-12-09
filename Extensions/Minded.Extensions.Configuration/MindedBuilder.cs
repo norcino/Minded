@@ -170,7 +170,10 @@ namespace Minded.Extensions.Configuration
                 foreach (var validatorType in validatorTypes)
                 {
                     var interfaceType = GetGenericInterfaceInType(validatorType, genericInterface);
-                    ServiceCollection.Add(new ServiceDescriptor(interfaceType, validatorType, ServiceLifetime.Transient));
+                    if (!ServiceCollection.Any(descriptor => descriptor.ServiceType == interfaceType && descriptor.ImplementationType == validatorType))
+                    {
+                        ServiceCollection.Add(new ServiceDescriptor(interfaceType, validatorType, ServiceLifetime.Transient));
+                    }
                 }
             }
         }

@@ -102,7 +102,8 @@ namespace Application.Api
                 .AddCommandLoggingDecorator()
                 .AddCommandHandlers();
 
-                b.AddQueryExceptionDecorator()
+                b.AddQueryValidationDecorator()
+                .AddQueryExceptionDecorator()
                 .AddQueryLoggingDecorator()
                 .AddQueryMemoryCacheDecorator()
                 .AddQueryHandlers();
