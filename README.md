@@ -1,37 +1,3 @@
-Logging decorator or diagnostic decorator?
-Test logging decorator
-Log outcomeentry in case of failure or validation error?
-Exception decorator and logging decorator relationscip
-
-
-
-
-
-
-I want to enable/diable easily the recording for diagnostic purpose
-- show commands or queries which are executed in the system or both
-- optionally show the detail of the query
-- optionally show the tracking
-- optionally show performance and outcome
-- no code changes needed to support
-- no possibility to forget to add it
-
-> Enabled
-> Outcome
-> Duration
-> Tracking
-> DataIDs (ILoggable)
-> DataAll (ILoggable)
-
-
-
-
-Exception configuration to hide sensitive data
-Exception configuration to break or wrap in result
-
-
-
-
 [![Build status](https://dev.azure.com/norcino/Minded/_apis/build/status/GitHub%20Minded)](https://dev.azure.com/norcino/Minded/_build/latest?definitionId=1)
 
 # Minded
@@ -51,6 +17,54 @@ The Decorator pattern is a design pattern in object-oriented programming that al
 
 ### Requirements
 This framework requires [.net Core](https://dotnet.microsoft.com/learn/dotnet/what-is-dotnet) 2.0 upward, it can be used in brand new applications or retrofitted in existing applications where it can be used to break down monolitic components.
+
+## Features
+The framework offers support for clean code design, efficiency, and maintainability. It provides a set of features that can be used to create a robust and scalable architecture.
+
+### Mediator
+The Mediator opbject allows to decouple the business logic from the implementation, by using the Mediator pattern, the business logic is encapsulated in a single object, which is responsible for coordinating the interaction between objects. This promotes loose coupling and enhances code maintainability, making it easier to understand, modify, and extend the system.
+It works based on the Command Query pattern, where every action is represented as a Command or Query object, and the Mediator is responsible for executing these objects.
+It works leveraging the automatic dependency injection configuration, where the Command and Query handlers are automatically registered in the DI container.
+Any additional class necessary to implement specific features like Validation, which is available out of the box, is also registered in the DI container automatically.
+
+### RestMediator
+This extension available with the package [Minded.Extensions.WebApi](https://www.nuget.org/packages/Minded.Extensions.WebApi/), allows to use the Mediator pattern with RESTful APIs, to streamline the API request handling.
+The class _DefaultRestRulesProcesor_ at each incoming request processes every rule speficied in the registered implementation of _IRestRulesProvider_.
+_DefaultRestRulesProvider_ is a default implementation that can be used to provide a set of rules to be processed at each request, as close as the REST specification it can be.
+This can be combined with default error codes (_GenericErrorCodes_) used for _OutcomeEntries_, which can be used to provide a standard way to handle errors in the API.
+For example 401 error code, is used to return an Unauthorized error, 404 to return a Not Found error, and so on. This can be customized by implementing _IOutcomeEntryProvider_.
+
+Using the RestMediator allows to avoid code repetition and condensate the logic in a handful of concise and clear lines of code.
+
+### Query Handling
+The query handling feature allows to retrieve data from the system, by using the Query pattern, where every query is represented as a Query object, and the Mediator is responsible for executing these objects.
+Through the dependency injection configuration, the Query handlers are automatically registered in the DI container and decorated with the configured decorators.
+
+### Command Handling
+The command handling feature allows to execute actions in the system, by using the Command pattern, where every action is represented as a Command object, and the Mediator is responsible for executing these objects.
+Through the dependency injection configuration, the Command handlers are automatically registered in the DI container and decorated with the configured decorators.
+
+### Exception Decorator
+The exception decorator is a feature that allows to handle exceptions in a single place, by using the Decorator pattern, the exception decorator is responsible for catching exceptions and logging them.
+
+### Logging Decorator
+
+### Validation Decorator
+
+### Caching Decorator
+
+### Odata Query Extension
+This extension available with the package [Minded.Extensions.OData](https://www.nuget.org/packages/Minded.Extensions.OData/), allows to use OData queries with the framework.
+To avoid coupling and a direct dependency over the OData library, the extension allows to transform an odata query option into a compatible _IQuery_ object.
+
+#### Traits and support
+In ord to use the OData extension, the _IQuery_ object must implement the traits which wants to be supported:
+ * _ICanCount_ - To support the $count option
+ * _ICanExpand_ - To support the $expand option
+ * _ICanFilter_ - To support the $filter option
+ * _ICanOrderBy_ - To support the $orderby option
+ * _ICanSkip_ - To support the $skip option
+ * _ICanTop_ - To support the $top option
 
 ### How does it work
 
@@ -155,8 +169,4 @@ The _IQuery_ must implement ```IGenerateCacheKey``` in order to provide a unique
 Additionally ```IGlobalCacheKeyPrefixProvider``` can be implemented and registered in the dependency injection configuration to provide a prefix which can guarantee global uniqueness.
 A common example is to provide the Tenant ID in a multitenant system.
 
-### Transaction decorator
-[...]
 
-## Recommendations
-[...]

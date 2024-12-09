@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace Minded.Extensions.Configuration
 {
@@ -15,32 +16,16 @@ namespace Minded.Extensions.Configuration
         /// <returns>True if type is or implementes interface type</returns>
         public static bool IsInterfaceOrImplementation(Type interfaceType, Type type)
         {
-            // If the type is the generic interface definition itself
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == interfaceType)
+            if (interfaceType == null || type == null)
+                throw new ArgumentNullException(interfaceType == null ? nameof(interfaceType) : nameof(type));
+
+            if (interfaceType.IsGenericTypeDefinition)
             {
-                return true;
+                return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == interfaceType) ||
+                       (type.IsGenericType && type.GetGenericTypeDefinition() == interfaceType);
             }
 
-            // If the type is a constructed generic interface or an implementation that implements the generic interface
-            if (type.IsInterface)
-            {
-                if (type.IsGenericType && type.GetGenericTypeDefinition() == interfaceType)
-                {
-                    return true;
-                }
-            }
-
-            // For types that implement interfaces, check implemented interfaces
-            Type[] interfaces = type.GetInterfaces();
-            foreach (Type iface in interfaces)
-            {
-                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == interfaceType)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return interfaceType.IsAssignableFrom(type);
         }
     }
 }

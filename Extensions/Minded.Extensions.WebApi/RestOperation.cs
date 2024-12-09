@@ -19,6 +19,7 @@ namespace Minded.Extensions.WebApi
         Delete                  = 1 << 5,
         GetMany                 = 1 << 6,
         GetSingle               = 1 << 7,
+        AnyGet                  = GetMany | GetSingle,
 
         Patch                   = 1 << 8,
         PatchWithContent        = 1 << 9,

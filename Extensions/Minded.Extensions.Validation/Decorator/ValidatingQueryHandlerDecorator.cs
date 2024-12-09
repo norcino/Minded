@@ -30,8 +30,6 @@ namespace Minded.Extensions.Validation.Decorator
 
             return validationRequired;
         }
-
-
     }
 
     /// <summary>
