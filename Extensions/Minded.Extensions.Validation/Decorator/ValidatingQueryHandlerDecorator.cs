@@ -64,25 +64,29 @@ namespace Minded.Extensions.Validation.Decorator
 
             var valResult = await _queryValidator.ValidateAsync(Query);
 
-            _logger.LogDebug(QueryStaticHelper.DebugOutcomeLogTemplate, valResult.IsValid, _queryValidator.GetType().Name);
-
             TResult result = default;
 
             if (valResult.IsValid)
             {
                 result = await InnerQueryHandler.HandleAsync(Query);
+                _logger.LogDebug(QueryStaticHelper.DebugOutcomeLogTemplate, valResult.IsValid, _queryValidator.GetType().Name);
             }
-
-            _logger.LogInformation(QueryStaticHelper.ValidationFailureTemplate, _queryValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
-
+            else
+            {
+                _logger.LogInformation(QueryStaticHelper.ValidationFailureTemplate, _queryValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+                return (TResult) valResult;
+            }
+            
+            
             if (result == null)
             {
+                // If here it means that result is of type IQueryResult, if null it means this has not been correctly handled in the inner decorator
                 Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
                 var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
                 result = (TResult) Activator.CreateInstance(queryResponseType);
+                ((IMessageResponse)result).Successful = false;
             }
 
-            ((IMessageResponse)result).Successful = valResult.IsValid;
             ((IMessageResponse)result).OutcomeEntries = valResult.OutcomeEntries.ToList();
 
             return result;
