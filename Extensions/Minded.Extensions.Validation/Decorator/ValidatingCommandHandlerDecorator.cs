@@ -1,7 +1,9 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Command;
 using Minded.Framework.Decorator;
 
@@ -59,18 +61,26 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
 
-            if (valResult.IsValid)
+            if (!valResult.IsValid)
             {
-                return await InnerCommandHandler.HandleAsync(command);
+                _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+
+                return new CommandResponse
+                {
+                    OutcomeEntries = valResult.OutcomeEntries.ToList(),
+                    Successful = valResult.IsValid
+                };
             }
 
-            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+            var result = await InnerCommandHandler.HandleAsync(command);
 
-            return new CommandResponse
+            if (result.OutcomeEntries == null)
             {
-                Successful = false,
-                OutcomeEntries = valResult.OutcomeEntries.ToList()
-            };
+                result.OutcomeEntries = new List<IOutcomeEntry>();
+            }
+
+            result.OutcomeEntries.AddRange(valResult.OutcomeEntries);
+            return result;
         }
     }
 
