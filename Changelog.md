@@ -2,10 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## 1.0.7 (2024-12-09)
+## 1.0.8 (2024-12-10)
 Changed memory query decorator to not save if operation unsuccessful.
 
 ### Affected
+* Minded.Extensions.Validation
 * Minded.Extensions.Caching.Memory
 * Minded.Extensions.Configuration
 
@@ -29,6 +30,7 @@ Added IQueryResponse support, upgraded to .net 8
 * Updated packages to target .net 8 instead of .net 6 which is out of support
 * ICommandResponse now implements IMessageResponse where the properties are defined
 
+
 ## 1.0.6 (2023-07-13)
 Fixed issues introduced in previous versions.
 
@@ -40,6 +42,7 @@ Fixed issues introduced in previous versions.
 * Fixed logging decorator failing when a command was using the new ICommandHandler<C,R>
 * Fixed validation decorator failing when using ICommandHandler without result type with a successful validation
 
+
 ## 1.0.5 (2023-07-10)
 Added LinkSource to all packages and updated Logging configuration setup.
 
@@ -50,6 +53,7 @@ Added LinkSource to all packages and updated Logging configuration setup.
 
 * Logging Decorator allows semplified configuration passing the Type of the `IGlobalCacheKeyPrefixProvider`.
 * Configuration method AddMinded accepts `IConfiguration` to make it available to extension methods used to setup decorators.
+
 
 ## 1.0.4 (2023-07-03)
 Logging Extension has been refactored to reduce the amount of code needed when creating commands and queries in order to be logged. 
@@ -86,6 +90,7 @@ Logging Extension has been refactored to reduce the amount of code needed when c
 * `LogEvent` and `LogInfo` have been removed
 * Logging decorator can be configured using `LoggingOptions`
 
+
 ## 1.0.3 (2023-05-15)
 Added caching support using decorators.
 
@@ -93,6 +98,7 @@ Added caching support using decorators.
 * Added new __Minded.Extensions.Caching.Abstractions__ and __Minded.Extensions.Caching.Memory__ Nuget packages
 * Added `MemoryCacheAttribute` to activate the `MemoryCacheQueryHandlerDecorator` as long as the `IQuery` implements also `IGenerateCacheKey`
 * Added `IGlobalCacheKeyPrefixProvider` which can be used to control global generation of cache prefixe
+
 
 ## 1.0.2 (2023-03-14)
 
@@ -117,6 +123,7 @@ Providers the features described in the documentation.
 ### Changed
 
 * Updated sample API project to use the new Minded.Extensions.WebApi
+
 
 ## 0.1.3 (2022-12-16)
 
