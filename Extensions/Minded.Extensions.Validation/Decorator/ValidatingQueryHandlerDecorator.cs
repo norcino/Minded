@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -87,7 +88,12 @@ namespace Minded.Extensions.Validation.Decorator
                 ((IMessageResponse)result).Successful = false;
             }
 
-            ((IMessageResponse)result).OutcomeEntries = valResult.OutcomeEntries.ToList();
+            if(((IMessageResponse)result).OutcomeEntries == null)
+            {
+                ((IMessageResponse)result).OutcomeEntries = new List<IOutcomeEntry>();
+            }
+
+            ((IMessageResponse)result).OutcomeEntries.AddRange(valResult.OutcomeEntries.ToList());
 
             return result;
         }

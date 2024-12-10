@@ -2,8 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## 1.0.8 (2024-12-10)
+## 1.0.8/9 (2024-12-10)
 Changed memory query decorator to not save if operation unsuccessful.
+Added support to return Outcome entries within the query handler decorator.
 
 ### Affected
 * Minded.Extensions.Validation
