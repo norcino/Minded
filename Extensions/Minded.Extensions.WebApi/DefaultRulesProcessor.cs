@@ -38,7 +38,10 @@ namespace Minded.Extensions.WebApi
                 {
                     if (TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), result.GetType()))
                     {
-                        return new OkObjectResult((result as IQueryResponse<object>).Result);
+                        if ((result as IQueryResponse<object>).Successful)
+                            return new OkObjectResult((result as IQueryResponse<object>).Result);
+                        else
+                            return new StatusCodeResult((int)rule.ResultStatusCode);
                     }
                     return new OkObjectResult(result);
                 }
@@ -46,6 +49,13 @@ namespace Minded.Extensions.WebApi
 
             if (rule.ContentResponse != ContentResponse.None)
             {
+                if (result != null && TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), result.GetType()))
+                {
+                    return new ObjectResult((result as IQueryResponse<object>).Result)
+                    {
+                        StatusCode = (int)rule.ResultStatusCode
+                    };
+                }
                 return new ObjectResult(result)
                 {
                     StatusCode = (int)rule.ResultStatusCode
@@ -82,8 +92,9 @@ namespace Minded.Extensions.WebApi
                 }
             }
 
-            if (rule.ContentResponse != ContentResponse.None)
+            if (rule.ContentResponse == ContentResponse.Result)
             {
+                
                 return new ObjectResult(result)
                 {
                     StatusCode = (int)rule.ResultStatusCode
@@ -146,7 +157,9 @@ namespace Minded.Extensions.WebApi
         {
             return _ruleProvider?
                .GetQueryRules()?
-               .FirstOrDefault(r => operation.HasFlag(r.Operation) && (r.RuleCondition == null || r.RuleCondition(result)));
+               .FirstOrDefault(r => operation.Matches(r.Operation)
+                    && (r.RuleCondition == null || r.RuleCondition(result))
+               );
         }
 
         private ICommandRestRule GetCommandRule(RestOperation operation, ICommandResponse result)

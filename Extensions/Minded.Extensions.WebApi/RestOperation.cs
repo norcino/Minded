@@ -29,4 +29,12 @@ namespace Minded.Extensions.WebApi
         UpdateWithContent       = 1 << 11,
         AnyUpdate               = Update | UpdateWithContent
     }
+
+    public static class RestOperationExtensions
+    {
+        public static bool Matches(this RestOperation operation, RestOperation flag)
+        {
+            return (operation & flag) != 0 || flag == RestOperation.Any;
+        }
+    }
 }

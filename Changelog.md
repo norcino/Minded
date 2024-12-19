@@ -2,7 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
-## 1.0.8/9 (2024-12-10)
+## 1.0.9 (2024-12-19)
+Added constraint causing startup error in Debug, when a query doesn't implement IGenerateCacheKey.
+Added IDecoratingAttributeValidator to support validation of attributes required for specific decorators.
+Added fixes in various packages.
+
+### Affected
+* Minded.Extensions.Caching.Memory
+* Minded.Extensions.Validation
+* Minded.Extensions.Configuration
+* Minded.Extensions.WebApi
+* Minded.Framework.Mediator
+
+### Added
+* Added IDecoratingAttributeValidator to support validation of attributes required for specific decorators
+ 
+### Changed
+* If query or command are not successful the result is not cached
+
+### Fixed
+* Fixed issue with Validation decorator not returning the correct result when the query was not successful.
+* Fixed Caching Decorator used in conjunction with IQueryResult<>.
+* Fixed issue with RestOperations comparison in the RuleProcessor.
+* Fixed Mediator not handling correctly null result when return type was ICommandResponse<>.
+
+
+## 1.0.8 (2024-12-10)
 Changed memory query decorator to not save if operation unsuccessful.
 Added support to return Outcome entries within the query handler decorator.
 

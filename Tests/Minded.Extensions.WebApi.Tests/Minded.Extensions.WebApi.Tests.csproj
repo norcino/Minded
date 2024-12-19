@@ -19,10 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Caching.Abstractions\Minded.Extensions.Caching.Abstractions.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
-    <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />
-    <ProjectReference Include="..\..\Minded.Testing.Common\Minded.Testing.Common.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.WebApi\Minded.Extensions.WebApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

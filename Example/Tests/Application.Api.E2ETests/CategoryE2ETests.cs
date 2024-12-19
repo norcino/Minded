@@ -56,17 +56,16 @@ namespace Application.Api.IntegrationTests
 
         #region Get Top - Category?$top={#}
         [TestMethod]
-        public async Task GET_using_Top_should_return_MaximumNumberOfResults_when_requested_number_is_higher_than_MaximumNumberOfResults()
+        public async Task GET_using_Top_should_return_BadRequest_when_requested_number_is_higher_than_MaximumNumberOfResults()
         {
             const int numberOfDesiredResults = MaxPageItemNumber * 2;
             Seed<Category>(c => c.Id);
 
             var response = await _sutClient.GetAsync($"/api/category?$top={numberOfDesiredResults}");
 
-            response.Should().HaveStatusCode(HttpStatusCode.OK);
+            response.Should().HaveStatusCode(HttpStatusCode.BadRequest);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
-            categories.Should().HaveCount(MaxPageItemNumber);
+            var categories = await response.Content.ReadAsStringAsync();
         }
 
         [TestMethod]

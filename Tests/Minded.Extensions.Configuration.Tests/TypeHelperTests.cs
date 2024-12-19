@@ -1,6 +1,3 @@
-using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 namespace Minded.Extensions.Configuration.Tests
 {
     [TestClass]
@@ -9,10 +6,10 @@ namespace Minded.Extensions.Configuration.Tests
         public interface ITestInterface { }
         public interface IGenericInterface<T> { }
         public class TestClass : ITestInterface { }
-        public class GenericTestClass : IGenericInterface<int> { }
+        public class GenericTestClass : IGenericInterface<int>, ITestInterface { }
 
         [TestMethod]
-        public void IsInterfaceOrImplementation_InterfaceType_ReturnsTrue()
+        public void IsInterfaceOrImplementation_ShouldReturnsTrue_WhenInterfaceItselfIsTested()
         {
             Type interfaceType = typeof(ITestInterface);
             Type type = typeof(ITestInterface);
@@ -23,7 +20,7 @@ namespace Minded.Extensions.Configuration.Tests
         }
 
         [TestMethod]
-        public void IsInterfaceOrImplementation_ImplementationType_ReturnsTrue()
+        public void IsInterfaceOrImplementation_ShouldReturnTrue_WhenClassImplementingInterfaceIsTested()
         {
             Type interfaceType = typeof(ITestInterface);
             Type type = typeof(TestClass);
@@ -34,7 +31,7 @@ namespace Minded.Extensions.Configuration.Tests
         }
 
         [TestMethod]
-        public void IsInterfaceOrImplementation_GenericInterfaceType_ReturnsTrue()
+        public void IsInterfaceOrImplementation_ShouldReturnTrue_WhenGenericInterfaceTypeImplementsGeneric()
         {
             Type interfaceType = typeof(IGenericInterface<>);
             Type type = typeof(IGenericInterface<int>);
@@ -45,7 +42,7 @@ namespace Minded.Extensions.Configuration.Tests
         }
 
         [TestMethod]
-        public void IsInterfaceOrImplementation_GenericImplementationType_ReturnsTrue()
+        public void IsInterfaceOrImplementation_ShouldReturnTrue_WhenGenericClassImplementsGenericInterface()
         {
             Type interfaceType = typeof(IGenericInterface<>);
             Type type = typeof(GenericTestClass);
@@ -56,7 +53,7 @@ namespace Minded.Extensions.Configuration.Tests
         }
 
         [TestMethod]
-        public void IsInterfaceOrImplementation_UnrelatedType_ReturnsFalse()
+        public void IsInterfaceOrImplementation_ShouldReturnFalse_WhenTypeUrelated()
         {
             Type interfaceType = typeof(ITestInterface);
             Type type = typeof(string);
@@ -64,6 +61,17 @@ namespace Minded.Extensions.Configuration.Tests
             bool result = TypeHelper.IsInterfaceOrImplementation(interfaceType, type);
 
             Assert.IsFalse(result);
+        }
+
+        [TestMethod]
+        public void IsInterfaceOrImplementation_ShouldReturnTrue_WhenTypeImplementsParentInterface()
+        {
+            Type interfaceType = typeof(ITestInterface);
+            Type type = typeof(GenericTestClass);
+
+            bool result = TypeHelper.IsInterfaceOrImplementation(interfaceType, type);
+
+            Assert.IsTrue(result);
         }
     }
 }

@@ -31,7 +31,7 @@ namespace Minded.Extensions.WebApi
         public async Task<IActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command)
         {
             var result = await ProcessCommandAsync<TResult>(command);
-            return _rulesProcessor.ProcessCommandRules(operation, result);
+            return _rulesProcessor.ProcessCommandRules<TResult>(operation, result);
         }
     }
 }
