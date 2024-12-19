@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Minded.Extensions.Caching.Abstractions.Decorator;
 using Minded.Extensions.Caching.Decorator;
 using Minded.Extensions.Configuration;
+using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Query;
 using Minded.Framework.Decorator;
 
@@ -30,12 +31,16 @@ namespace Minded.Extensions.Caching.Memory.Decorator
 
             try
             {
-                // If the query doesn't implement IGenerateCacheKey or doesn't have the MemoryCacheAttribute, just run the query as usual
-                if (!((query is IGenerateCacheKey) && TypeDescriptor.GetAttributes(query)[typeof(MemoryCacheAttribute)] != null))
+                // If the query doesn't have the MemoryCacheAttribute, just run the query as usual
+                if (!(TypeDescriptor.GetAttributes(query)[typeof(MemoryCacheAttribute)] != null))
                 {
                     // If the attribute is not set, just run the query as usual
                     return await InnerQueryHandler.HandleAsync(query);
                 }
+
+                // If the query doesn't implement IGenerateCacheKey
+                if (!(query is IGenerateCacheKey))
+                    throw new InvalidOperationException("The query must implement IGenerateCacheKey to be used with the MemoryCacheQueryHandlerDecorator.");
 
                 cacheAttribute = (MemoryCacheAttribute)Attribute.GetCustomAttribute(query.GetType(), typeof(CacheAttribute));
 
@@ -67,7 +72,7 @@ namespace Minded.Extensions.Caching.Memory.Decorator
                     return result;
 
                 // If the query response type is IQueryResponse and it is not successful, do not cache the result
-                if (TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), typeof(TResult)) && !(result as IQueryResponse<TResult>).Successful)
+                if (TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), typeof(TResult)) && !(result as IMessageResponse).Successful)
                     return result;
 
                 var cacheEntryOptions = new MemoryCacheEntryOptions();

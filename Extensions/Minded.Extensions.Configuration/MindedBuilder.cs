@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Logging;
+using Minded.Framework.Decorator;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -32,6 +33,25 @@ namespace Minded.Extensions.Configuration
             ServiceCollection = serviceCollection;
             AssemblyFilter = assemblyNameFilter;
             Configuration = configuration;
+
+#if DEBUG
+            // Execute validation only in debug mode to avoid performance degradation
+            InvokeAttributeValidators();
+#endif
+        }
+
+        private void InvokeAttributeValidators()
+        {
+            var validatorInterface = typeof(IDecoratingAttributeValidator);
+            foreach (var assembly in SourceAssemblies(AssemblyFilter))
+            {
+                var validatorTypes = GetTypesImplementingInterfaceInAssembly(assembly, validatorInterface);
+                foreach (var validatorType in validatorTypes)
+                {
+                    var validator = (IDecoratingAttributeValidator) Activator.CreateInstance(validatorType);
+                    validator.Validate(AssemblyFilter);
+                }
+            }
         }
 
         public void QueueCommandDecoratorRegistrationAction(Action<MindedBuilder, Type> decoratorRegistrationAction)
@@ -347,6 +367,15 @@ namespace Minded.Extensions.Configuration
                 assembly.GetTypes().Where(t => t.GetInterfaces().Any(i => i.GetTypeInfo().IsGenericType &&
                                                                           i.GetGenericTypeDefinition() ==
                                                                           genericInferface));
+
+        /// <summary>
+        /// Get the Types implementing the non-generic interface provided
+        /// </summary>
+        /// <param name="assembly">Assembly to scan</param>
+        /// <param name="interfaceType">Non-generic Interface</param>
+        /// <returns>All types implementing the non-generic interface</returns>
+        public IEnumerable<Type> GetTypesImplementingInterfaceInAssembly(Assembly assembly, Type interfaceType) =>
+                assembly.GetTypes().Where(t => t.GetInterfaces().Any(i => i == interfaceType));
 
         /// <summary>
         /// Scan all assemblies matching the criteria AssemblyNameFilter criteria, if this is null all assemblies will be scanned

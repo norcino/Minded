@@ -75,10 +75,15 @@ namespace Minded.Extensions.Validation.Decorator
             else
             {
                 _logger.LogInformation(QueryStaticHelper.ValidationFailureTemplate, _queryValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
-                return (TResult) valResult;
+
+                Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
+                var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
+                result = (TResult)Activator.CreateInstance(queryResponseType);
+                ((IMessageResponse)result).Successful = valResult.IsValid;
+                ((IMessageResponse)result).OutcomeEntries = valResult.OutcomeEntries.ToList();
+                return result;
             }
-            
-            
+
             if (result == null)
             {
                 // If here it means that result is of type IQueryResult, if null it means this has not been correctly handled in the inner decorator

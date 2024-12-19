@@ -44,6 +44,13 @@ Through the dependency injection configuration, the Query handlers are automatic
 The command handling feature allows to execute actions in the system, by using the Command pattern, where every action is represented as a Command object, and the Mediator is responsible for executing these objects.
 Through the dependency injection configuration, the Command handlers are automatically registered in the DI container and decorated with the configured decorators.
 
+### Decorators Attribute Validation
+When an instance of _MindedBuilder_ is created, any implementation of _IDecoratingAttributeValidator_, will be invoked to validate all filtered assemblies.
+This feature can be used to enforce the utilization of a specific interface along with the utilization of an attribute used for a given decorator.
+For example, the _CachingDecorator_ requires the utilization of the _IGenerateCacheKey_ to get a unique identifier for the query result cache key.
+So if any command is using any attribute derived from _CacheAttribute_, like _MemoryCacheAttribute_, doesn't implement _IGenerateCacheKey_, the validation will fail and the application will not start.
+This check, is only executed at the application startup on debug mode, to avoid performance issues in production.
+
 ### Exception Decorator
 The exception decorator is a feature that allows to handle exceptions in a single place, by using the Decorator pattern, the exception decorator is responsible for catching exceptions and logging them.
 

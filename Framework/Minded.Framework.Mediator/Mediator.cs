@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Command;
 using Minded.Framework.CQRS.Query;
 
@@ -54,16 +56,17 @@ namespace Minded.Framework.Mediator
 
             var result = await handler.HandleAsync((dynamic)command);
 
-            if (result == null || result.GetType() == typeof(CommandResponse<TResult>))
-            {
+            if (result != null)
                 return result;
-            }
-            
-            var specialisedRommandResponse = (ICommandResponse<TResult>) Activator.CreateInstance(typeof(CommandResponse<TResult>));
-            specialisedRommandResponse.OutcomeEntries = (result as ICommandResponse).OutcomeEntries;
-            specialisedRommandResponse.Successful = (result as ICommandResponse).Successful;
 
-            return specialisedRommandResponse;
+            var specialisedCommandResponse = (ICommandResponse<TResult>)Activator.CreateInstance(typeof(CommandResponse<TResult>));
+            specialisedCommandResponse.OutcomeEntries = new List<IOutcomeEntry>
+            {
+                new OutcomeEntry("", "The handler returned a null result")
+            };
+            specialisedCommandResponse.Successful = false;
+
+            return specialisedCommandResponse;
         }
     }
 }
