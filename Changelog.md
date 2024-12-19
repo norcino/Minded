@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## 1.0.9 (2024-12-19)
 Added constraint causing startup error in Debug, when a query doesn't implement IGenerateCacheKey.
+Added IDecoratingAttributeValidator to support validation of attributes required for specific decorators.
 Added fixes in various packages.
 
 ### Affected
