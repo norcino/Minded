@@ -141,6 +141,196 @@ namespace Minded.Extensions.Logging.Tests
 
             _mockInnerHandler.Verify(h => h.HandleAsync(command, cancellationToken), Times.Once);
         }
+
+        /// <summary>
+        /// Tests that outcome entries are logged when LogOutcomeEntries is enabled.
+        /// Verifies outcome entries are logged with correct severity levels.
+        /// </summary>
+        [TestMethod]
+        public async Task HandleAsync_WhenLogOutcomeEntriesEnabled_LogsOutcomeEntries()
+        {
+            _mockOptions.Setup(o => o.Value).Returns(new LoggingOptions
+            {
+                Enabled = true,
+                LogOutcomeEntries = true,
+                MinimumOutcomeSeverityLevel = Severity.Info
+            });
+            var command = new TestCommand();
+            var response = new CommandResponse
+            {
+                Successful = true,
+                OutcomeEntries = new System.Collections.Generic.List<IOutcomeEntry>
+                {
+                    new OutcomeEntry("Property1", "Error message", null, Severity.Error, "ERR001"),
+                    new OutcomeEntry("Property2", "Warning message", null, Severity.Warning, "WARN001"),
+                    new OutcomeEntry("Property3", "Info message", null, Severity.Info, "INFO001")
+                }
+            };
+            _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+
+            await _sut.HandleAsync(command);
+
+            // Verify all three outcome entries are logged
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Once);
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Warning message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Once);
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Info message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Once);
+        }
+
+        /// <summary>
+        /// Tests that outcome entries are filtered by minimum severity level.
+        /// Verifies only entries with severity <= minimum are logged.
+        /// </summary>
+        [TestMethod]
+        public async Task HandleAsync_WhenMinimumSeverityIsWarning_OnlyLogsErrorAndWarning()
+        {
+            _mockOptions.Setup(o => o.Value).Returns(new LoggingOptions
+            {
+                Enabled = true,
+                LogOutcomeEntries = true,
+                MinimumOutcomeSeverityLevel = Severity.Warning
+            });
+            var command = new TestCommand();
+            var response = new CommandResponse
+            {
+                Successful = true,
+                OutcomeEntries = new System.Collections.Generic.List<IOutcomeEntry>
+                {
+                    new OutcomeEntry("Property1", "Error message", null, Severity.Error),
+                    new OutcomeEntry("Property2", "Warning message", null, Severity.Warning),
+                    new OutcomeEntry("Property3", "Info message", null, Severity.Info)
+                }
+            };
+            _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+
+            await _sut.HandleAsync(command);
+
+            // Verify Error and Warning are logged
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Once);
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Warning message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Once);
+            // Verify Info is NOT logged
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Info message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Never);
+        }
+
+        /// <summary>
+        /// Tests that outcome entries are not logged when LogOutcomeEntries is disabled.
+        /// Verifies outcome logging can be disabled independently.
+        /// </summary>
+        [TestMethod]
+        public async Task HandleAsync_WhenLogOutcomeEntriesDisabled_DoesNotLogOutcomeEntries()
+        {
+            _mockOptions.Setup(o => o.Value).Returns(new LoggingOptions
+            {
+                Enabled = true,
+                LogOutcomeEntries = false
+            });
+            var command = new TestCommand();
+            var response = new CommandResponse
+            {
+                Successful = true,
+                OutcomeEntries = new System.Collections.Generic.List<IOutcomeEntry>
+                {
+                    new OutcomeEntry("Property1", "Error message", null, Severity.Error)
+                }
+            };
+            _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+
+            await _sut.HandleAsync(command);
+
+            // Verify outcome entry is NOT logged (only Started and Completed are logged)
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Error message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Never);
+        }
+
+        /// <summary>
+        /// Tests that dynamic severity level provider is used when set.
+        /// Verifies provider function is called and its value is used for filtering.
+        /// </summary>
+        [TestMethod]
+        public async Task HandleAsync_WhenSeverityLevelProviderSet_UsesDynamicValue()
+        {
+            var dynamicSeverity = Severity.Info;
+            _mockOptions.Setup(o => o.Value).Returns(new LoggingOptions
+            {
+                Enabled = true,
+                LogOutcomeEntries = true,
+                MinimumOutcomeSeverityLevel = Severity.Error, // Static value
+                MinimumOutcomeSeverityLevelProvider = () => dynamicSeverity // Dynamic value takes precedence
+            });
+            var command = new TestCommand();
+            var response = new CommandResponse
+            {
+                Successful = true,
+                OutcomeEntries = new System.Collections.Generic.List<IOutcomeEntry>
+                {
+                    new OutcomeEntry("Property1", "Info message", null, Severity.Info)
+                }
+            };
+            _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(response);
+
+            await _sut.HandleAsync(command);
+
+            // Verify Info is logged (because provider returns Info, not Error)
+            _mockLogger.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Info message")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, System.Exception, string>>()),
+                Times.Once);
+        }
     }
 
     public class TestCommand : ICommand

@@ -8,6 +8,8 @@ Added proper handling of OperationCanceledException to return appropriate HTTP s
 Added automatic database seeding for development and debugging environments.
 Added comprehensive Retry decorator for handling transient failures in commands and queries.
 Added extensive unit tests and integration tests for retry functionality.
+Added outcome entry logging to Logging decorator with configurable severity filtering.
+Added dynamic provider pattern for all LoggingOptions properties to support feature flags.
 Fixed critical bugs in DefaultRulesProcessor and validation logic.
 
 ### Affected
@@ -57,6 +59,16 @@ Fixed critical bugs in DefaultRulesProcessor and validation logic.
 * Added 48 edge case tests for DefaultRulesProcessor
 * Added 23 unit tests for Service.Transaction
 * Added 14 new unit tests for Service.Category (total 21)
+* Added `LogOutcomeEntries` property to `LoggingOptions` to enable/disable outcome entry logging
+* Added `MinimumOutcomeSeverityLevel` property to `LoggingOptions` for severity-based filtering (Error, Warning, Info)
+* Added `EnabledProvider` function property to `LoggingOptions` for dynamic logging on/off control
+* Added `LogMessageTemplateDataProvider` function property to `LoggingOptions` for dynamic template data logging control
+* Added `LogOutcomeEntriesProvider` function property to `LoggingOptions` for dynamic outcome entry logging control
+* Added `MinimumOutcomeSeverityLevelProvider` function property to `LoggingOptions` for dynamic severity level control
+* Added `GetEffectiveEnabled()`, `GetEffectiveLogMessageTemplateData()`, `GetEffectiveLogOutcomeEntries()`, and `GetEffectiveMinimumSeverityLevel()` methods to `LoggingOptions`
+* Added outcome entry logging in `LoggingCommandHandlerDecorator` with severity filtering
+* Added outcome entry logging in `LoggingQueryHandlerDecorator` with severity filtering
+* Added 11 new unit tests for LoggingOptions provider functionality
 
 ### Changed
 
@@ -70,6 +82,10 @@ Fixed critical bugs in DefaultRulesProcessor and validation logic.
 * Updated `CreateCategoryCommandHandler` to fail 3 times before succeeding (retry demonstration)
 * Updated README.md with retry decorator documentation, usage examples, and best practices
 * Updated Available Packages table to include Minded.Extensions.Retry
+* Updated `LoggingCommandHandlerDecorator` to use `GetEffective*()` methods for all configuration checks
+* Updated `LoggingQueryHandlerDecorator` to use `GetEffective*()` methods for all configuration checks
+* Updated `ServiceCollectionExtensions` documentation with comprehensive examples showing static, dynamic, and mixed configuration patterns
+* Removed vendor-specific references (LaunchDarkly) from documentation in favor of generic "feature flags" terminology
 
 ### Fixed
 
