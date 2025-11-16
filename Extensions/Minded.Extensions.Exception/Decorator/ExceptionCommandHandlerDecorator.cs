@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Framework.CQRS.Command;
@@ -15,11 +17,18 @@ namespace Minded.Extensions.Exception.Decorator
             _logger = logger;
         }
 
-        public async Task<ICommandResponse> HandleAsync(TCommand command)
+        public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             try
             {
-                return await DecoratedCommmandHandler.HandleAsync(command);
+                return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Request was cancelled (client disconnect, timeout, etc.)
+                // This is not an error - just log as information and re-throw
+                _logger.LogInformation("Command {CommandType} was cancelled", typeof(TCommand).Name);
+                throw; // Re-throw to let ASP.NET Core or RestMediator handle it
             }
             catch (System.Exception ex)
             {
@@ -47,11 +56,18 @@ namespace Minded.Extensions.Exception.Decorator
             _logger = logger;
         }
 
-        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command)
+        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             try
             {
-                return await DecoratedCommmandHandler.HandleAsync(command);
+                return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Request was cancelled (client disconnect, timeout, etc.)
+                // This is not an error - just log as information and re-throw
+                _logger.LogInformation("Command {CommandType} was cancelled", typeof(TCommand).Name);
+                throw; // Re-throw to let ASP.NET Core or RestMediator handle it
             }
             catch (System.Exception ex)
             {

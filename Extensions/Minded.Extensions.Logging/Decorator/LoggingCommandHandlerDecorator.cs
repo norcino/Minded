@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,17 +27,17 @@ namespace Minded.Extensions.Logging.Decorator
             _options = options;
         }
 
-        public async Task<ICommandResponse> HandleAsync(TCommand command)
+        public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             if (!_options.Value.Enabled)
-                return await DecoratedCommmandHandler.HandleAsync(command);
+                return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
 
             var stopWatch = Stopwatch.StartNew();
             LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, "- Started");
 
             try
             {
-                var response = await DecoratedCommmandHandler.HandleAsync(command);
+                var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
                 stopWatch.Stop();
                 LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options,
                     "in {Duration:c} - Completed: {CommandSuccessful}",
@@ -72,17 +73,17 @@ namespace Minded.Extensions.Logging.Decorator
             _options = options;
         }
 
-        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command)
+        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             if (!_options.Value.Enabled)
-                return await DecoratedCommmandHandler.HandleAsync(command);
+                return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
 
             var stopWatch = Stopwatch.StartNew();
             LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, "- Started");
 
             try
             {
-                var response = await DecoratedCommmandHandler.HandleAsync(command);
+                var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
                 stopWatch.Stop();
                 LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options,
                     "in {Duration:c} - Completed: {CommandSuccessful}",

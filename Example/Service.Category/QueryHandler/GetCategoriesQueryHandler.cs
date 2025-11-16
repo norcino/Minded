@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +20,9 @@ namespace Service.Category.QueryHandler
             _logger = logger;
         }
 
-        public async Task<IQueryResponse<IEnumerable<Data.Entity.Category>>> HandleAsync(GetCategoriesQuery query)
+        public async Task<IQueryResponse<IEnumerable<Data.Entity.Category>>> HandleAsync(GetCategoriesQuery query, CancellationToken cancellationToken = default)
         {
-            var result = await query.ApplyQueryTo(_context.Categories.AsQueryable()).ToListAsync();
+            var result = await query.ApplyQueryTo(_context.Categories.AsQueryable()).ToListAsync(cancellationToken);
             var response = new QueryResponse<IEnumerable<Data.Entity.Category>>(result);
 
             return response;

@@ -1,9 +1,16 @@
 ﻿using System;
 using Minded.Extensions.Logging;
+using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Command;
 
 namespace Service.Category.Command
 {
+    /// <summary>
+    /// Command to update an existing category.
+    /// Implements ILoggable for automatic logging through the logging decorator.
+    /// Uses ValidateCommand attribute to ensure the category exists before update.
+    /// </summary>
+    [ValidateCommand]
     public class UpdateCategoryCommand : ICommand, ILoggable
     {
         public Data.Entity.Category Category { get; }

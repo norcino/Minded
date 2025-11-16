@@ -12,5 +12,11 @@ namespace Common.Tests
             var content = new StringContent(JsonConvert.SerializeObject(entity), Encoding.UTF8, "application/json");
             return await httpClient.PostAsync(url, content);
         }
+
+        public static async Task<HttpResponseMessage> PutAsync<T>(this HttpClient httpClient, string url, T entity)
+        {
+            var content = new StringContent(JsonConvert.SerializeObject(entity), Encoding.UTF8, "application/json");
+            return await httpClient.PutAsync(url, content);
+        }
     }
 }

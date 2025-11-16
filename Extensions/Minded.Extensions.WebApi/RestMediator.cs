@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Minded.Framework.CQRS.Command;
@@ -7,6 +8,10 @@ using Minded.Framework.Mediator;
 
 namespace Minded.Extensions.WebApi
 {
+    /// <summary>
+    /// REST-aware mediator that processes commands and queries and returns appropriate HTTP responses.
+    /// Handles OperationCanceledException to return proper HTTP status codes for cancelled requests.
+    /// </summary>
     public class RestMediator : Mediator, IRestMediator
     {
         private readonly IRulesProcessor _rulesProcessor;
@@ -16,22 +21,61 @@ namespace Minded.Extensions.WebApi
             _rulesProcessor = rulesProcessor;
         }
 
-        public async Task<IActionResult> ProcessRestQueryAsync<TResult>(RestOperation operation, IQuery<TResult> query)
-        {            
-            var result = await ProcessQueryAsync(query);
-            return _rulesProcessor.ProcessQueryRules(operation, result);
+        /// <summary>
+        /// Processes a query and returns an appropriate HTTP response.
+        /// If the operation is cancelled, returns HTTP 499 (Client Closed Request).
+        /// </summary>
+        public async Task<IActionResult> ProcessRestQueryAsync<TResult>(RestOperation operation, IQuery<TResult> query, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await ProcessQueryAsync(query, cancellationToken);
+                return _rulesProcessor.ProcessQueryRules(operation, result);
+            }
+            catch (OperationCanceledException)
+            {
+                // Return 499 Client Closed Request (nginx convention)
+                // This indicates the client disconnected or the request was cancelled
+                return new StatusCodeResult(499);
+            }
         }
 
-        public async Task<IActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command)
+        /// <summary>
+        /// Processes a command and returns an appropriate HTTP response.
+        /// If the operation is cancelled, returns HTTP 499 (Client Closed Request).
+        /// </summary>
+        public async Task<IActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command, CancellationToken cancellationToken = default)
         {
-            var result = await ProcessCommandAsync(command);
-            return _rulesProcessor.ProcessCommandRules(operation, result);
+            try
+            {
+                var result = await ProcessCommandAsync(command, cancellationToken);
+                return _rulesProcessor.ProcessCommandRules(operation, result);
+            }
+            catch (OperationCanceledException)
+            {
+                // Return 499 Client Closed Request (nginx convention)
+                // This indicates the client disconnected or the request was cancelled
+                return new StatusCodeResult(499);
+            }
         }
 
-        public async Task<IActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command)
+        /// <summary>
+        /// Processes a command with a result and returns an appropriate HTTP response.
+        /// If the operation is cancelled, returns HTTP 499 (Client Closed Request).
+        /// </summary>
+        public async Task<IActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command, CancellationToken cancellationToken = default)
         {
-            var result = await ProcessCommandAsync<TResult>(command);
-            return _rulesProcessor.ProcessCommandRules<TResult>(operation, result);
+            try
+            {
+                var result = await ProcessCommandAsync<TResult>(command, cancellationToken);
+                return _rulesProcessor.ProcessCommandRules<TResult>(operation, result);
+            }
+            catch (OperationCanceledException)
+            {
+                // Return 499 Client Closed Request (nginx convention)
+                // This indicates the client disconnected or the request was cancelled
+                return new StatusCodeResult(499);
+            }
         }
     }
 }

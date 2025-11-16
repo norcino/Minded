@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using AnonymousData;
 using Builder;
 using Common.Tests;
@@ -26,7 +27,7 @@ namespace Common.E2ETests
             _mockIMindedExampleContext = mockIMindedExampleContext;
         }
 
-        public IEnumerable<T> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default) where T : class, new()
+        public async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default, CancellationToken cancellationToken = default) where T : class, new()
         {
             List<T> entities = null;
 
@@ -41,6 +42,7 @@ namespace Common.E2ETests
                     // Set the primary key
                     SetPrimaryKey(id, e);
                 });
+
                 var property = _context.GetType().GetProperties()
                     .First(p =>
                         p.PropertyType.IsGenericType &&
@@ -68,6 +70,7 @@ namespace Common.E2ETests
             }
             else if (_currentTestingProfile == TestingProfile.E2ELive)
             {
+                _context.ChangeTracker.Clear();
                 entities = Builder<T>.New().BuildMany(quantity, (e, i) => {
                     // Execute custom action initialization if present
                     if (buildAction != default)
@@ -84,6 +87,8 @@ namespace Common.E2ETests
                 DbSet<T> dbSet = (DbSet<T>)property.GetValue(_context);
                 dbSet.AddRange(entities);
                 _context.SaveChanges();
+
+                _context.ChangeTracker.Clear();
             }
             else // E2E
             {
@@ -99,7 +104,8 @@ namespace Common.E2ETests
 
                 DbSet<T> dbSet = (DbSet<T>)property.GetValue(_context);
                 dbSet.AddRange(entities);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync(cancellationToken);
+                _context.ChangeTracker.Clear();
             }
 
             return entities;

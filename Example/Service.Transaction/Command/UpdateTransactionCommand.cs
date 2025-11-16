@@ -1,10 +1,17 @@
 ﻿using System;
 using Minded.Extensions.Logging;
+using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Command;
 
 namespace Service.Transaction.Command
 {
-    public class UpdateTransactionCommand : ICommand<int>, ILoggable
+    /// <summary>
+    /// Command to update an existing transaction.
+    /// Implements ILoggable for automatic logging through the logging decorator.
+    /// Uses ValidateCommand attribute to ensure the transaction exists before update.
+    /// </summary>
+    [ValidateCommand]
+    public class UpdateTransactionCommand : ICommand<Data.Entity.Transaction>, ILoggable
     {
         public int TransactionId { get; set; }
         public Data.Entity.Transaction Transaction { get; set; }

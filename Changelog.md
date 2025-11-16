@@ -2,6 +2,86 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.1.0 (2025-11-16)
+Added comprehensive CancellationToken support throughout the entire CQRS pipeline.
+Added proper handling of OperationCanceledException to return appropriate HTTP status codes.
+Added automatic database seeding for development and debugging environments.
+Added comprehensive Retry decorator for handling transient failures in commands and queries.
+Added extensive unit tests and integration tests for retry functionality.
+Fixed critical bugs in DefaultRulesProcessor and validation logic.
+
+### Affected
+
+* Minded.Framework.CQRS.Abstractions
+* Minded.Framework.Mediator.Abstractions
+* Minded.Framework.Mediator
+* Minded.Extensions.Caching.Memory
+* Minded.Extensions.Exception
+* Minded.Extensions.Logging
+* Minded.Extensions.Validation
+* Minded.Extensions.Transaction
+* Minded.Extensions.WebApi
+* Example.Application.Api
+* Example.Data.Context
+* All Example Service Handlers
+* **NEW** Minded.Extensions.Retry
+* Extensions.Minded.Extensions.WebApi
+
+### Added
+
+* Added `CancellationToken cancellationToken = default` parameter to `ICommandHandler.HandleAsync()` methods
+* Added `CancellationToken cancellationToken = default` parameter to `IQueryHandler.HandleAsync()` method
+* Added `CancellationToken cancellationToken = default` parameter to all `IMediator` methods
+* Added `CancellationToken cancellationToken = default` parameter to all `IRestMediator` methods
+* Added special handling for `OperationCanceledException` in Exception decorators (logs as Information, not Error)
+* Added `OperationCanceledException` handling in `RestMediator` to return HTTP 499 (Client Closed Request)
+* Added `DatabaseSeeder` class for automatic database seeding in development environments
+* Added automatic database seeding for SQLiteInMemory, LocalDb, and SQL Server (development only)
+* **NEW Package**: `Minded.Extensions.Retry` - Retry decorator for transient failure handling
+* Added `RetryCommandAttribute` to mark commands requiring retry logic with configurable retry count and delay intervals
+* Added `RetryQueryAttribute` to mark queries requiring retry logic with configurable retry count and delay intervals
+* Added `RetryOptions` configuration class for default retry settings (retry count, delays, ApplyToAllQueries)
+* Added `RetryCommandHandlerDecorator<TCommand>` for commands without result
+* Added `RetryCommandHandlerDecorator<TCommand, TResult>` for commands with result
+* Added `RetryQueryHandlerDecorator<TQuery, TResult>` for queries
+* Added `ServiceCollectionExtensions` with `AddCommandRetryDecorator()` and `AddQueryRetryDecorator()` methods
+* Added support for up to 5 configurable delay intervals for exponential backoff patterns
+* Added `ApplyToAllQueries` option to apply retry logic to all queries without requiring attribute
+* Added fallback delay logic - if fewer delays than retries, last delay value is reused
+* Added detailed logging of retry attempts with exception details
+* Added 44 comprehensive unit tests for retry decorator functionality
+* Added 5 integration tests for end-to-end retry decorator validation
+* Added retry decorator demonstration in Example application (CreateCategoryCommandHandler)
+* Added comprehensive retry decorator documentation in README.md
+* Added `ExistsCategoryByIdQuery` and `ExistsTransactionByIdQuery` for data validation
+* Added 48 edge case tests for DefaultRulesProcessor
+* Added 23 unit tests for Service.Transaction
+* Added 14 new unit tests for Service.Category (total 21)
+
+### Changed
+
+* All decorator base classes now accept and propagate `CancellationToken`
+* All decorator implementations (Validation, Exception, Logging, Transaction, Caching) now support `CancellationToken`
+* All example command and query handlers updated to accept and use `CancellationToken`
+* `appsettings.Development.json` now uses `SQLiteInMemory` by default for easier debugging
+* Exception decorators now distinguish between cancellations (Information log) and real errors (Error log)
+* `RestMediator` now returns HTTP 499 for cancelled requests instead of HTTP 500
+* Updated Example application to demonstrate retry logic with simulated transient failures
+* Updated `CreateCategoryCommandHandler` to fail 3 times before succeeding (retry demonstration)
+* Updated README.md with retry decorator documentation, usage examples, and best practices
+* Updated Available Packages table to include Minded.Extensions.Retry
+
+### Fixed
+
+* Fixed missing `CancellationToken` propagation through decorator chain
+* Fixed `OperationCanceledException` being logged as errors instead of information
+* Fixed cancelled requests returning HTTP 500 instead of appropriate status code
+* Fixed empty database when debugging with in-memory database
+* **CRITICAL**: Fixed NullReferenceException in `DefaultRulesProcessor.GetActionResult()` when processing null command results
+* **CRITICAL**: Fixed NullReferenceException in `DefaultRulesProcessor.GetActionResult()` when processing null query results
+* Fixed null checking bug in `UpdateCategoryCommandValidator` where validation was performed after accessing potentially null property
+* Fixed Moq extension method mocking issue in tests by using MockQueryable.Moq library's GetMockDbSet pattern
+
 ## 1.0.9 (2024-12-19)
 Added constraint causing startup error in Debug, when a query doesn't implement IGenerateCacheKey.
 Added IDecoratingAttributeValidator to support validation of attributes required for specific decorators.
@@ -16,7 +96,7 @@ Added fixes in various packages.
 
 ### Added
 * Added IDecoratingAttributeValidator to support validation of attributes required for specific decorators
- 
+
 ### Changed
 * If query or command are not successful the result is not cached
 
@@ -82,7 +162,7 @@ Added LinkSource to all packages and updated Logging configuration setup.
 
 
 ## 1.0.4 (2023-07-03)
-Logging Extension has been refactored to reduce the amount of code needed when creating commands and queries in order to be logged. 
+Logging Extension has been refactored to reduce the amount of code needed when creating commands and queries in order to be logged.
 
 ### Affected
 * Minded.Extensions.Caching.Memory

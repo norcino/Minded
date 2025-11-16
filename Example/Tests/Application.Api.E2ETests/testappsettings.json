@@ -12,36 +12,45 @@
     // ************************************
     // UnitTesting configuration example
     // ************************************
-     //"TestingProfile": "UnitTesting",
-     //"DatabaseType": "",
-     //"ConnectionStrings": {
-     //  "MindedExample": ""
-     //}
+    //"TestingProfile": "UnitTesting",
+    //"DatabaseType": "",
+    //"ConnectionStrings": {
+    //  "MindedExample": ""
+    //}
 
     // ************************************
     // Integration Testing for Live execution using SQLite in Memory
     // ************************************
-    // "TestingProfile": "E2ELive",
-    // "DatabaseType": "SQLiteInMemory",
-    // "ConnectionStrings": {
-    //   "MindedExample": ""
-    // }
+     "TestingProfile": "E2ELive",
+     "DatabaseType": "SQLiteInMemory",
+     "ConnectionStrings": {
+       "MindedExample": ""
+     }
 
     // ************************************
     // Integration Testing using LocalDb
     // ************************************
-     "TestingProfile": "E2E",
-     "DatabaseType": "LocalDb",
-     "ConnectionStrings": {
-       "MindedExample": "Server=(localdb)\\mssqllocaldb;Database=MindedExample;MultipleActiveResultSets=true"
-     }
+    //  "TestingProfile": "E2E",
+    //  "DatabaseType": "LocalDb",
+    //  "ConnectionStrings": {
+    //   "MindedExample": "Server=(localdb)\\mssqllocaldb;Database=MindedExample;MultipleActiveResultSets=true"
+    //  }
 
     // ************************************
-    // E2E Testing for using SqlServer
+    // E2E Testing docker SqlServer
     // ************************************
-    // "TestingProfile": "E2E",
-    // "DatabaseType": "SQLServer",
-    // "ConnectionStrings": {
-    //   "MindedExample": "Server=sqlserver.home;Database=MindedExample;User Id=minded;Password=minded;Trust Server Certificate=true"
-    // }
+    //"TestingProfile": "E2E",
+    //"DatabaseType": "SQLServer",
+    //"ConnectionStrings": {
+    //    "MindedExample": "Server=sqlserver.home;Database=MindedExample;User Id=minded;Password=minded;Trust Server Certificate=true"
+    //}
+
+    // ************************************
+    // E2E Testing local SqlServer
+    // ************************************
+    //"TestingProfile": "E2E",
+    //"DatabaseType": "SQLServer",
+    //"ConnectionStrings": {
+    //    "MindedExample": "Server=.;Database=MindedExample;Integrated Security=sspi;Trust Server Certificate=true"
+    //}
 }

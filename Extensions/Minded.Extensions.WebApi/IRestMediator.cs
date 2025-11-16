@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Minded.Framework.CQRS.Command;
 using Minded.Framework.CQRS.Query;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Minded.Extensions.WebApi
@@ -14,8 +15,9 @@ namespace Minded.Extensions.WebApi
         /// <typeparam name="TResult"></typeparam>
         /// <param name="operation"></param>
         /// <param name="query"></param>
+        /// <param name="cancellationToken">Optional cancellation token. If not provided, a new CancellationToken will be used.</param>
         /// <returns></returns>
-        Task<IActionResult> ProcessRestQueryAsync<TResult>(RestOperation operation, IQuery<TResult> query);
+        Task<IActionResult> ProcessRestQueryAsync<TResult>(RestOperation operation, IQuery<TResult> query, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Instantiates the ICommandHandler for the given command and executes it's Handle method
@@ -23,8 +25,9 @@ namespace Minded.Extensions.WebApi
         /// </summary>
         /// <param name="operation"></param>
         /// <param name="command"></param>
+        /// <param name="cancellationToken">Optional cancellation token. If not provided, a new CancellationToken will be used.</param>
         /// <returns></returns>
-        Task<IActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command);
+        Task<IActionResult> ProcessRestCommandAsync(RestOperation operation, ICommand command, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Instantiates the ICommandHandler for the given command and executes it's Handle method
@@ -33,7 +36,8 @@ namespace Minded.Extensions.WebApi
         /// <typeparam name="TResult"></typeparam>
         /// <param name="operation"></param>
         /// <param name="command"></param>
+        /// <param name="cancellationToken">Optional cancellation token. If not provided, a new CancellationToken will be used.</param>
         /// <returns></returns>
-        Task<IActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command);
+        Task<IActionResult> ProcessRestCommandAsync<TResult>(RestOperation operation, ICommand<TResult> command, CancellationToken cancellationToken = default);
     }
 }

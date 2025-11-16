@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -22,17 +23,17 @@ namespace Minded.Extensions.Logging.Decorator
             _options = options;
         }
 
-        public async Task<TResult> HandleAsync(TQuery query)
+        public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
         {
             if (!_options.Value.Enabled)
-                return await DecoratedQueryHandler.HandleAsync(query);
+                return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
 
             var stopWatch = Stopwatch.StartNew();
             Log(_logger, query, _options, "- Started");
 
             try
             {
-                var response = await DecoratedQueryHandler.HandleAsync(query);
+                var response = await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
                 stopWatch.Stop();
                 Log(_logger, query, _options,
                     "in {Duration:c} - Completed",

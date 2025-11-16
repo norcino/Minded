@@ -1,7 +1,8 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using Common.Configuration;
-using Microsoft.AspNet.OData.Extensions;
-using Microsoft.AspNet.OData.Query;
+using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +11,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Hosting;
 using Data.Context;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Minded.Extensions.Configuration;
@@ -18,8 +18,13 @@ using Minded.Extensions.Exception.Decorator;
 using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Extensions.Caching.Memory.Decorator;
+using Minded.Extensions.Retry.Decorator;
 using System.Linq;
 using Serilog;
+using Application.Api.OData;
+using Microsoft.AspNetCore.OData;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.OpenApi.Models;
 
 
 namespace Application.Api
@@ -53,27 +58,48 @@ namespace Application.Api
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
-        {            
+        {
             if (HostingEnvironment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+
+                // Enable Swagger UI in development
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Minded Example API v1");
+                    c.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
+                });
+
+                // Seed the database with sample data for debugging
+                SeedDatabaseForDevelopment(app);
             }
 
-            app.UseCors(builder =>
+            app.UseCors(builder => builder.AllowAnyOrigin());
+
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
             {
-                builder.AllowAnyOrigin();
+                endpoints.MapControllers();
             });
-            
-            app.UseMvc(routeBuilder =>
+        }
+
+        /// <summary>
+        /// Seeds the database with sample data for development and debugging purposes.
+        /// This method is only called in development environment.
+        /// </summary>
+        /// <param name="app">The application builder</param>
+        private void SeedDatabaseForDevelopment(IApplicationBuilder app)
+        {
+            using (var scope = app.ApplicationServices.CreateScope())
             {
-                routeBuilder
-                    .Expand()
-                    .Filter()
-                    .OrderBy(QueryOptionSetting.Allowed)
-                    .MaxTop(100)
-                    .Count();
-                routeBuilder.EnableDependencyInjection();
-            });
+                var context = scope.ServiceProvider.GetService<IMindedExampleContext>();
+                if (context != null)
+                {
+                    var seeder = new DatabaseSeeder(context);
+                    seeder.Seed();
+                }
+            }
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -99,26 +125,72 @@ namespace Application.Api
 
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
+                .AddCommandRetryDecorator(options =>
+                {
+                    options.DefaultRetryCount = 3;
+                    options.DefaultDelay1 = 100;
+                    options.DefaultDelay2 = 200;
+                    options.DefaultDelay3 = 400;
+                })
                 .AddCommandLoggingDecorator()
                 .AddCommandHandlers();
 
                 b.AddQueryValidationDecorator()
                 .AddQueryExceptionDecorator()
+                .AddQueryRetryDecorator(applyToAllQueries: false, configureOptions: options =>
+                {
+                    options.DefaultRetryCount = 2;
+                    options.DefaultDelay1 = 50;
+                })
                 .AddQueryLoggingDecorator()
                 .AddQueryMemoryCacheDecorator()
                 .AddQueryHandlers();
             });
 
-            // Add framework services.
-            services.AddOData();
-
-            services.AddMvc(
-                options => options.EnableEndpointRouting = false
-            )
-            //.AddApplicationPart(typeof(Controllers.BaseController).Assembly)
-            .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
+            // Configure MVC with OData navigation property serialization
+            // This ensures navigation properties are only serialized when explicitly requested via $expand
+            // OData 9.x: Using attribute-based routing, so no EDM model or route components needed
+            services.AddControllers()
+                .AddODataNavigationPropertySerialization()
+                .AddOData(options => options
+                    .Select()
+                    .Filter()
+                    .OrderBy()
+                    .Expand()
+                    .Count()
+                    .SetMaxTop(100));
 
             services.AddLogging(loggingBuilder => loggingBuilder.AddSerilog(dispose: true));
+
+            // Configure Swagger
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Minded Example API",
+                    Version = "v1",
+                    Description = "Example API demonstrating the Minded framework with CQRS, Mediator pattern, and decorator-based cross-cutting concerns",
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Minded Framework",
+                        Url = new Uri("https://github.com/norcino/Minded")
+                    }
+                });
+
+                // Include XML comments for better API documentation
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                if (File.Exists(xmlPath))
+                {
+                    c.IncludeXmlComments(xmlPath);
+                }
+
+                // Add support for CancellationToken in Swagger UI
+                c.OperationFilter<SwaggerCancellationTokenOperationFilter>();
+
+                // Add support for ODataQueryOptions in Swagger UI
+                c.OperationFilter<SwaggerODataOperationFilter>();
+            });
         }
 
         private static void RegisterContext(IServiceCollection services, IWebHostEnvironment env)
@@ -166,6 +238,11 @@ namespace Application.Api
                         var context = s.GetService<MindedExampleContext>();
                         context.Database.OpenConnection();
                         context.Database.EnsureCreated();
+
+                        // Seed the database with sample data for debugging
+                        var seeder = new DatabaseSeeder(context);
+                        seeder.Seed();
+
                         return context;
                     });
                     break;
@@ -182,6 +259,14 @@ namespace Application.Api
                         var context = services.BuildServiceProvider()
                         .GetService<MindedExampleContext>();
                         context.Database.EnsureCreated();
+
+                        // Seed the database with sample data for debugging (only in development)
+                        if (env != null && env.IsDevelopment())
+                        {
+                            var seeder = new DatabaseSeeder(context);
+                            seeder.Seed();
+                        }
+
                         return context;
                     });
                     break;
@@ -200,6 +285,14 @@ namespace Application.Api
                         {
                             var context = s.GetService<MindedExampleContext>();
                             context.Database.EnsureCreated();
+
+                            // Seed the database with sample data for debugging (only in development)
+                            if (env != null && env.IsDevelopment())
+                            {
+                                var seeder = new DatabaseSeeder(context);
+                                seeder.Seed();
+                            }
+
                             return context;
                         });
 

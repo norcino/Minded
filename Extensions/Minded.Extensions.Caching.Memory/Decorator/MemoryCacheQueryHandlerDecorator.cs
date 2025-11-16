@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Minded.Extensions.Caching.Abstractions.Decorator;
@@ -22,7 +23,7 @@ namespace Minded.Extensions.Caching.Memory.Decorator
             _globalCacheKeyPrefixProvider = globalCacheKeyPrefixProvider;
         }
 
-        public async Task<TResult> HandleAsync(TQuery query)
+        public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
         {
             MemoryCacheAttribute cacheAttribute = null;
             TResult result;
@@ -31,18 +32,19 @@ namespace Minded.Extensions.Caching.Memory.Decorator
 
             try
             {
+                // Check if the query has the CacheAttribute (or derived MemoryCacheAttribute)
+                cacheAttribute = (MemoryCacheAttribute)Attribute.GetCustomAttribute(query.GetType(), typeof(CacheAttribute));
+
                 // If the query doesn't have the MemoryCacheAttribute, just run the query as usual
-                if (!(TypeDescriptor.GetAttributes(query)[typeof(MemoryCacheAttribute)] != null))
+                if (cacheAttribute == null)
                 {
                     // If the attribute is not set, just run the query as usual
-                    return await InnerQueryHandler.HandleAsync(query);
+                    return await InnerQueryHandler.HandleAsync(query, cancellationToken);
                 }
 
                 // If the query doesn't implement IGenerateCacheKey
                 if (!(query is IGenerateCacheKey))
                     throw new InvalidOperationException("The query must implement IGenerateCacheKey to be used with the MemoryCacheQueryHandlerDecorator.");
-
-                cacheAttribute = (MemoryCacheAttribute)Attribute.GetCustomAttribute(query.GetType(), typeof(CacheAttribute));
 
                 // If the attribute is set, use the cache
                 cacheKey = $"{_globalCacheKeyPrefixProvider.GetGlobalCacheKeyPrefix()}-{((IGenerateCacheKey)query).GetCacheKey()}";
@@ -63,7 +65,7 @@ namespace Minded.Extensions.Caching.Memory.Decorator
             }
 
             // If the result is not in the cache, fetch it and add it to the cache
-            result = await InnerQueryHandler.HandleAsync(query);
+            result = await InnerQueryHandler.HandleAsync(query, cancellationToken);
 
             try
             {

@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using QM.Common.Testing;
 using System.Linq.Expressions;
 using System.Linq;
+using System.Threading;
 
 namespace Common.E2ETests
 {
@@ -44,19 +45,33 @@ namespace Common.E2ETests
 
         public BaseE2ETest()
         {
+            // Create the client once in the constructor
+            // This ensures we reuse the same WebApplicationFactory and DI container across all tests
+            // which is important for SQLite in-memory with Singleton DbContext
             _sutClient = CreateTestApplication();
         }
 
         [TestInitialize]
-        public void BaseTestTestInitialize()
+        public async Task BaseTestTestInitialize()
         {
-            ResetDb();
+            // Reset the database before each test
+            // This ensures each test starts with a clean database
+            await ResetDb();
         }
 
         [TestCleanup]
         public void BaseTestTestCleanup()
         {
-            _sutClient.Dispose();
+            // Do not dispose the client here - it will be disposed in ClassCleanup
+            // Disposing it here would break subsequent tests
+        }
+
+        [ClassCleanup]
+        public static void BaseTestClassCleanup()
+        {
+            // This method is static and cannot access instance fields
+            // The client will be disposed by the garbage collector
+            // or we can implement IDisposable pattern if needed
         }
 
         /// <summary>
@@ -74,25 +89,24 @@ namespace Common.E2ETests
         /// <param name="buildAction">Action to customize the creation of the entities</param>
         /// <param name="quantity">Number of entities to be created</param>
         /// <returns>List of created entities</returns>
-        protected T SeedOne<T>(Expression<Func<T, int>> id) where T : class, new()
+        protected async Task<T> SeedOne<T>(Expression<Func<T, int>> id) where T : class, new()
         {
-            return Seed<T>(id, 1, default).First();
+            return (await Seed<T>(id, 1, default)).First();
         }
 
-        protected IEnumerable<T> Seed<T>(Expression<Func<T, int>> id) where T : class, new()
+        protected async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id) where T : class, new()
         {
-            return Seed<T>(id, 100, default);
+            return await Seed<T>(id, 100, default);
         }
 
-        protected IEnumerable<T> Seed<T>(Expression<Func<T, int>> id, int quantity = 100) where T : class, new()
+        protected async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id, int quantity = 100) where T : class, new()
         {
-            return Seed<T>(id, quantity, default);
+            return await Seed<T>(id, quantity, default);
         }
 
-        
-        protected IEnumerable<T> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default) where T : class, new()
+        protected async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default) where T : class, new()
         {
-            return _seeder.Seed(id, quantity, buildAction);
+            return await _seeder.Seed(id, quantity, buildAction);
         }
 
         /// <summary>
@@ -137,6 +151,10 @@ namespace Common.E2ETests
                 });
 
                 builder.UseConfiguration(_configuration);
+
+                // Set the environment to the testing profile to prevent automatic seeding in Startup.cs
+                // This ensures that Startup.SeedDatabaseForDevelopment() is not called during tests
+                builder.UseEnvironment(_currentTestingProfile.ToString());
             });
 
             var client = applicationFactory.CreateClient();
@@ -155,6 +173,7 @@ namespace Common.E2ETests
 
             _mockIMindedExampleContext.SetupGet(c => c.Categories).Returns(new List<Category>().GetMockDbSet().Object);
             _mockIMindedExampleContext.SetupGet(t => t.Transactions).Returns(new List<Transaction>().GetMockDbSet().Object);
+            _mockIMindedExampleContext.SetupGet(t => t.Users).Returns(new List<User>().GetMockDbSet().Object);
         }
 
         /// <summary>
@@ -174,25 +193,61 @@ namespace Common.E2ETests
                     _seeder = new Seeder(_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
                     break;
                 case TestingProfile.E2ELive:
+                    // Remove any existing DbContext registrations from Startup.cs
+                    var descriptorDbContext = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
+                    if (descriptorDbContext != null)
+                    {
+                        services.Remove(descriptorDbContext);
+                    }
+
+                    var descriptorIMindedContext = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
+                    if (descriptorIMindedContext != null)
+                    {
+                        services.Remove(descriptorIMindedContext);
+                    }
+
                     // Use SQLite in memory database for testing
+                    // Register DbContext as Singleton to keep the in-memory database alive
                     services.AddDbContext<MindedExampleContext>(options =>
                     {
                         options.UseSqlite($"DataSource='file::memory:?cache=shared'");
                         //options.UseSqlite("DataSource=:memory:");
                         options.EnableSensitiveDataLogging();
                         options.EnableDetailedErrors();
-                    });
+                    }, ServiceLifetime.Singleton);
 
-                    services.AddScoped<IMindedExampleContext>(s =>
+                    services.AddSingleton<IMindedExampleContext>(s =>
                     {
-                        _context = s.GetService<MindedExampleContext>();
-                        _connection = _context.Database.GetDbConnection();
-                        _context.Database.EnsureCreated();
-                        _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
-                        return _context;
+                        var context = s.GetService<MindedExampleContext>();
+                        _connection = context.Database.GetDbConnection();
+                        _connection.Open(); // Keep connection open to maintain in-memory database
+                        context.Database.EnsureCreated();
+
+                        // Only set _context and _seeder if they haven't been set yet
+                        // DO NOT seed the database here - let the tests control seeding
+                        if (_context == null)
+                        {
+                            _context = context;
+                            _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
+                        }
+
+                        return context;
                     });
                     break;
                 case TestingProfile.E2E:
+                    // Remove any existing DbContext registrations from Startup.cs
+                    var descriptorDbContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
+                    if (descriptorDbContextE2E != null)
+                    {
+                        services.Remove(descriptorDbContextE2E);
+                    }
+
+                    var descriptorIMindedContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
+                    if (descriptorIMindedContextE2E != null)
+                    {
+                        services.Remove(descriptorIMindedContextE2E);
+                    }
+
                     services.AddDbContext<MindedExampleContext>(options =>
                     {
                         options.UseSqlServer(_configuration.GetConnectionString(Constants.ConfigConnectionStringName));
@@ -203,6 +258,7 @@ namespace Common.E2ETests
                     {
                         _context = s.GetService<MindedExampleContext>();
                         _context.Database.EnsureCreated();
+                        // DO NOT seed the database here - let the tests control seeding
                         _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
                         return _context;
                     });
@@ -213,34 +269,73 @@ namespace Common.E2ETests
         /// <summary>
         /// Drop and create the testing database, this does not have effect for UnitTesting
         /// </summary>
-        public void ResetDb()
+        public async Task ResetDb(CancellationToken cancellationToken = default)
         {
             if (_currentTestingProfile == TestingProfile.UnitTesting)
             {
                 _mockIMindedExampleContext.Reset();
                 SetupDbContextMockObject();
+                _seeder = new Seeder(_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
                 return;
             }
 
             if (_currentTestingProfile == TestingProfile.E2ELive)
             {
-                _connection.Close();
-                _connection.Dispose();
-
+                _context.ChangeTracker.Clear();
+                await _context.Database.CloseConnectionAsync();
                 _context.Dispose();
+                _context = null;
+
+                ConfigureContext(_serviceCollection);
+                _serviceProvider = _serviceCollection.BuildServiceProvider();
 
                 _context = _serviceProvider.GetService<IMindedExampleContext>();
 
-                _context.Database.OpenConnection();
-                _connection = _context.Database.GetDbConnection(); // TODO DB Never destroyed
+                // For SQLite in-memory with cache=shared, we need to clear all data between tests
+                // while keeping the connection open to maintain the in-memory database
 
-                _context.Database.EnsureDeleted();
-                _context.Database.EnsureCreated();
+                // IMPORTANT: We use a different strategy than EnsureDeleted/EnsureCreated because:
+                // 1. The DbContext is a singleton, so its internal caches persist
+                // 2. Dropping and recreating the schema can cause EF Core to cache stale metadata
+                // 3. Simply deleting data is faster and avoids cache invalidation issues
+
+                if (_context is MindedExampleContext concreteContext)
+                {
+                    // Clear the change tracker first to avoid tracking issues
+                    concreteContext.ChangeTracker.Clear();
+
+                    // Delete all data from tables in the correct order (respecting foreign keys)
+                    // We must delete in reverse order of dependencies to avoid FK constraint violations
+                    // Using raw SQL is more efficient than loading all entities into memory
+
+                    // Get table names from the EF Core model to avoid hardcoding
+                    string transactionsTable = concreteContext.Model.FindEntityType(typeof(Transaction))?.GetTableName() ?? "Transactions";
+                    string categoriesTable = concreteContext.Model.FindEntityType(typeof(Category))?.GetTableName() ?? "Categories";
+                    string usersTable = concreteContext.Model.FindEntityType(typeof(User))?.GetTableName() ?? "Users";
+
+                    // Delete child entities first (Transactions depend on Categories and Users)
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {transactionsTable}", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {categoriesTable}", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {usersTable}", cancellationToken);
+
+                    // Reset the auto-increment counters for SQLite
+                    // This ensures IDs start from 1 for each test, making tests more predictable
+                    await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM sqlite_sequence", cancellationToken);
+
+                    // Clear the change tracker again after deletions to ensure clean state
+                    concreteContext.ChangeTracker.Clear();
+                }
+
+                // Recreate the seeder with the same context (which is a singleton)
+                _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
                 return;
             }
 
-            _context.Database.EnsureDeleted();
-            _context.Database.EnsureCreated();
+            await _context.Database.EnsureDeletedAsync(cancellationToken);
+            await _context.Database.EnsureCreatedAsync(cancellationToken);
+
+            // Recreate the seeder with the refreshed context
+            _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
         }
     }
 }

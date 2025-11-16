@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using Microsoft.AspNet.OData.Query;
+using Microsoft.AspNetCore.OData.Query;
 
 namespace Minded.Extensions.OData
 {

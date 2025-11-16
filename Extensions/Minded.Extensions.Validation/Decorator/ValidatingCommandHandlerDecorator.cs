@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Framework.CQRS.Abstractions;
@@ -47,12 +48,13 @@ namespace Minded.Extensions.Validation.Decorator
         /// Execute the command asynchronously returning an instance of ICommandResponse
         /// </summary>
         /// <param name="command">Subject Command</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         /// <returns>An instance of <see cref="ICommandResponse"/> representing the output of the command</returns>
-        public async Task<ICommandResponse> HandleAsync(TCommand command)
+        public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             if (!Shared.IsValidatingCommand(command))
             {
-                return await InnerCommandHandler.HandleAsync(command);
+                return await InnerCommandHandler.HandleAsync(command, cancellationToken);
             }
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
@@ -72,7 +74,7 @@ namespace Minded.Extensions.Validation.Decorator
                 };
             }
 
-            var result = await InnerCommandHandler.HandleAsync(command);
+            var result = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
             if (result.OutcomeEntries == null)
             {
@@ -100,12 +102,13 @@ namespace Minded.Extensions.Validation.Decorator
         /// Execute the command asynchronously returning an instance of ICommandResponse
         /// </summary>
         /// <param name="command">Subject Command</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         /// <returns>An instance of <see cref="ICommandResponse{TResult}"/> representing the output of the command</returns>
-        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command)
+        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             if (!Shared.IsValidatingCommand(command))
             {
-                return await InnerCommandHandler.HandleAsync(command);
+                return await InnerCommandHandler.HandleAsync(command, cancellationToken);
             }
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
@@ -116,7 +119,7 @@ namespace Minded.Extensions.Validation.Decorator
 
             if (valResult.IsValid)
             {
-                return await InnerCommandHandler.HandleAsync(command);
+                return await InnerCommandHandler.HandleAsync(command, cancellationToken);
             }
 
             _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());

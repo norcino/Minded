@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ namespace Minded.Extensions.Transaction.Decorator
             _logger = logger;
         }
 
-        public Task<ICommandResponse> HandleAsync(TCommand command)
+        public Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             //ICommandResponse retVal;
             var attribute = (TransactionCommandAttribute)TypeDescriptor.GetAttributes(command)[typeof(TransactionCommandAttribute)];
@@ -32,7 +33,7 @@ namespace Minded.Extensions.Transaction.Decorator
  //               {
   //                  TransactionManager.LogTransactionStarting(_logger, command);
 
-                    //retVal = await CommmandHandler.HandleAsync(command);
+                    //retVal = await CommmandHandler.HandleAsync(command, cancellationToken);
 //                    transactionScope.Complete();
 
  //                   TransactionManager.LogTransactionComplete(_logger, command);
@@ -40,7 +41,7 @@ namespace Minded.Extensions.Transaction.Decorator
             }
             else
             {
-//                retVal = await CommmandHandler.HandleAsync(command);
+//                retVal = await CommmandHandler.HandleAsync(command, cancellationToken);
             }
 
             return null; //retVal;

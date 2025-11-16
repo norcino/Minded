@@ -2,10 +2,10 @@
 using Minded.Extensions.Caching.Memory.Decorator;
 using Minded.Framework.CQRS.Query;
 
-namespace Minded.Extensions.Caching.Abstractions.Tests
+namespace Minded.Extensions.Configuration.Tests
 {
     [MemoryCache]
-    public class InvalidTestQueryWithCachingAttribute : IQuery<string> // DO NOT IMPLEMENT IGenerateCacheKey
+    internal class InvalidTestQueryWithCachingAttribute : IQuery<string> // DO NOT IMPLEMENT IGenerateCacheKey
     {
         public Guid TraceId => Any.Guid();
     }

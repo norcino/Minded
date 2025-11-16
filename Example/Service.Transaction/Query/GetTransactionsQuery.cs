@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNet.OData.Query;
+﻿using Microsoft.AspNetCore.OData.Query;
 using Minded.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 using System;
