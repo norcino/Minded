@@ -1,18 +1,17 @@
-# Minded.Extensions.WebApi
+# Minded.Framework.Decorator
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+Base classes and utilities for implementing the Decorator pattern in CQRS pipelines.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- Decorator base classes for commands and queries
+- Pipeline composition support
+- Cross-cutting concern infrastructure
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Framework.Decorator
 ```
 
 ## Usage
@@ -26,6 +25,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Framework.Decorator)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

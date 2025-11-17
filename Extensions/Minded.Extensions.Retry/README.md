@@ -1,18 +1,18 @@
-# Minded.Extensions.WebApi
+# Minded.Extensions.Retry
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+Retry decorator for handling transient failures with configurable retry policies and exponential backoff.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- Configurable retry count and delays
+- Exponential backoff support
+- Per-command/query retry configuration
+- Detailed retry attempt logging
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Extensions.Retry
 ```
 
 ## Usage
@@ -26,6 +26,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.Retry)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

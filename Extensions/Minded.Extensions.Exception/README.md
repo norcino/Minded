@@ -1,18 +1,18 @@
-# Minded.Extensions.WebApi
+# Minded.Extensions.Exception
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+Exception handling decorator with automatic error logging and graceful failure handling.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- Automatic exception catching and logging
+- OperationCanceledException special handling
+- Configurable error responses
+- Integration with Microsoft.Extensions.Logging
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Extensions.Exception
 ```
 
 ## Usage
@@ -26,6 +26,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.Exception)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

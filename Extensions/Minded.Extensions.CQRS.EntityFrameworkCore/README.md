@@ -1,18 +1,18 @@
-# Minded.Extensions.WebApi
+# Minded.Extensions.CQRS.EntityFrameworkCore
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+Entity Framework Core integration for Minded Framework CQRS pattern, providing base classes for database-backed commands and queries.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- Base query classes for Entity Framework Core
+- DbContext integration
+- IQueryable support for efficient database queries
+- Async/await support with CancellationToken
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Extensions.CQRS.EntityFrameworkCore
 ```
 
 ## Usage
@@ -26,6 +26,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.CQRS.EntityFrameworkCore)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)
+

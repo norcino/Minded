@@ -1,18 +1,17 @@
-# Minded.Extensions.WebApi
+# Minded.Framework.Mediator.Abstractions
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+Mediator pattern abstractions for decoupled command and query dispatching.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- IMediator interface
+- Command and Query dispatching contracts
+- Async/await support with CancellationToken
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Framework.Mediator.Abstractions
 ```
 
 ## Usage
@@ -26,6 +25,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Framework.Mediator.Abstractions)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

@@ -1,18 +1,18 @@
-# Minded.Extensions.WebApi
+# Minded.Extensions.Logging
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+Logging decorator for automatic request/response logging with configurable detail levels and outcome tracking.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- Request and response logging
+- Outcome entry logging with severity filtering
+- Dynamic configuration via providers (feature flags support)
+- Template data logging control
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Extensions.Logging
 ```
 
 ## Usage
@@ -26,6 +26,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.Logging)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

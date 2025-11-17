@@ -16,21 +16,45 @@ steps:
     arguments: '--configuration $(BuildConfiguration)'
 
 - pwsh: |
+    $ErrorActionPreference = "Continue"
     dotnet pack Minded.sln `
       --version-suffix "rc.$(Build.BuildNumber)" `
       --include-symbols `
       -p:SymbolPackageFormat=snupkg `
       --configuration $(BuildConfiguration) `
-      --output $(Build.ArtifactStagingDirectory)
+      --output $(Build.ArtifactStagingDirectory) `
+      2>&1 | Tee-Object -Variable packOutput
+
+    $exitCode = $LASTEXITCODE
+    Write-Host "Pack exit code: $exitCode"
+
+    if ($exitCode -ne 0) {
+      Write-Host "##[error]Pack failed with exit code $exitCode"
+      Write-Host "Full output:"
+      Write-Host $packOutput
+      exit $exitCode
+    }
   displayName: 'Pack non master version'
   condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
 
 - pwsh: |
+    $ErrorActionPreference = "Continue"
     dotnet pack Minded.sln `
       --include-symbols `
       -p:SymbolPackageFormat=snupkg `
       --configuration $(BuildConfiguration) `
-      --output $(Build.ArtifactStagingDirectory)
+      --output $(Build.ArtifactStagingDirectory) `
+      2>&1 | Tee-Object -Variable packOutput
+
+    $exitCode = $LASTEXITCODE
+    Write-Host "Pack exit code: $exitCode"
+
+    if ($exitCode -ne 0) {
+      Write-Host "##[error]Pack failed with exit code $exitCode"
+      Write-Host "Full output:"
+      Write-Host $packOutput
+      exit $exitCode
+    }
   displayName: 'Pack master version'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
 

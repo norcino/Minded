@@ -15,6 +15,7 @@ Encapsulate all your business logic in Commands and Queries, the rest will be de
     <PackageReleaseNotes>The changelog is available at https://github.com/norcino/Minded/blob/master/Changelog.md.</PackageReleaseNotes>
     <Copyright>Copyright (c) 2023, Manuel Salvatori. All rights reserved.</Copyright>
     <PackageIcon>Minded-128.png</PackageIcon>
+    <PackageReadme>README.md</PackageReadme>
     <PackageTags>mediator;decorator;command query;retry;resilience;clean code;clean architecture</PackageTags>
     <LicenseUrl>https://github.com/norcino/Minded/blob/master/LICENSE</LicenseUrl>
 		<PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
@@ -33,6 +34,7 @@ Encapsulate all your business logic in Commands and Queries, the rest will be de
 
   <ItemGroup>
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

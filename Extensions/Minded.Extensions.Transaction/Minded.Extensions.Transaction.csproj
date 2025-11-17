@@ -1,8 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
@@ -25,6 +21,7 @@
     <PackageReleaseNotes>The changelog is available at https://github.com/norcino/Minded/blob/master/Changelog.md.</PackageReleaseNotes>
     <Copyright>Copyright (c) 2025, Manuel Salvatori. All rights reserved.</Copyright>
     <PackageIcon>Minded-128.png</PackageIcon>
+    <PackageReadme>README.md</PackageReadme>
     <PackageTags>mediator;decorator;command query;transaction;transactionscope;database;clean code;clean architecture;cqrs</PackageTags>
     <LicenseUrl>https://github.com/norcino/Minded/blob/master/LICENSE</LicenseUrl>
 		<PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
@@ -43,6 +40,7 @@
 
   <ItemGroup>
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

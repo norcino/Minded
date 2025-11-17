@@ -1,18 +1,18 @@
-# Minded.Extensions.WebApi
+# Minded.Framework.CQRS.Abstractions
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+Core abstractions for CQRS pattern implementation including ICommand, IQuery, ICommandHandler, IQueryHandler interfaces and response types.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- Command and Query interfaces
+- Handler abstractions
+- Response types with success/failure tracking
+- Outcome tracking for validation and business rules
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Framework.CQRS.Abstractions
 ```
 
 ## Usage
@@ -26,6 +26,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Framework.CQRS.Abstractions)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

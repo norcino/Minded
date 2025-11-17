@@ -1,18 +1,20 @@
-# Minded.Extensions.WebApi
+# Minded.Extensions.CQRS.OData
 
-ASP.NET Core Web API integration with RestMediator for automatic HTTP status code mapping and response formatting.
+OData integration for Minded Framework CQRS queries, enabling advanced filtering, sorting, and pagination capabilities.
 
 ## Features
 
-- RestMediator for HTTP-aware command/query processing
-- Automatic HTTP status code mapping
-- Validation error formatting
-- Cancellation token support (HTTP 499)
+- OData query support for CQRS queries
+- Advanced filtering with $filter
+- Sorting with $orderby
+- Pagination with $top and $skip
+- Entity expansion with $expand
+- Integration with ASP.NET Core OData
 
 ## Installation
 
 ```bash
-dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Extensions.CQRS.OData
 ```
 
 ## Usage
@@ -26,6 +28,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ## Links
 
 - [GitHub Repository](https://github.com/norcino/Minded)
-- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.WebApi)
+- [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.CQRS.OData)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)
+
