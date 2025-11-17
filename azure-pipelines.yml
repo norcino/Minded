@@ -21,8 +21,7 @@ steps:
       --include-symbols `
       -p:SymbolPackageFormat=snupkg `
       --configuration $(BuildConfiguration) `
-      --output $(Build.ArtifactStagingDirectory) `
-      --no-build
+      --output $(Build.ArtifactStagingDirectory)
   displayName: 'Pack non master version'
   condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
 
@@ -31,8 +30,7 @@ steps:
       --include-symbols `
       -p:SymbolPackageFormat=snupkg `
       --configuration $(BuildConfiguration) `
-      --output $(Build.ArtifactStagingDirectory) `
-      --no-build
+      --output $(Build.ArtifactStagingDirectory)
   displayName: 'Pack master version'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
 
