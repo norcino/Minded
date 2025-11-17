@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,16 +12,17 @@ using Minded.Framework.CQRS.Command;
 namespace Minded.Extensions.Transaction.Decorator
 {
     /// <summary>
-    /// Decorator that wraps command execution in a database transaction.
+    /// Decorator that wraps command execution in a database transaction for commands with result.
     /// Commands decorated with [TransactionCommand] attribute will execute within a TransactionScope.
     /// All database operations, including nested commands/queries invoked via IMediator, will participate
     /// in the same transaction and can be rolled back on error.
     /// </summary>
     /// <typeparam name="TCommand">The type of command being handled</typeparam>
-    public class TransactionalCommandHandlerDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>,
-        ICommandHandler<TCommand> where TCommand : ICommand
+    /// <typeparam name="TResult">The type of result returned by the command</typeparam>
+    public class TransactionalCommandHandlerDecorator<TCommand, TResult> : CommandHandlerDecoratorBase<TCommand, TResult>,
+        ICommandHandler<TCommand, TResult> where TCommand : ICommand<TResult>
     {
-        private readonly ILogger<TransactionalCommandHandlerDecorator<TCommand>> _logger;
+        private readonly ILogger<TransactionalCommandHandlerDecorator<TCommand, TResult>> _logger;
         private readonly IOptions<Configuration.TransactionOptions> _options;
 
         /// <summary>
@@ -31,8 +32,8 @@ namespace Minded.Extensions.Transaction.Decorator
         /// <param name="logger">Logger for transaction lifecycle events</param>
         /// <param name="options">Transaction configuration options</param>
         public TransactionalCommandHandlerDecorator(
-            ICommandHandler<TCommand> commandHandler,
-            ILogger<TransactionalCommandHandlerDecorator<TCommand>> logger,
+            ICommandHandler<TCommand, TResult> commandHandler,
+            ILogger<TransactionalCommandHandlerDecorator<TCommand, TResult>> logger,
             IOptions<Configuration.TransactionOptions> options)
             : base(commandHandler)
         {
@@ -45,8 +46,8 @@ namespace Minded.Extensions.Transaction.Decorator
         /// </summary>
         /// <param name="command">The command to execute</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>The command response</returns>
-        public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
+        /// <returns>The command response with result</returns>
+        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             var attribute = (TransactionCommandAttribute)TypeDescriptor.GetAttributes(command)[typeof(TransactionCommandAttribute)];
 
@@ -112,3 +113,4 @@ namespace Minded.Extensions.Transaction.Decorator
         }
     }
 }
+

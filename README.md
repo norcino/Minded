@@ -147,17 +147,20 @@ services.AddMinded(assembly => assembly.Name.StartsWith("YourApp."), builder =>
     builder.AddMediator();
     builder.AddRestMediator(); // For REST APIs
 
-    // Configure Command pipeline (order matters!)
-    builder.AddCommandValidationDecorator()    // 1. Validate first
-           .AddCommandExceptionDecorator()     // 2. Handle exceptions
-           .AddCommandLoggingDecorator()       // 3. Log execution
-           .AddCommandHandlers();              // 4. Execute handler
+    // Configure Command pipeline
+    // IMPORTANT: Decorators are registered from INNERMOST (closest to handler) to OUTERMOST
+    // Execution order: Exception → Logging → Validation → Handler
+    builder.AddCommandValidationDecorator()    // Innermost - executes closest to handler
+           .AddCommandLoggingDecorator()       // Middle - wraps validation
+           .AddCommandExceptionDecorator()     // Outermost - wraps everything
+           .AddCommandHandlers();              // Registers handlers and applies decorators
 
     // Configure Query pipeline
-    builder.AddQueryValidationDecorator()
-           .AddQueryExceptionDecorator()
-           .AddQueryLoggingDecorator()
+    // Execution order: Exception → Logging → Caching → Validation → Handler
+    builder.AddQueryValidationDecorator()      // Innermost
            .AddQueryMemoryCacheDecorator()     // Optional: Add caching
+           .AddQueryLoggingDecorator()         // Middle
+           .AddQueryExceptionDecorator()       // Outermost
            .AddQueryHandlers();
 });
 ```
@@ -300,6 +303,90 @@ Response flows back through decorators
     ↓
 HTTP Response (via RestMediator)
 ```
+
+### Understanding Decorator Order
+
+**CRITICAL**: The order in which you register decorators determines the execution flow. Decorators are registered from **INNERMOST to OUTERMOST**.
+
+#### Registration Order vs Execution Order
+
+When you register decorators like this:
+```csharp
+builder.AddCommandValidationDecorator()    // 1st registered
+       .AddCommandLoggingDecorator()       // 2nd registered
+       .AddCommandExceptionDecorator()     // 3rd registered
+       .AddCommandHandlers();
+```
+
+The **execution order is REVERSED**:
+```
+Request
+    ↓
+ExceptionDecorator (3rd registered = OUTERMOST = executes FIRST)
+    ↓
+LoggingDecorator (2nd registered = MIDDLE)
+    ↓
+ValidationDecorator (1st registered = INNERMOST = executes LAST before handler)
+    ↓
+Handler
+```
+
+#### Why This Matters
+
+The decorator closest to the handler (registered first) executes **inside** all outer decorators. This is crucial for:
+
+1. **Validation Inside Transactions**: If you need validation to read database state with transaction isolation:
+   ```csharp
+   builder.AddCommandValidationDecorator()      // Executes inside transaction
+          .AddCommandTransactionDecorator()     // Wraps validation
+          .AddCommandHandlers();
+   ```
+
+2. **Exception Handling Wraps Everything**: Exception decorator should be outermost to catch all errors:
+   ```csharp
+   builder.AddCommandValidationDecorator()
+          .AddCommandLoggingDecorator()
+          .AddCommandExceptionDecorator()       // Catches all exceptions
+          .AddCommandHandlers();
+   ```
+
+3. **Logging Captures Transaction Lifecycle**: Logging should wrap transactions to log start/commit/rollback:
+   ```csharp
+   builder.AddCommandTransactionDecorator()     // Transaction executes inside logging
+          .AddCommandLoggingDecorator()         // Logs transaction lifecycle
+          .AddCommandExceptionDecorator()
+          .AddCommandHandlers();
+   ```
+
+#### Recommended Order for Commands
+
+```csharp
+// For commands with transactions and stateful validation (reads from DB)
+builder.AddCommandValidationDecorator()      // Innermost - validates inside transaction
+       .AddCommandTransactionDecorator()     // Wraps validation - provides isolation
+       .AddCommandLoggingDecorator()         // Logs transaction execution
+       .AddCommandExceptionDecorator()       // Outermost - catches all errors
+       .AddCommandHandlers();
+
+// For commands with stateless validation (no DB reads)
+builder.AddCommandTransactionDecorator()     // Innermost - transaction only wraps handler
+       .AddCommandValidationDecorator()      // Validates before transaction (fail fast)
+       .AddCommandLoggingDecorator()
+       .AddCommandExceptionDecorator()       // Outermost
+       .AddCommandHandlers();
+```
+
+#### Recommended Order for Queries
+
+```csharp
+builder.AddQueryValidationDecorator()        // Innermost
+       .AddQueryMemoryCacheDecorator()       // Cache after validation
+       .AddQueryLoggingDecorator()           // Log cache hits/misses
+       .AddQueryExceptionDecorator()         // Outermost - catches all errors
+       .AddQueryHandlers();
+```
+
+---
 
 ### Available Decorators
 
@@ -514,27 +601,285 @@ public class TenantCacheKeyPrefixProvider : IGlobalCacheKeyPrefixProvider
 
 #### Transaction Decorator (Commands Only)
 
-**Purpose**: Wrap command execution in a database transaction
+**Purpose**: Wrap command execution in a database transaction with automatic rollback on failure
+
+**Package**: `Minded.Extensions.Transaction`
 
 **Usage**:
 ```csharp
+// Basic registration
 builder.AddCommandTransactionDecorator();
+
+// With configuration
+builder.AddCommandTransactionDecorator(options =>
+{
+    options.DefaultIsolationLevel = IsolationLevel.ReadCommitted;
+    options.DefaultTimeout = TimeSpan.FromMinutes(2);
+    options.RollbackOnUnsuccessfulResponse = true;  // Rollback if Successful = false
+    options.EnableLogging = true;                    // Log transaction lifecycle
+});
+
+// Query support (rarely needed - see warnings below)
+builder.AddQueryTransactionDecorator();
 ```
 
 **How it works**:
-1. Decorate your command with `[TransactionCommand]`
-2. The decorator wraps the handler execution in a `TransactionScope`
-3. If the handler succeeds, the transaction commits
-4. If an exception occurs, the transaction rolls back
+1. Decorate your command with `[TransactionCommand]` or query with `[TransactionQuery]`
+2. The decorator wraps execution in a `System.Transactions.TransactionScope`
+3. Nested commands/queries automatically join the ambient transaction
+4. Transaction commits if handler succeeds and returns `Successful = true`
+5. Transaction rolls back if:
+   - An exception is thrown
+   - Handler returns `Successful = false` (if `RollbackOnUnsuccessfulResponse = true`)
 
-**Example**:
+**Basic Example**:
 ```csharp
 [TransactionCommand]
 public class CreateOrderCommand : ICommand<Order>
 {
-    // Command properties
+    public Order Order { get; set; }
+}
+
+public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, Order>
+{
+    private readonly IDbContext _context;
+    private readonly IMediator _mediator;
+
+    public async Task<ICommandResponse<Order>> HandleAsync(
+        CreateOrderCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        // Save order (within transaction)
+        await _context.Orders.AddAsync(command.Order, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Nested command - automatically joins the same transaction
+        await _mediator.ProcessCommandAsync(
+            new UpdateInventoryCommand { OrderId = command.Order.Id },
+            cancellationToken);
+
+        // If any operation fails, entire transaction rolls back
+        return new CommandResponse<Order>(command.Order) { Successful = true };
+    }
 }
 ```
+
+**Advanced Configuration**:
+```csharp
+// Per-command configuration with custom isolation level and timeout
+[TransactionCommand(
+    IsolationLevel = IsolationLevel.Serializable,  // Strongest isolation
+    TimeoutSeconds = 300)]                          // 5 minutes
+public class ProcessPaymentCommand : ICommand<Payment>
+{
+    public decimal Amount { get; set; }
+}
+
+// Nested transaction with different isolation level (creates new transaction)
+[TransactionCommand(
+    TransactionScopeOption = TransactionScopeOption.RequiresNew,
+    IsolationLevel = IsolationLevel.ReadUncommitted)]
+public class AuditLogCommand : ICommand
+{
+    // This always creates a new transaction, even if called from another transaction
+}
+
+// Suppress transaction (execute outside any transaction)
+[TransactionCommand(TransactionScopeOption = TransactionScopeOption.Suppress)]
+public class SendEmailCommand : ICommand
+{
+    // This executes outside any transaction
+}
+```
+
+**Nested Transaction Behavior**:
+
+The decorator automatically handles nested transactions using `TransactionScopeOption`:
+
+- **`Required` (default)**: Joins existing transaction or creates new one
+  ```csharp
+  [TransactionCommand]  // Creates transaction
+  public class OuterCommand : ICommand
+  {
+      public async Task HandleAsync(...)
+      {
+          // Inner command joins the same transaction
+          await _mediator.ProcessCommandAsync(new InnerCommand());
+      }
+  }
+
+  [TransactionCommand]  // Joins outer transaction (doesn't create new)
+  public class InnerCommand : ICommand { }
+  ```
+
+- **`RequiresNew`**: Always creates new transaction (suspends outer transaction)
+  ```csharp
+  [TransactionCommand(TransactionScopeOption = TransactionScopeOption.RequiresNew)]
+  public class AuditCommand : ICommand
+  {
+      // Always creates new transaction
+      // Commits independently even if outer transaction rolls back
+  }
+  ```
+
+- **`Suppress`**: Executes outside any transaction
+  ```csharp
+  [TransactionCommand(TransactionScopeOption = TransactionScopeOption.Suppress)]
+  public class NotificationCommand : ICommand
+  {
+      // Executes outside transaction
+      // Useful for operations that shouldn't be rolled back
+  }
+  ```
+
+**Isolation Levels**:
+
+Control transaction isolation to prevent race conditions:
+
+```csharp
+// ReadCommitted (default) - Prevents dirty reads
+[TransactionCommand(IsolationLevel = IsolationLevel.ReadCommitted)]
+public class CreateOrderCommand : ICommand<Order> { }
+
+// RepeatableRead - Prevents dirty reads and non-repeatable reads
+// Use when validation reads DB state that must not change during execution
+[TransactionCommand(IsolationLevel = IsolationLevel.RepeatableRead)]
+public class CancelOrderCommand : ICommand
+{
+    // Validator reads Order.Status
+    // Handler updates Order.Status
+    // RepeatableRead ensures status doesn't change between validation and update
+}
+
+// Serializable - Strongest isolation (prevents all anomalies)
+[TransactionCommand(IsolationLevel = IsolationLevel.Serializable)]
+public class ProcessPaymentCommand : ICommand<Payment>
+{
+    // Use for critical financial operations
+    // Warning: Can cause deadlocks and performance issues
+}
+```
+
+**Rollback Strategies**:
+
+```csharp
+// Strategy 1: Rollback only on exception (default if RollbackOnUnsuccessfulResponse = false)
+builder.AddCommandTransactionDecorator(options =>
+{
+    options.RollbackOnUnsuccessfulResponse = false;
+});
+
+// Strategy 2: Rollback on unsuccessful response (recommended)
+builder.AddCommandTransactionDecorator(options =>
+{
+    options.RollbackOnUnsuccessfulResponse = true;  // Default
+});
+
+// Handler can control rollback via Successful property
+public async Task<ICommandResponse> HandleAsync(CreateOrderCommand command, ...)
+{
+    if (inventoryNotAvailable)
+    {
+        return new CommandResponse
+        {
+            Successful = false  // Transaction will roll back
+        };
+    }
+
+    return new CommandResponse { Successful = true };  // Transaction commits
+}
+```
+
+**⚠️ Important Limitations**:
+
+The transaction decorator **ONLY** covers database operations. It **DOES NOT** roll back:
+
+- ❌ Remote service calls (HTTP, gRPC, etc.)
+- ❌ Message queue operations (RabbitMQ, Azure Service Bus, etc.)
+- ❌ File system operations
+- ❌ External API calls
+- ❌ Email sending
+- ❌ Cache updates (unless using transactional cache)
+
+**Example of what gets rolled back vs what doesn't**:
+```csharp
+[TransactionCommand]
+public class CreateOrderCommand : ICommand<Order>
+{
+    public async Task HandleAsync(...)
+    {
+        // ✅ WILL BE ROLLED BACK on error
+        await _context.Orders.AddAsync(order);
+        await _context.SaveChangesAsync();
+
+        // ❌ WILL NOT BE ROLLED BACK on error
+        await _httpClient.PostAsync("https://api.payment.com/charge", ...);
+        await _serviceBusClient.SendMessageAsync(new OrderCreatedMessage());
+        await _emailService.SendOrderConfirmationAsync(order);
+
+        throw new Exception("Error!");
+        // Database changes roll back
+        // Payment charge, message, and email are NOT rolled back!
+    }
+}
+```
+
+**For distributed scenarios, use**:
+- **Saga Pattern** - Orchestrate compensating transactions
+- **Transactional Outbox Pattern** - Ensure message delivery with database changes
+- **Two-Phase Commit** - For distributed transactions (complex, avoid if possible)
+
+**When to Use Transaction Decorator**:
+
+✅ **Use for**:
+- Multiple database operations that must succeed/fail together
+- Commands that invoke nested commands/queries (all share same transaction)
+- Operations requiring consistent database state (use appropriate isolation level)
+- Financial operations requiring atomicity
+
+❌ **Don't use for**:
+- Single database operation (DbContext already uses transaction)
+- Read-only queries (unless you need consistent snapshot with specific isolation level)
+- Operations involving external services (use Saga pattern instead)
+- Long-running operations (risk of locks and timeouts)
+
+**Decorator Order Considerations**:
+
+```csharp
+// If validation reads from database and needs transaction isolation:
+builder.AddCommandValidationDecorator()      // Validates INSIDE transaction
+       .AddCommandTransactionDecorator()     // Wraps validation
+       .AddCommandLoggingDecorator()
+       .AddCommandExceptionDecorator()
+       .AddCommandHandlers();
+
+// If validation is stateless (no DB reads):
+builder.AddCommandTransactionDecorator()     // Transaction only wraps handler
+       .AddCommandValidationDecorator()      // Validates BEFORE transaction (fail fast)
+       .AddCommandLoggingDecorator()
+       .AddCommandExceptionDecorator()
+       .AddCommandHandlers();
+```
+
+**Query Transaction Support** (⚠️ Rarely Needed):
+
+Queries can use transactions for consistent snapshots:
+
+```csharp
+builder.AddQueryTransactionDecorator();
+
+[TransactionQuery(IsolationLevel = IsolationLevel.Snapshot)]
+public class GetOrderWithItemsQuery : IQuery<OrderDto>
+{
+    // Ensures consistent snapshot of Order and OrderItems
+    // Even if other transactions are modifying data
+}
+```
+
+**Warning**: Most queries don't need transactions. Only use when you need:
+- Consistent snapshot across multiple tables
+- Specific isolation level to prevent read anomalies
+- Read locks to prevent updates during query execution
 
 ### Working with RestMediator
 

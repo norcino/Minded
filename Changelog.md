@@ -21,13 +21,13 @@ Fixed critical bugs in DefaultRulesProcessor and validation logic.
 * Minded.Extensions.Exception
 * Minded.Extensions.Logging
 * Minded.Extensions.Validation
-* Minded.Extensions.Transaction
+* Minded.Extensions.WebApi
+* **NEW** Minded.Extensions.Transaction (now fully implemented)
+* **NEW** Minded.Extensions.Retry
 * Minded.Extensions.WebApi
 * Example.Application.Api
 * Example.Data.Context
 * All Example Service Handlers
-* **NEW** Minded.Extensions.Retry
-* Extensions.Minded.Extensions.WebApi
 
 ### Added
 
@@ -69,6 +69,22 @@ Fixed critical bugs in DefaultRulesProcessor and validation logic.
 * Added outcome entry logging in `LoggingCommandHandlerDecorator` with severity filtering
 * Added outcome entry logging in `LoggingQueryHandlerDecorator` with severity filtering
 * Added 11 new unit tests for LoggingOptions provider functionality
+* **NEW Feature**: Fully implemented Transaction decorator for automatic transaction management
+* Added `TransactionOptions` configuration class with properties: `DefaultTransactionScopeOption`, `DefaultIsolationLevel`, `DefaultTimeout`, `RollbackOnUnsuccessfulResponse`, `EnableLogging`
+* Added `TransactionalCommandHandlerDecorator<TCommand>` for commands without result
+* Added `TransactionalCommandHandlerDecorator<TCommand, TResult>` for commands with result
+* Added `TransactionalQueryHandlerDecorator<TQuery, TResult>` for queries (with warnings about limited use cases)
+* Added `ServiceCollectionExtensions` with `AddCommandTransactionDecorator()` and `AddQueryTransactionDecorator()` methods
+* Added support for nested transaction handling with `TransactionScopeOption` (Required, RequiresNew, Suppress)
+* Added support for configurable isolation levels (ReadCommitted, RepeatableRead, Serializable, etc.)
+* Added per-command/query timeout configuration via `TimeoutSeconds` property in attributes
+* Added automatic rollback on exception or unsuccessful response (configurable)
+* Added comprehensive logging of transaction lifecycle (start, commit, rollback)
+* Added automatic isolation level conflict resolution (creates new transaction when isolation levels differ)
+* Enhanced `TransactionCommandAttribute` with `TimeoutSeconds` property and comprehensive XML documentation
+* Enhanced `TransactionQueryAttribute` with `TimeoutSeconds` property and comprehensive XML documentation
+* Updated `TransactionManager` with modern async/await support and comprehensive logging methods
+* Added comprehensive transaction decorator documentation in README.md with examples, limitations, and best practices
 
 ### Changed
 
@@ -86,6 +102,14 @@ Fixed critical bugs in DefaultRulesProcessor and validation logic.
 * Updated `LoggingQueryHandlerDecorator` to use `GetEffective*()` methods for all configuration checks
 * Updated `ServiceCollectionExtensions` documentation with comprehensive examples showing static, dynamic, and mixed configuration patterns
 * Removed vendor-specific references (LaunchDarkly) from documentation in favor of generic "feature flags" terminology
+* Updated README.md with corrected decorator order explanation (innermost to outermost registration)
+* Updated README.md with comprehensive "Understanding Decorator Order" section explaining registration vs execution order
+* Updated README.md with recommended decorator orders for different scenarios (stateful vs stateless validation, with/without transactions)
+* Updated `Minded.Extensions.Transaction.csproj` to target `netstandard2.0` and `net8.0` (was `net6.0`)
+* Added package references to Transaction project: `Microsoft.Extensions.Configuration.Abstractions`, `Microsoft.Extensions.Options.ConfigurationExtensions`
+* Added project reference to `Minded.Extensions.Configuration` in Transaction project
+* Updated `TransactionOptions` to use type aliases to avoid namespace conflicts with `System.Transactions.TransactionOptions`
+* Updated all transaction decorators to use fully qualified `Configuration.TransactionOptions` type
 
 ### Fixed
 
