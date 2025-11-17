@@ -23,14 +23,13 @@ steps:
   displayName: 'Pack master version'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
 
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
   displayName: 'NuGet Push Minded Feed'
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
     nuGetFeedType: 'internal'
     publishVstsFeed: '781d4237-b045-4959-bd79-25174518b8d8/b371f2d0-81c8-46d0-b653-f90e65088279'
-    allowPackageConflicts: true
 
 - task: DotNetCoreCLI@2
   displayName: 'NuGet Push Packages - Master only'
