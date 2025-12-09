@@ -19,6 +19,7 @@ using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Extensions.Caching.Memory.Decorator;
 using Minded.Extensions.Retry.Decorator;
+using Minded.Extensions.DataProtection;
 using System.Linq;
 using Serilog;
 using Application.Api.OData;
@@ -122,6 +123,13 @@ namespace Application.Api
             {
                 b.AddMediator();
                 b.AddRestMediator();
+
+                // Configure DataProtection to show sensitive data only in development
+                // This protects PII and confidential data in logs for GDPR/CCPA compliance
+                b.AddDataProtection(options =>
+                {
+                    options.ShowSensitiveDataProvider = () => HostingEnvironment.IsDevelopment();
+                });
 
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()

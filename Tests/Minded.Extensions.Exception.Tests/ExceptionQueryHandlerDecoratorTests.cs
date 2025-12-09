@@ -1,7 +1,9 @@
 using AnonymousData;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Exception.Decorator;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Query;
@@ -21,6 +23,8 @@ namespace Minded.Extensions.Exception.Tests
     {
         private Mock<IQueryHandler<TestQuery, int>> _mockInnerHandler;
         private Mock<ILogger<ExceptionQueryHandlerDecorator<TestQuery, int>>> _mockLogger;
+        private Mock<IDataSanitizer> _mockDataSanitizer;
+        private Mock<IOptions<DataProtectionOptions>> _mockOptions;
         private ExceptionQueryHandlerDecorator<TestQuery, int> _sut;
 
         [TestInitialize]
@@ -28,7 +32,14 @@ namespace Minded.Extensions.Exception.Tests
         {
             _mockInnerHandler = new Mock<IQueryHandler<TestQuery, int>>();
             _mockLogger = new Mock<ILogger<ExceptionQueryHandlerDecorator<TestQuery, int>>>();
-            _sut = new ExceptionQueryHandlerDecorator<TestQuery, int>(_mockInnerHandler.Object, _mockLogger.Object);
+            _mockDataSanitizer = new Mock<IDataSanitizer>();
+            _mockOptions = new Mock<IOptions<DataProtectionOptions>>();
+            _mockOptions.Setup(o => o.Value).Returns(new DataProtectionOptions());
+            _sut = new ExceptionQueryHandlerDecorator<TestQuery, int>(
+                _mockInnerHandler.Object,
+                _mockLogger.Object,
+                _mockDataSanitizer.Object,
+                _mockOptions.Object);
         }
 
         /// <summary>

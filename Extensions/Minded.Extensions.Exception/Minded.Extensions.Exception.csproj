@@ -40,5 +40,7 @@ Encapsulate all your business logic in Commands and Queries, the rest will be de
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />
     <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
+    <ProjectReference Include="..\Minded.Extensions.DataProtection.Abstractions\Minded.Extensions.DataProtection.Abstractions.csproj" />
+    <ProjectReference Include="..\Minded.Extensions.DataProtection\Minded.Extensions.DataProtection.csproj" />
   </ItemGroup>
 </Project>

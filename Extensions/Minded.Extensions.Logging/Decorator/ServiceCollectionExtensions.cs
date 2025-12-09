@@ -1,7 +1,10 @@
 ﻿using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Minded.Extensions.Configuration;
+using Minded.Extensions.DataProtection;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Logging.Configuration;
 using Minded.Framework.CQRS.Abstractions;
 
@@ -16,6 +19,10 @@ namespace Minded.Extensions.Logging.Decorator
         /// <returns>MindedBuilder for fluent chaining</returns>
         public static MindedBuilder AddCommandLoggingDecorator(this MindedBuilder builder)
         {
+            // Register NullDataSanitizer as fallback if no IDataSanitizer is registered
+            // This allows the decorator to work without requiring DataProtection to be configured
+            builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
+
             builder.QueueCommandDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<>)));
             builder.QueueCommandWithResultDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<,>)));
 
@@ -60,6 +67,10 @@ namespace Minded.Extensions.Logging.Decorator
         /// </example>
         public static MindedBuilder AddCommandLoggingDecorator(this MindedBuilder builder, Action<LoggingOptions> configureOptions)
         {
+            // Register NullDataSanitizer as fallback if no IDataSanitizer is registered
+            // This allows the decorator to work without requiring DataProtection to be configured
+            builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
+
             builder.QueueCommandDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<>)));
             builder.QueueCommandWithResultDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<,>)));
 
@@ -74,6 +85,10 @@ namespace Minded.Extensions.Logging.Decorator
         /// <returns>MindedBuilder for fluent chaining</returns>
         public static MindedBuilder AddQueryLoggingDecorator(this MindedBuilder builder)
         {
+            // Register NullDataSanitizer as fallback if no IDataSanitizer is registered
+            // This allows the decorator to work without requiring DataProtection to be configured
+            builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
+
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingQueryHandlerDecorator<,>)));
 
             builder.ServiceCollection.Configure<LoggingOptions>(builder.Configuration.GetSection("Minded:LoggingOptions"));
@@ -117,6 +132,10 @@ namespace Minded.Extensions.Logging.Decorator
         /// </example>
         public static MindedBuilder AddQueryLoggingDecorator(this MindedBuilder builder, Action<LoggingOptions> configureOptions)
         {
+            // Register NullDataSanitizer as fallback if no IDataSanitizer is registered
+            // This allows the decorator to work without requiring DataProtection to be configured
+            builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
+
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingQueryHandlerDecorator<,>)));
 
             builder.ServiceCollection.Configure(configureOptions);

@@ -7,7 +7,7 @@
     <IsPackable>True</IsPackable>
     <Authors>Manuel Salvatori</Authors>
     <Product>Minded Framework - Clean code made easy</Product>
-    <Description>Package which allows to add the Logging decorator. Minded helps to implement a clean architecture, offering the scaffolding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
+    <Description>Package which contains the base interfaces and attributes to support Data Protection and Sensitive Data handling. Minded helps to implement a clean architecture, offering the scaffolding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
 Encapsulate all your business logic in Commands and Queries, the rest will be dealt by the framework.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
@@ -16,36 +16,25 @@ Encapsulate all your business logic in Commands and Queries, the rest will be de
     <Copyright>Copyright (c) 2023, Manuel Salvatori. All rights reserved.</Copyright>
     <PackageIcon>Minded-128.png</PackageIcon>
     <PackageReadme>README.md</PackageReadme>
-    <PackageTags>mediator;decorator;command query;rest;validator;clean code;clean architecture</PackageTags>
+    <PackageTags>mediator;decorator;command query;rest;data protection;sensitive data;pii;gdpr;clean code;clean architecture</PackageTags>
     <LicenseUrl>https://github.com/norcino/Minded/blob/master/LICENSE</LicenseUrl>
 		<PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>1.1.0</AssemblyVersion>
-    <FileVersion>1.1.0</FileVersion>
-    <VersionPrefix>1.1.0</VersionPrefix>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    <VersionPrefix>1.0.0</VersionPrefix>
     <VersionSuffix></VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
-    <SourceLinkUrl>https://github.com/norcino/Minded/tree/master/Extensions/Minded.Extensions.Logging</SourceLinkUrl>
+    <SourceLinkUrl>https://github.com/norcino/Minded/tree/master/Extensions/Minded.Extensions.DataProtection.Abstractions</SourceLinkUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />
-    <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
-    <ProjectReference Include="..\Minded.Extensions.DataProtection.Abstractions\Minded.Extensions.DataProtection.Abstractions.csproj" />
-    <ProjectReference Include="..\Minded.Extensions.DataProtection\Minded.Extensions.DataProtection.csproj" />
-  </ItemGroup>
 </Project>
+

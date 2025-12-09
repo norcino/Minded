@@ -1,7 +1,9 @@
 using AnonymousData;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Exception.Decorator;
 using Minded.Framework.CQRS;
 using Minded.Framework.CQRS.Abstractions;
@@ -22,6 +24,8 @@ namespace Minded.Extensions.Exception.Tests
     {
         private Mock<ICommandHandler<TestCommand>> _mockInnerHandler;
         private Mock<ILogger<ExceptionCommandHandlerDecorator<TestCommand>>> _mockLogger;
+        private Mock<IDataSanitizer> _mockDataSanitizer;
+        private Mock<IOptions<DataProtectionOptions>> _mockOptions;
         private ExceptionCommandHandlerDecorator<TestCommand> _sut;
 
         [TestInitialize]
@@ -29,7 +33,14 @@ namespace Minded.Extensions.Exception.Tests
         {
             _mockInnerHandler = new Mock<ICommandHandler<TestCommand>>();
             _mockLogger = new Mock<ILogger<ExceptionCommandHandlerDecorator<TestCommand>>>();
-            _sut = new ExceptionCommandHandlerDecorator<TestCommand>(_mockInnerHandler.Object, _mockLogger.Object);
+            _mockDataSanitizer = new Mock<IDataSanitizer>();
+            _mockOptions = new Mock<IOptions<DataProtectionOptions>>();
+            _mockOptions.Setup(o => o.Value).Returns(new DataProtectionOptions());
+            _sut = new ExceptionCommandHandlerDecorator<TestCommand>(
+                _mockInnerHandler.Object,
+                _mockLogger.Object,
+                _mockDataSanitizer.Object,
+                _mockOptions.Object);
         }
 
         /// <summary>

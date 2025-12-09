@@ -2,6 +2,92 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.0 (2025-11-17)
+Added sensitive data protection feature to prevent PII and confidential data from appearing in logs.
+Created new `Minded.Extensions.DataProtection` packages for centralized data protection functionality.
+Added `[SensitiveData]` attribute to mark properties containing sensitive information.
+Added configuration options to control sensitive data visibility with provider pattern support.
+
+### New Packages
+
+* **Minded.Extensions.DataProtection.Abstractions** - Interfaces and attributes for data protection
+* **Minded.Extensions.DataProtection** - Concrete implementations of data sanitization
+
+### Affected
+
+* Minded.Extensions.Logging - Now uses DataProtection packages (optional dependency)
+* Minded.Extensions.Exception - Now uses DataProtection packages (optional dependency, removed dependency on Logging)
+
+### Added
+
+* Added `Minded.Extensions.DataProtection.Abstractions` package with core abstractions
+* Added `Minded.Extensions.DataProtection` package with concrete implementations
+* Added `[SensitiveData]` attribute to mark properties containing PII or confidential business data
+* Added `IDataSanitizer` interface for inspecting and sanitizing objects before logging
+* Added `DataSanitizer` implementation with reflection-based property inspection
+* Added `NullDataSanitizer` no-op implementation for when DataProtection is not configured
+* Added `DataProtectionOptions` configuration class with `ShowSensitiveData` and `ShowSensitiveDataProvider`
+* Added `AddDataProtection()` extension method on `MindedBuilder` for easy configuration
+* Added `AddDataProtection<TImplementation>()` for custom sanitizer implementations
+* Added automatic data sanitization in `LoggingCommandHandlerDecorator` and `LoggingQueryHandlerDecorator`
+* Added automatic data sanitization in `ExceptionCommandHandlerDecorator` and `ExceptionQueryHandlerDecorator`
+* Added protection against infinite recursion with max depth limit (3 levels)
+* Added collection truncation in logs (max 10 items) to prevent excessive log size
+
+### Changed
+
+* Moved `IDataSanitizer` from `Minded.Extensions.Logging` to `Minded.Extensions.DataProtection.Abstractions`
+* Moved `SensitiveDataAttribute` from `Minded.Extensions.Logging` to `Minded.Extensions.DataProtection.Abstractions`
+* Moved `DataSanitizer` from `Minded.Extensions.Logging` to `Minded.Extensions.DataProtection`
+* Removed dependency from `Minded.Extensions.Exception` to `Minded.Extensions.Logging`
+* Updated all logging decorators to sanitize commands/queries before logging (when DataProtection is configured)
+* Updated all exception decorators to sanitize commands/queries before JSON serialization (when DataProtection is configured)
+* Properties marked with `[SensitiveData]` are now omitted from logs by default
+* Both Logging and Exception packages now work without DataProtection installed (using `NullDataSanitizer`)
+
+### Security
+
+* Sensitive data is now hidden by default in logs for GDPR/CCPA compliance
+* To show sensitive data (e.g., in development), configure DataProtection with `ShowSensitiveData = true` or use `ShowSensitiveDataProvider`
+
+### Example Usage
+
+```csharp
+using Minded.Extensions.DataProtection.Abstractions;
+
+// Mark sensitive properties
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    [SensitiveData]
+    public string Email { get; set; }
+
+    [SensitiveData]
+    public string Surname { get; set; }
+}
+
+// Configure DataProtection to show sensitive data in development only
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+{
+    builder.AddDataProtection(options =>
+    {
+        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+    });
+
+    builder.AddLogging();
+    builder.AddExceptionHandling();
+});
+
+// Or use a custom sanitizer implementation
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+{
+    builder.AddDataProtection<MyCustomDataSanitizer>();
+    builder.AddLogging();
+});
+```
+
 ## 1.1.0 (2025-11-16)
 Added comprehensive CancellationToken support throughout the entire CQRS pipeline.
 Added proper handling of OperationCanceledException to return appropriate HTTP status codes.

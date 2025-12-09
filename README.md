@@ -12,6 +12,7 @@
 
 - [Introduction](#introduction)
 - [Why Minded?](#why-minded)
+  - [🔒 Sensitive Data Protection](#-sensitive-data-protection-new-in-v120)
 - [Core Concepts](#core-concepts)
 - [Getting Started](#getting-started)
 - [For Engineers Adopting Minded](#for-engineers-adopting-minded)
@@ -59,6 +60,56 @@ Minded Framework helps you achieve clean architecture by:
 - **Centralized Cross-Cutting Concerns** - Validation, logging, caching, exception handling via decorators
 - **RESTful API Support** - RestMediator automatically maps operations to HTTP responses
 - **Production-Ready** - Includes cancellation token support, proper error handling, and monitoring-friendly logging
+- **🔒 Sensitive Data Protection** - Automatic PII/confidential data protection in logs for GDPR/CCPA compliance
+
+### 🔒 Sensitive Data Protection (NEW in v1.2.0)
+
+Minded now includes built-in protection for sensitive data in logs, helping you comply with GDPR, CCPA, and other privacy regulations.
+
+**Mark sensitive properties with a simple attribute:**
+
+```csharp
+using Minded.Extensions.DataProtection.Abstractions;
+
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    [SensitiveData]  // Automatically hidden from logs
+    public string Email { get; set; }
+
+    [SensitiveData]  // Automatically hidden from logs
+    public string Surname { get; set; }
+}
+```
+
+**Configure DataProtection based on environment:**
+
+```csharp
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+{
+    // Add DataProtection with environment-based configuration
+    builder.AddDataProtection(options =>
+    {
+        // Show sensitive data only in development
+        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+    });
+
+    // Add decorators that will use DataProtection
+    builder.AddLogging();
+    builder.AddExceptionHandling();
+});
+```
+
+**What gets protected:**
+- Properties marked with `[SensitiveData]` are omitted from logs by default
+- Works recursively on nested objects
+- Applies to both logging and exception decorators when DataProtection is configured
+- Secure by default - sensitive data is hidden in production
+- Optional - Logging and Exception decorators work without DataProtection installed
+
+**Learn more:** See [DataProtection Documentation](Extensions/Minded.Extensions.DataProtection/README.md) for complete details.
 
 ---
 

@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Logging.Configuration;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Query;
@@ -25,11 +27,13 @@ namespace Minded.Extensions.Logging.Decorator
     {
         private readonly ILogger<LoggingQueryHandlerDecorator<TQuery, TResult>> _logger;
         private readonly IOptions<LoggingOptions> _options;
+        private readonly IDataSanitizer _dataSanitizer;
 
-        public LoggingQueryHandlerDecorator(IQueryHandler<TQuery, TResult> decoratedQueryHandler, ILogger<LoggingQueryHandlerDecorator<TQuery, TResult>> logger, IOptions<LoggingOptions> options) : base(decoratedQueryHandler)
+        public LoggingQueryHandlerDecorator(IQueryHandler<TQuery, TResult> decoratedQueryHandler, ILogger<LoggingQueryHandlerDecorator<TQuery, TResult>> logger, IOptions<LoggingOptions> options, IDataSanitizer dataSanitizer) : base(decoratedQueryHandler)
         {
             _logger = logger;
             _options = options;
+            _dataSanitizer = dataSanitizer;
         }
 
         public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
@@ -38,13 +42,13 @@ namespace Minded.Extensions.Logging.Decorator
                 return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
 
             var stopWatch = Stopwatch.StartNew();
-            Log(_logger, query, _options, "- Started");
+            Log(_logger, query, _options, _dataSanitizer, "- Started");
 
             try
             {
                 var response = await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
                 stopWatch.Stop();
-                Log(_logger, query, _options,
+                Log(_logger, query, _options, _dataSanitizer,
                     "in {Duration:c} - Completed",
                     new List<object> { stopWatch.Elapsed });
 
@@ -56,7 +60,7 @@ namespace Minded.Extensions.Logging.Decorator
             catch (Exception e)
             {
                 stopWatch.Stop();
-                Log(_logger, query, _options,
+                Log(_logger, query, _options, _dataSanitizer,
                     "in {Duration:c} - Failed: {ExceptionMessage}",
                     new List<object> { stopWatch.Elapsed, e.Message });
 
@@ -65,14 +69,16 @@ namespace Minded.Extensions.Logging.Decorator
         }
 
         /// <summary>
-        /// If the query supports advanced logging, the templated and properties will be extended with thense defined in the query
+        /// If the query supports advanced logging, the templated and properties will be extended with those defined in the query.
+        /// Sensitive data marked with [Confidential] or [PII] attributes is sanitized based on the configured DataProtectionMode.
         /// </summary>
         /// <param name="logger">Logger</param>
         /// <param name="query">Query instance currently logged</param>
         /// <param name="options">LoggingOptions with the current configuration</param>
-        /// <param name="properties">List of parameters which will be logged and interpolated with the template</param>
+        /// <param name="dataSanitizer">Data sanitizer for protecting sensitive information</param>
         /// <param name="defaultTemplate">Logging template with basic information</param>
-        private static void Log(ILogger logger, TQuery query, IOptions<LoggingOptions> options, string defaultTemplate = "", List<object> properties = null)
+        /// <param name="properties">List of parameters which will be logged and interpolated with the template</param>
+        private static void Log(ILogger logger, TQuery query, IOptions<LoggingOptions> options, IDataSanitizer dataSanitizer, string defaultTemplate = "", List<object> properties = null)
         {
             var defaults = new List<object>();
             defaultTemplate = "[Tracking:{TraceId}] {QueryName:l} " + defaultTemplate;
@@ -86,10 +92,54 @@ namespace Minded.Extensions.Logging.Decorator
             {
                 var loggable = (query as ILoggable);
                 defaultTemplate += $" - {loggable.LoggingTemplate}";
-                defaults.AddRange(loggable.LoggingParameters);
+
+                // Sanitize logging parameters to protect sensitive data
+                var sanitizedParameters = SanitizeLoggingParameters(loggable.LoggingParameters, dataSanitizer);
+                defaults.AddRange(sanitizedParameters);
             }
 
             logger.LogInformation(defaultTemplate, defaults.ToArray());
+        }
+
+        /// <summary>
+        /// Sanitizes logging parameters by checking if they contain sensitive properties.
+        /// Objects with [Confidential] or [PII] attributes are sanitized based on the configured DataProtectionMode.
+        /// </summary>
+        /// <param name="parameters">Original logging parameters</param>
+        /// <param name="dataSanitizer">Data sanitizer for protecting sensitive information</param>
+        /// <returns>Sanitized parameters safe for logging</returns>
+        private static object[] SanitizeLoggingParameters(object[] parameters, IDataSanitizer dataSanitizer)
+        {
+            if (parameters == null || parameters.Length == 0)
+                return parameters;
+
+            var sanitized = new object[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var param = parameters[i];
+                if (param == null)
+                {
+                    sanitized[i] = null;
+                    continue;
+                }
+
+                var type = param.GetType();
+
+                // For primitive types and strings, no sanitization needed
+                if (type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) ||
+                    type == typeof(Guid) || type.IsEnum || type == typeof(decimal))
+                {
+                    sanitized[i] = param;
+                }
+                else
+                {
+                    // For complex objects, sanitize and convert to JSON for logging
+                    var sanitizedDict = dataSanitizer.Sanitize(param);
+                    sanitized[i] = sanitizedDict != null ? JsonSerializer.Serialize(sanitizedDict) : param;
+                }
+            }
+
+            return sanitized;
         }
 
         /// <summary>

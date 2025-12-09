@@ -3,6 +3,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Query;
 
@@ -12,10 +14,14 @@ namespace Minded.Extensions.Exception.Decorator
         where TQuery : IQuery<TResult>
     {
         private readonly ILogger<ExceptionQueryHandlerDecorator<TQuery, TResult>> _logger;
+        private readonly IDataSanitizer _dataSanitizer;
+        private readonly IOptions<DataProtectionOptions> _options;
 
-        public ExceptionQueryHandlerDecorator(IQueryHandler<TQuery, TResult> queryHandler, ILogger<ExceptionQueryHandlerDecorator<TQuery, TResult>> logger) : base(queryHandler)
+        public ExceptionQueryHandlerDecorator(IQueryHandler<TQuery, TResult> queryHandler, ILogger<ExceptionQueryHandlerDecorator<TQuery, TResult>> logger, IDataSanitizer dataSanitizer, IOptions<DataProtectionOptions> options) : base(queryHandler)
         {
             _logger = logger;
+            _dataSanitizer = dataSanitizer;
+            _options = options;
         }
 
         public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
@@ -37,7 +43,9 @@ namespace Minded.Extensions.Exception.Decorator
 
                 try
                 {
-                    queryJson = JsonSerializer.Serialize(query);
+                    // Sanitize query before serialization to protect sensitive data
+                    var sanitizedQuery = _dataSanitizer.Sanitize(query);
+                    queryJson = JsonSerializer.Serialize(sanitizedQuery);
                 }
                 catch { }
 

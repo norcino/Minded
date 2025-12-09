@@ -3,6 +3,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Framework.CQRS.Command;
 using Minded.Framework.Decorator;
 
@@ -11,10 +13,14 @@ namespace Minded.Extensions.Exception.Decorator
     public class ExceptionCommandHandlerDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand> where TCommand : ICommand
     {
         private readonly ILogger<ExceptionCommandHandlerDecorator<TCommand>> _logger;
+        private readonly IDataSanitizer _dataSanitizer;
+        private readonly IOptions<DataProtectionOptions> _options;
 
-        public ExceptionCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, ILogger<ExceptionCommandHandlerDecorator<TCommand>> logger) : base(commandHandler)
+        public ExceptionCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, ILogger<ExceptionCommandHandlerDecorator<TCommand>> logger, IDataSanitizer dataSanitizer, IOptions<DataProtectionOptions> options) : base(commandHandler)
         {
             _logger = logger;
+            _dataSanitizer = dataSanitizer;
+            _options = options;
         }
 
         public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
@@ -36,7 +42,9 @@ namespace Minded.Extensions.Exception.Decorator
 
                 try
                 {
-                    commandJson = JsonSerializer.Serialize(command);
+                    // Sanitize command before serialization to protect sensitive data
+                    var sanitizedCommand = _dataSanitizer.Sanitize(command);
+                    commandJson = JsonSerializer.Serialize(sanitizedCommand);
                 }
                 catch { }
 
@@ -50,10 +58,14 @@ namespace Minded.Extensions.Exception.Decorator
     public class ExceptionCommandHandlerDecorator<TCommand, TResult> : CommandHandlerDecoratorBase<TCommand, TResult>, ICommandHandler<TCommand, TResult> where TCommand : ICommand<TResult>
     {
         private readonly ILogger _logger;
+        private readonly IDataSanitizer _dataSanitizer;
+        private readonly IOptions<DataProtectionOptions> _options;
 
-        public ExceptionCommandHandlerDecorator(ICommandHandler<TCommand, TResult> commandHandler, ILogger<ExceptionCommandHandlerDecorator<TCommand, TResult>> logger) : base(commandHandler)
+        public ExceptionCommandHandlerDecorator(ICommandHandler<TCommand, TResult> commandHandler, ILogger<ExceptionCommandHandlerDecorator<TCommand, TResult>> logger, IDataSanitizer dataSanitizer, IOptions<DataProtectionOptions> options) : base(commandHandler)
         {
             _logger = logger;
+            _dataSanitizer = dataSanitizer;
+            _options = options;
         }
 
         public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
@@ -75,7 +87,9 @@ namespace Minded.Extensions.Exception.Decorator
 
                 try
                 {
-                    commandJson = JsonSerializer.Serialize(command);
+                    // Sanitize command before serialization to protect sensitive data
+                    var sanitizedCommand = _dataSanitizer.Sanitize(command);
+                    commandJson = JsonSerializer.Serialize(sanitizedCommand);
                 }
                 catch { }
 

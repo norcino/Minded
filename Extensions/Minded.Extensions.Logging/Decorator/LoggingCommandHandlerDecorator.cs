@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Logging.Configuration;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Command;
@@ -22,11 +24,13 @@ namespace Minded.Extensions.Logging.Decorator
     {
         private readonly ILogger _logger;
         private readonly IOptions<LoggingOptions> _options;
+        private readonly IDataSanitizer _dataSanitizer;
 
-        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, ILogger<LoggingCommandHandlerDecorator<TCommand>> logger, IOptions<LoggingOptions> options) : base(commandHandler)
+        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand> commandHandler, ILogger<LoggingCommandHandlerDecorator<TCommand>> logger, IOptions<LoggingOptions> options, IDataSanitizer dataSanitizer) : base(commandHandler)
         {
             _logger = logger;
             _options = options;
+            _dataSanitizer = dataSanitizer;
         }
 
         public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
@@ -35,13 +39,13 @@ namespace Minded.Extensions.Logging.Decorator
                 return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
 
             var stopWatch = Stopwatch.StartNew();
-            LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, "- Started");
+            LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, _dataSanitizer, "- Started");
 
             try
             {
                 var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
                 stopWatch.Stop();
-                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options,
+                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, _dataSanitizer,
                     "in {Duration:c} - Completed: {CommandSuccessful}",
                     new List<object> { stopWatch.Elapsed, response.Successful });
 
@@ -53,7 +57,7 @@ namespace Minded.Extensions.Logging.Decorator
             catch (Exception e)
             {
                 stopWatch.Stop();
-                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options,
+                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, _dataSanitizer,
                     "in {Duration:c} - Failed: {ExceptionMessage}",
                     new List<object> { stopWatch.Elapsed, e.Message });
 
@@ -71,11 +75,13 @@ namespace Minded.Extensions.Logging.Decorator
     {
         private readonly ILogger _logger;
         private readonly IOptions<LoggingOptions> _options;
+        private readonly IDataSanitizer _dataSanitizer;
 
-        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand, TResult> commandHandler, ILogger<LoggingCommandHandlerDecorator<TCommand, TResult>> logger, IOptions<LoggingOptions> options) : base(commandHandler)
+        public LoggingCommandHandlerDecorator(ICommandHandler<TCommand, TResult> commandHandler, ILogger<LoggingCommandHandlerDecorator<TCommand, TResult>> logger, IOptions<LoggingOptions> options, IDataSanitizer dataSanitizer) : base(commandHandler)
         {
             _logger = logger;
             _options = options;
+            _dataSanitizer = dataSanitizer;
         }
 
         public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
@@ -84,13 +90,13 @@ namespace Minded.Extensions.Logging.Decorator
                 return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
 
             var stopWatch = Stopwatch.StartNew();
-            LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, "- Started");
+            LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, _dataSanitizer, "- Started");
 
             try
             {
                 var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
                 stopWatch.Stop();
-                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options,
+                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, _dataSanitizer,
                     "in {Duration:c} - Completed: {CommandSuccessful}",
                     new List<object> { stopWatch.Elapsed, response.Successful });
 
@@ -102,7 +108,7 @@ namespace Minded.Extensions.Logging.Decorator
             catch (Exception e)
             {
                 stopWatch.Stop();
-                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options,
+                LoggindCommandHandlerSharedMethods<TCommand>.Log(_logger, command, _options, _dataSanitizer,
                     "in {Duration:c} - Failed: {ExceptionMessage}",
                     new List<object> { stopWatch.Elapsed, e.Message });
 
@@ -114,14 +120,16 @@ namespace Minded.Extensions.Logging.Decorator
     internal static class LoggindCommandHandlerSharedMethods<TCommand> where TCommand : ICommand
     {
         /// <summary>
-        /// If the command supports advanced logging, the templated and properties will be extended with thense defined in the command
+        /// If the command supports advanced logging, the templated and properties will be extended with those defined in the command.
+        /// Sensitive data marked with [Confidential] or [PII] attributes is sanitized based on the configured DataProtectionMode.
         /// </summary>
         /// <param name="logger">Logger</param>
         /// <param name="command">Command instance currently logged</param>
         /// <param name="options">LoggingOptions with the current configuration</param>
+        /// <param name="dataSanitizer">Data sanitizer for protecting sensitive information</param>
         /// <param name="defaultTemplate">Logging template with basic information</param>
         /// <param name="properties">List of parameters which will be logged and interpolated with the template</param>
-        public static void Log(ILogger logger, TCommand command, IOptions<LoggingOptions> options, string defaultTemplate = "", List<object> properties = null)
+        public static void Log(ILogger logger, TCommand command, IOptions<LoggingOptions> options, IDataSanitizer dataSanitizer, string defaultTemplate = "", List<object> properties = null)
         {
             var defaults = new List<object>();
             defaultTemplate = "[Tracking:{TraceId}] {CommandName:l} " + defaultTemplate;
@@ -135,10 +143,54 @@ namespace Minded.Extensions.Logging.Decorator
             {
                 var loggable = (command as ILoggable);
                 defaultTemplate += $" - {loggable.LoggingTemplate}";
-                defaults.AddRange(loggable.LoggingParameters);
+
+                // Sanitize logging parameters to protect sensitive data
+                var sanitizedParameters = SanitizeLoggingParameters(loggable.LoggingParameters, dataSanitizer);
+                defaults.AddRange(sanitizedParameters);
             }
 
             logger.LogInformation(defaultTemplate, defaults.ToArray());
+        }
+
+        /// <summary>
+        /// Sanitizes logging parameters by checking if they contain sensitive properties.
+        /// Objects with [Confidential] or [PII] attributes are sanitized based on the configured DataProtectionMode.
+        /// </summary>
+        /// <param name="parameters">Original logging parameters</param>
+        /// <param name="dataSanitizer">Data sanitizer for protecting sensitive information</param>
+        /// <returns>Sanitized parameters safe for logging</returns>
+        private static object[] SanitizeLoggingParameters(object[] parameters, IDataSanitizer dataSanitizer)
+        {
+            if (parameters == null || parameters.Length == 0)
+                return parameters;
+
+            var sanitized = new object[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var param = parameters[i];
+                if (param == null)
+                {
+                    sanitized[i] = null;
+                    continue;
+                }
+
+                var type = param.GetType();
+
+                // For primitive types and strings, no sanitization needed
+                if (type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) ||
+                    type == typeof(Guid) || type.IsEnum || type == typeof(decimal))
+                {
+                    sanitized[i] = param;
+                }
+                else
+                {
+                    // For complex objects, sanitize and convert to JSON for logging
+                    var sanitizedDict = dataSanitizer.Sanitize(param);
+                    sanitized[i] = sanitizedDict != null ? JsonSerializer.Serialize(sanitizedDict) : param;
+                }
+            }
+
+            return sanitized;
         }
 
         /// <summary>

@@ -414,6 +414,123 @@ namespace Minded.Extensions.Logging.Tests
         }
 
         #endregion
+
+        #region ShowSensitiveData Tests
+
+        /// <summary>
+        /// Tests that ShowSensitiveData property can be set and retrieved.
+        /// Verifies property getter and setter work correctly.
+        /// </summary>
+        [TestMethod]
+        public void ShowSensitiveData_CanBeSetAndRetrieved()
+        {
+            var options = new LoggingOptions();
+
+            options.ShowSensitiveData = true;
+
+            options.ShowSensitiveData.Should().BeTrue();
+        }
+
+        /// <summary>
+        /// Tests that ShowSensitiveData property defaults to false.
+        /// Verifies secure-by-default behavior for GDPR/CCPA compliance.
+        /// </summary>
+        [TestMethod]
+        public void ShowSensitiveData_DefaultsToFalse()
+        {
+            var options = new LoggingOptions();
+
+            options.ShowSensitiveData.Should().BeFalse();
+        }
+
+        /// <summary>
+        /// Tests that ShowSensitiveDataProvider can be set and invoked.
+        /// Verifies function provider works correctly.
+        /// </summary>
+        [TestMethod]
+        public void ShowSensitiveDataProvider_CanBeSetAndInvoked()
+        {
+            var options = new LoggingOptions();
+
+            options.ShowSensitiveDataProvider = () => true;
+
+            options.ShowSensitiveDataProvider.Should().NotBeNull();
+            options.ShowSensitiveDataProvider().Should().BeTrue();
+        }
+
+        /// <summary>
+        /// Tests that ShowSensitiveDataProvider defaults to null.
+        /// Verifies default value.
+        /// </summary>
+        [TestMethod]
+        public void ShowSensitiveDataProvider_DefaultsToNull()
+        {
+            var options = new LoggingOptions();
+
+            options.ShowSensitiveDataProvider.Should().BeNull();
+        }
+
+        /// <summary>
+        /// Tests that GetEffectiveShowSensitiveData returns provider value when set.
+        /// Verifies provider takes precedence over static property.
+        /// </summary>
+        [TestMethod]
+        public void GetEffectiveShowSensitiveData_ReturnsProviderValue_WhenProviderIsSet()
+        {
+            var options = new LoggingOptions
+            {
+                ShowSensitiveData = false,
+                ShowSensitiveDataProvider = () => true
+            };
+
+            var result = options.GetEffectiveShowSensitiveData();
+
+            result.Should().BeTrue();
+        }
+
+        /// <summary>
+        /// Tests that GetEffectiveShowSensitiveData returns static value when provider is null.
+        /// Verifies fallback to static property.
+        /// </summary>
+        [TestMethod]
+        public void GetEffectiveShowSensitiveData_ReturnsStaticValue_WhenProviderIsNull()
+        {
+            var options = new LoggingOptions
+            {
+                ShowSensitiveData = true,
+                ShowSensitiveDataProvider = null
+            };
+
+            var result = options.GetEffectiveShowSensitiveData();
+
+            result.Should().BeTrue();
+        }
+
+        /// <summary>
+        /// Tests that GetEffectiveShowSensitiveData is called dynamically.
+        /// Verifies that changing the provider's return value affects subsequent calls.
+        /// This simulates feature flag behavior.
+        /// </summary>
+        [TestMethod]
+        public void GetEffectiveShowSensitiveData_IsDynamic_WhenProviderChanges()
+        {
+            var currentValue = false;
+            var options = new LoggingOptions
+            {
+                ShowSensitiveDataProvider = () => currentValue
+            };
+
+            var firstResult = options.GetEffectiveShowSensitiveData();
+            firstResult.Should().BeFalse();
+
+            // Simulate feature flag change
+            currentValue = true;
+
+            var secondResult = options.GetEffectiveShowSensitiveData();
+            secondResult.Should().BeTrue();
+        }
+
+        #endregion
     }
 }
 

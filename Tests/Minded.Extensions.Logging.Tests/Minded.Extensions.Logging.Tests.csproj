@@ -19,6 +19,7 @@
     <PackageReference Include="MSTest.TestFramework" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.DataProtection\Minded.Extensions.DataProtection.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
   </ItemGroup>

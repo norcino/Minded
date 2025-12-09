@@ -5,4 +5,8 @@
     <IsPackable>False</IsPackable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
+  </ItemGroup>
+
 </Project>

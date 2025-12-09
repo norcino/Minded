@@ -3,6 +3,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Logging.Configuration;
 using Minded.Extensions.Logging.Decorator;
 using Minded.Framework.CQRS.Abstractions;
@@ -24,6 +25,7 @@ namespace Minded.Extensions.Logging.Tests
         private Mock<IQueryHandler<TestQuery, int>> _mockInnerHandler;
         private Mock<ILogger<LoggingQueryHandlerDecorator<TestQuery, int>>> _mockLogger;
         private Mock<IOptions<LoggingOptions>> _mockOptions;
+        private Mock<IDataSanitizer> _mockDataSanitizer;
         private LoggingQueryHandlerDecorator<TestQuery, int> _sut;
 
         [TestInitialize]
@@ -33,10 +35,12 @@ namespace Minded.Extensions.Logging.Tests
             _mockLogger = new Mock<ILogger<LoggingQueryHandlerDecorator<TestQuery, int>>>();
             _mockOptions = new Mock<IOptions<LoggingOptions>>();
             _mockOptions.Setup(o => o.Value).Returns(new LoggingOptions { Enabled = true });
+            _mockDataSanitizer = new Mock<IDataSanitizer>();
             _sut = new LoggingQueryHandlerDecorator<TestQuery, int>(
                 _mockInnerHandler.Object,
                 _mockLogger.Object,
-                _mockOptions.Object);
+                _mockOptions.Object,
+                _mockDataSanitizer.Object);
         }
 
         /// <summary>
