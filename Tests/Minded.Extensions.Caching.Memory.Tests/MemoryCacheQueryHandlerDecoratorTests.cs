@@ -57,7 +57,7 @@ namespace Minded.Extensions.Caching.Memory.Tests
             mockHandler.Setup(h => h.HandleAsync(query, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResult);
 
-            var result = await sut.HandleAsync(query);
+            IQueryResponse<string> result = await sut.HandleAsync(query);
 
             result.Should().Be(expectedResult);
             mockCache.Verify(c => c.TryGetValue(It.IsAny<object>(), out It.Ref<object>.IsAny), Times.Never);
@@ -99,7 +99,7 @@ namespace Minded.Extensions.Caching.Memory.Tests
             _mockCache.Setup(c => c.TryGetValue(It.IsAny<object>(), out cacheValue))
                 .Returns(true);
 
-            var result = await _sut.HandleAsync(query);
+            IQueryResponse<int> result = await _sut.HandleAsync(query);
 
             result.Should().Be(cachedResult);
             _mockInnerHandler.Verify(h => h.HandleAsync(It.IsAny<TestCachedQuery>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -123,7 +123,7 @@ namespace Minded.Extensions.Caching.Memory.Tests
             _mockCache.Setup(c => c.CreateEntry(It.IsAny<object>()))
                 .Returns(mockCacheEntry.Object);
 
-            var result = await _sut.HandleAsync(query);
+            IQueryResponse<int> result = await _sut.HandleAsync(query);
 
             result.Should().Be(handlerResult);
             _mockInnerHandler.Verify(h => h.HandleAsync(query, It.IsAny<CancellationToken>()), Times.Once);
@@ -145,7 +145,7 @@ namespace Minded.Extensions.Caching.Memory.Tests
             _mockInnerHandler.Setup(h => h.HandleAsync(query, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(handlerResult);
 
-            var result = await _sut.HandleAsync(query);
+            IQueryResponse<int> result = await _sut.HandleAsync(query);
 
             result.Should().Be(handlerResult);
             _mockCache.Verify(c => c.CreateEntry(It.IsAny<object>()), Times.Never);

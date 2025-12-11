@@ -59,7 +59,7 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
 
-            var valResult = await _commandValidator.ValidateAsync(command);
+            IValidationResult valResult = await _commandValidator.ValidateAsync(command);
 
             _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
 
@@ -74,7 +74,7 @@ namespace Minded.Extensions.Validation.Decorator
                 };
             }
 
-            var result = await InnerCommandHandler.HandleAsync(command, cancellationToken);
+            ICommandResponse result = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
             if (result.OutcomeEntries == null)
             {
@@ -113,7 +113,7 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
 
-            var valResult = await _commandValidator.ValidateAsync(command);
+            IValidationResult valResult = await _commandValidator.ValidateAsync(command);
 
             _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
 

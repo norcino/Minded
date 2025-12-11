@@ -59,7 +59,7 @@ namespace Application.Api.Tests.OData
             Assert.IsTrue(_httpContextItems.ContainsKey(ODataConstants.ExpandedPropertiesKey));
             var expandedProperties = _httpContextItems[ODataConstants.ExpandedPropertiesKey] as HashSet<string>;
             Assert.IsNotNull(expandedProperties);
-            Assert.AreEqual(0, expandedProperties.Count);
+            Assert.IsEmpty(expandedProperties);
         }
 
         // Note: Testing ODataExpandActionFilter with real ODataQueryOptions is complex because:

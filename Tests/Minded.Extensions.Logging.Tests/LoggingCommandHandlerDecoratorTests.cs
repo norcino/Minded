@@ -55,7 +55,7 @@ namespace Minded.Extensions.Logging.Tests
             _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var result = await _sut.HandleAsync(command);
+            ICommandResponse result = await _sut.HandleAsync(command);
 
             result.Should().Be(expectedResponse);
             _mockInnerHandler.Verify(h => h.HandleAsync(command, It.IsAny<CancellationToken>()), Times.Once);
@@ -90,7 +90,7 @@ namespace Minded.Extensions.Logging.Tests
             _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var result = await _sut.HandleAsync(command);
+            ICommandResponse result = await _sut.HandleAsync(command);
 
             result.Should().Be(expectedResponse);
             _mockLogger.Verify(
@@ -303,7 +303,7 @@ namespace Minded.Extensions.Logging.Tests
         [TestMethod]
         public async Task HandleAsync_WhenSeverityLevelProviderSet_UsesDynamicValue()
         {
-            var dynamicSeverity = Severity.Info;
+            Severity dynamicSeverity = Severity.Info;
             _mockOptions.Setup(o => o.Value).Returns(new LoggingOptions
             {
                 Enabled = true,

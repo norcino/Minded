@@ -46,7 +46,7 @@ namespace Service.Transaction.Validator
                 validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.CategoryId), "{0} references a non-existing category", GenericErrorCodes.BadRequest.ToString(), Severity.Error));
             }
 
-            var result = _categoryValidator.ValidateAsync(command.Transaction);
+            Task<IValidationResult> result = _categoryValidator.ValidateAsync(command.Transaction);
             return (await result).Merge(validationResult);
         }
     }

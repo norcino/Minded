@@ -15,6 +15,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using FluentAssertions;
 using QM.Common.Testing;
+using Minded.Extensions.Validation;
 
 namespace Service.Transaction.Tests
 {
@@ -48,10 +49,10 @@ namespace Service.Transaction.Tests
             {
                 new Data.Entity.Transaction { Id = transactionId }
             };
-            var mockDbSet = transactions.AsQueryable().GetMockDbSet();
+            Mock<DbSet<Data.Entity.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
@@ -67,10 +68,10 @@ namespace Service.Transaction.Tests
             var command = new DeleteTransactionCommand(transactionId);
 
             var transactions = new List<Data.Entity.Transaction>();
-            var mockDbSet = transactions.AsQueryable().GetMockDbSet();
+            Mock<DbSet<Data.Entity.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -94,10 +95,10 @@ namespace Service.Transaction.Tests
                 new Data.Entity.Transaction { Id = transactionId },
                 new Data.Entity.Transaction { Id = 99 }
             };
-            var mockDbSet = transactions.AsQueryable().GetMockDbSet();
+            Mock<DbSet<Data.Entity.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeTrue();
         }

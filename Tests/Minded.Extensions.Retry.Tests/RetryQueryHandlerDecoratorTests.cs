@@ -24,7 +24,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQuery, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQuery, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryQueryHandlerDecorator<TestQuery, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQuery();
@@ -43,7 +43,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQuery, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQuery, int>>>();
-            var options = Options.Create(new RetryOptions { ApplyToAllQueries = true });
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { ApplyToAllQueries = true });
             var sut = new RetryQueryHandlerDecorator<TestQuery, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQuery();
@@ -70,7 +70,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQueryWithRetry, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithRetry, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryQueryHandlerDecorator<TestQueryWithRetry, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQueryWithRetry();
@@ -89,7 +89,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQueryWithRetry, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithRetry, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryQueryHandlerDecorator<TestQueryWithRetry, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQueryWithRetry();
@@ -116,14 +116,14 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQueryWithRetry, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithRetry, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryQueryHandlerDecorator<TestQueryWithRetry, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQueryWithRetry();
             mockInnerHandler.Setup(h => h.HandleAsync(It.IsAny<TestQueryWithRetry>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("Persistent failure"));
 
-            var act = async () => await sut.HandleAsync(query, CancellationToken.None);
+            Func<Task<int>> act = async () => await sut.HandleAsync(query, CancellationToken.None);
 
             await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Persistent failure");
             mockInnerHandler.Verify(h => h.HandleAsync(It.IsAny<TestQueryWithRetry>(), It.IsAny<CancellationToken>()), Times.Exactly(4)); // 1 initial + 3 retries
@@ -134,14 +134,14 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQueryWithCustomRetryCount, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithCustomRetryCount, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryQueryHandlerDecorator<TestQueryWithCustomRetryCount, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQueryWithCustomRetryCount();
             mockInnerHandler.Setup(h => h.HandleAsync(It.IsAny<TestQueryWithCustomRetryCount>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("Failure"));
 
-            var act = async () => await sut.HandleAsync(query, CancellationToken.None);
+            Func<Task<int>> act = async () => await sut.HandleAsync(query, CancellationToken.None);
 
             await act.Should().ThrowAsync<InvalidOperationException>();
             mockInnerHandler.Verify(h => h.HandleAsync(It.IsAny<TestQueryWithCustomRetryCount>(), It.IsAny<CancellationToken>()), Times.Exactly(3)); // 1 initial + 2 retries
@@ -152,14 +152,14 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQuery, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQuery, int>>>();
-            var options = Options.Create(new RetryOptions { ApplyToAllQueries = true, DefaultRetryCount = 5 });
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { ApplyToAllQueries = true, DefaultRetryCount = 5 });
             var sut = new RetryQueryHandlerDecorator<TestQuery, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQuery();
             mockInnerHandler.Setup(h => h.HandleAsync(It.IsAny<TestQuery>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("Failure"));
 
-            var act = async () => await sut.HandleAsync(query, CancellationToken.None);
+            Func<Task<int>> act = async () => await sut.HandleAsync(query, CancellationToken.None);
 
             await act.Should().ThrowAsync<InvalidOperationException>();
             mockInnerHandler.Verify(h => h.HandleAsync(It.IsAny<TestQuery>(), It.IsAny<CancellationToken>()), Times.Exactly(6)); // 1 initial + 5 retries
@@ -170,7 +170,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<IQueryHandler<TestQueryWithDelay, int>>();
             var mockLogger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithDelay, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryQueryHandlerDecorator<TestQueryWithDelay, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var query = new TestQueryWithDelay();
@@ -186,9 +186,9 @@ namespace Minded.Extensions.Retry.Tests
                     return Task.FromResult(expectedResult);
                 });
 
-            var startTime = DateTime.UtcNow;
+            DateTime startTime = DateTime.UtcNow;
             var result = await sut.HandleAsync(query, CancellationToken.None);
-            var elapsed = DateTime.UtcNow - startTime;
+            TimeSpan elapsed = DateTime.UtcNow - startTime;
 
             result.Should().Be(expectedResult);
             elapsed.TotalMilliseconds.Should().BeGreaterThanOrEqualTo(90); // 100ms delay with some tolerance

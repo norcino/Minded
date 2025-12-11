@@ -30,7 +30,7 @@ namespace Service.Category.CommandHandler
         /// <returns>Successful command response with the updated category</returns>
         public async Task<ICommandResponse> HandleAsync(UpdateCategoryCommand command, CancellationToken cancellationToken = default)
         {
-            var category = await _context.Categories.SingleOrDefaultAsync(c => c.Id == command.CategoryId, cancellationToken);
+            Data.Entity.Category category = await _context.Categories.SingleOrDefaultAsync(c => c.Id == command.CategoryId, cancellationToken);
 
             // Update category properties
             // Note: category should never be null here due to validation, but defensive programming

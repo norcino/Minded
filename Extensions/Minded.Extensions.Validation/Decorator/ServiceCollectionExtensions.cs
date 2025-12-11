@@ -11,13 +11,13 @@ namespace Minded.Extensions.Validation.Decorator
     {
         private static Func<Type, Type> CommandValidatorTypeGenerator = (t) =>
         {
-            var interfaceType = t.GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommandHandler<>));
+            Type interfaceType = t.GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommandHandler<>));
             return typeof(ICommandValidator<>).MakeGenericType(interfaceType.GetGenericArguments());
         };
 
         private static Func<Type, Type> CommandWithResultValidatorTypeGenerator = (t) =>
         {
-            var interfaceType = t.GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommandHandler<,>));
+            Type interfaceType = t.GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(ICommandHandler<,>));
             return typeof(ICommandValidator<>).MakeGenericType(interfaceType.GetGenericArguments().First());
         };
 
@@ -42,7 +42,7 @@ namespace Minded.Extensions.Validation.Decorator
 
         private static Func<Type, Type> QueryWithResultValidatorTypeGenerator = (t) =>
         {
-            var interfaceType = t.GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryHandler<,>));
+            Type interfaceType = t.GetInterfaces().FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryHandler<,>));
             return typeof(IQueryValidator<,>).MakeGenericType(interfaceType.GetGenericArguments());
         };
 

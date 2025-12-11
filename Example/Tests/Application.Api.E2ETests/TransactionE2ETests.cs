@@ -26,8 +26,8 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_without_expand_should_not_include_Category_navigation_property()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
             await Seed<Transaction>(t => t.Id, 5, (t, i) =>
             {
                 t.CategoryId = category.Id;
@@ -46,8 +46,8 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_with_expand_Category_should_include_Category_navigation_property()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
             await Seed<Transaction>(t => t.Id, 5, (t, i) =>
             {
                 t.CategoryId = category.Id;
@@ -67,9 +67,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_byId_without_expand_should_not_include_navigation_properties()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var transaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction transaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
             {
                 t.CategoryId = category.Id;
                 t.UserId = user.Id;
@@ -88,8 +88,8 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_with_expand_multiple_navigation_properties_should_include_all_expanded_properties()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
             await Seed<Transaction>(t => t.Id, 3, (t, i) =>
             {
                 t.CategoryId = category.Id;
@@ -111,8 +111,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_support_OrderBy_Description_ascending()
         {
             const int expectedTransactions = 5;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, expectedTransactions, (t, i) =>
             {
@@ -124,7 +124,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction?$orderby=Description");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(expectedTransactions);
             transactions.Should().BeInAscendingOrder(t => t.Description);
@@ -134,8 +134,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_support_OrderBy_Description_descending()
         {
             const int expectedTransactions = 5;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, expectedTransactions, (t, i) =>
             {
@@ -147,7 +147,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction?$orderby=Description desc");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(expectedTransactions);
             transactions.Should().BeInDescendingOrder(t => t.Description);
@@ -157,8 +157,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_support_OrderBy_Id_ascending()
         {
             const int numberOfTransactions = 10;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
             {
@@ -169,7 +169,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction?$orderby=Id");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(numberOfTransactions);
             transactions.Should().BeInAscendingOrder(t => t.Id);
@@ -179,8 +179,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_support_OrderBy_Id_descending()
         {
             const int numberOfTransactions = 10;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
             {
@@ -191,7 +191,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction?$orderby=Id desc");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(numberOfTransactions);
             transactions.Should().BeInDescendingOrder(t => t.Id);
@@ -203,8 +203,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_support_filter_by_Description()
         {
             const int numberOfTransactions = 10;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
             var targetDescription = "Special Transaction";
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
@@ -217,7 +217,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync($"/api/transaction?$filter=Description eq '{targetDescription}'");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(1);
             transactions.First().Description.Should().Be(targetDescription);
@@ -227,7 +227,7 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_support_filter_by_CategoryId()
         {
             var categories = (await Seed<Category>(c => c.Id, 2)).ToList();
-            var user = await SeedOne<User>(u => u.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, 5, (t, i) =>
             {
@@ -238,7 +238,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync($"/api/transaction?$filter=CategoryId eq {categories[0].Id}");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCountGreaterThan(0);
             transactions.Should().OnlyContain(t => t.CategoryId == categories[0].Id);
@@ -247,8 +247,8 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_should_support_filter_by_Credit_greater_than()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, 10, (t, i) =>
             {
@@ -261,7 +261,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction?$filter=Credit gt 50");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().OnlyContain(t => t.Credit > 50);
         }
@@ -273,8 +273,8 @@ namespace Application.Api.IntegrationTests
         {
             const int numberOfTransactions = 50;
             const int topValue = 10;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
             {
@@ -285,7 +285,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync($"/api/transaction?$top={topValue}");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(topValue);
         }
@@ -295,8 +295,8 @@ namespace Application.Api.IntegrationTests
         {
             const int numberOfTransactions = 20;
             const int skipValue = 10;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
             {
@@ -307,7 +307,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync($"/api/transaction?$skip={skipValue}&$orderby=Id");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(numberOfTransactions - skipValue);
         }
@@ -318,8 +318,8 @@ namespace Application.Api.IntegrationTests
             const int numberOfTransactions = 50;
             const int pageSize = 10;
             const int pageNumber = 2; // Second page
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
             {
@@ -330,7 +330,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync($"/api/transaction?$top={pageSize}&$skip={pageSize * (pageNumber - 1)}&$orderby=Id");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(pageSize);
         }
@@ -339,8 +339,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_return_SetLimit_when_Top_exceeds_maximum()
         {
             const int topValue = MaxPageItemNumber + 1;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, 200, (t, i) =>
             {
@@ -349,7 +349,7 @@ namespace Application.Api.IntegrationTests
             });
 
             var response = await _sutClient.GetAsync($"/api/transaction?$top={topValue}");
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             transactions.Should().HaveCount(100);
@@ -416,7 +416,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().BeEmpty();
         }
@@ -425,8 +425,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_return_all_transactions_and_200Ok()
         {
             const int numberOfTransactions = 10;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
             {
@@ -437,7 +437,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(numberOfTransactions);
         }
@@ -446,8 +446,8 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_limit_results_to_maximum_page_size()
         {
             const int numberOfTransactions = MaxPageItemNumber + 10;
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             await Seed<Transaction>(t => t.Id, numberOfTransactions, (t, i) =>
             {
@@ -458,7 +458,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/transaction");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var transactions = await response.Content.ReadAsAsync<List<Transaction>>();
+            List<Transaction> transactions = await response.Content.ReadAsAsync<List<Transaction>>();
 
             transactions.Should().HaveCount(MaxPageItemNumber);
         }
@@ -476,9 +476,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_byId_should_return_200Ok_when_transaction_exists()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var transaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction transaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
             {
                 t.CategoryId = category.Id;
                 t.UserId = user.Id;
@@ -492,16 +492,16 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_byId_should_return_correct_transaction()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var expectedTransaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction expectedTransaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
             {
                 t.CategoryId = category.Id;
                 t.UserId = user.Id;
             })).First();
 
             var response = await _sutClient.GetAsync($"/api/transaction/{expectedTransaction.Id}");
-            var transaction = await response.Content.ReadAsAsync<Transaction>();
+            Transaction transaction = await response.Content.ReadAsAsync<Transaction>();
 
             transaction.Should().BeEquivalentTo(expectedTransaction, options => options.Excluding(t => t.Id));
         }
@@ -511,9 +511,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_should_return_201Created_with_valid_transaction()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var newTransaction = Builder<Transaction>.New().Build(t =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction newTransaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = 0;
                 t.CategoryId = category.Id;
@@ -530,9 +530,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_should_create_transaction_with_correct_values()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var newTransaction = Builder<Transaction>.New().Build(t =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction newTransaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = 0;
                 t.CategoryId = category.Id;
@@ -542,7 +542,7 @@ namespace Application.Api.IntegrationTests
             });
 
             var response = await _sutClient.PostAsync("/api/transaction", newTransaction);
-            var createdTransaction = await response.Content.ReadAsAsync<Transaction>();
+            Transaction createdTransaction = await response.Content.ReadAsAsync<Transaction>();
 
             createdTransaction.Should().BeEquivalentTo(newTransaction, options => options.Excluding(t => t.Id));
             createdTransaction.Id.Should().BeGreaterThan(0);
@@ -551,9 +551,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_should_return_400BadRequest_when_Id_is_specified()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var newTransaction = Builder<Transaction>.New().Build(t =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction newTransaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = Any.Int();
                 t.CategoryId = category.Id;
@@ -569,8 +569,8 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_should_return_400BadRequest_when_CategoryId_does_not_exist()
         {
-            var user = await SeedOne<User>(u => u.Id);
-            var newTransaction = Builder<Transaction>.New().Build(t =>
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction newTransaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = 0;
                 t.CategoryId = 999999; // Non-existent category
@@ -587,16 +587,16 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_return_200Ok_when_updating_existing_transaction()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var seededTransaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction seededTransaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
             {
                 t.CategoryId = category.Id;
                 t.UserId = user.Id;
             })).First();
 
             // Create a new transaction object without navigation properties to avoid circular reference
-            var transaction = Builder<Transaction>.New().Build(t =>
+            Transaction transaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = seededTransaction.Id;
                 t.CategoryId = seededTransaction.CategoryId;
@@ -615,9 +615,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_update_transaction_with_new_values()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var seededTransaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction seededTransaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
             {
                 t.CategoryId = category.Id;
                 t.UserId = user.Id;
@@ -627,7 +627,7 @@ namespace Application.Api.IntegrationTests
             var newCredit = Any.Decimal();
 
             // Create a new transaction object without navigation properties to avoid circular reference
-            var transaction = Builder<Transaction>.New().Build(t =>
+            Transaction transaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = seededTransaction.Id;
                 t.CategoryId = seededTransaction.CategoryId;
@@ -641,7 +641,7 @@ namespace Application.Api.IntegrationTests
             await _sutClient.PutAsync($"/api/transaction/{transaction.Id}", transaction);
 
             var response = await _sutClient.GetAsync($"/api/transaction/{transaction.Id}");
-            var updatedTransaction = await response.Content.ReadAsAsync<Transaction>();
+            Transaction updatedTransaction = await response.Content.ReadAsAsync<Transaction>();
 
             updatedTransaction.Description.Should().Be(newDescription);
             updatedTransaction.Credit.Should().Be(newCredit);
@@ -650,9 +650,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_return_404NotFound_when_transaction_does_not_exist()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var transaction = Builder<Transaction>.New().Build(t =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction transaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = 999999;
                 t.CategoryId = category.Id;
@@ -667,11 +667,11 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_return_400BadRequest_when_Id_in_body_does_not_match_Id_in_url()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
 
             // Create a new transaction object without navigation properties to avoid circular reference
-            var transaction = Builder<Transaction>.New().Build(t =>
+            Transaction transaction = Builder<Transaction>.New().Build(t =>
             {
                 t.Id = Any.Int();
                 t.CategoryId = category.Id;
@@ -690,9 +690,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task DELETE_should_return_200Ok_when_transaction_deleted()
         {
-            var category = await SeedOne<Category>(c => c.Id);
-            var user = await SeedOne<User>(u => u.Id);
-            var transaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
+            Category category = await SeedOne<Category>(c => c.Id);
+            User user = await SeedOne<User>(u => u.Id);
+            Transaction transaction = (await Seed<Transaction>(t => t.Id, 1, (t, i) =>
             {
                 t.CategoryId = category.Id;
                 t.UserId = user.Id;

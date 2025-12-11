@@ -29,7 +29,7 @@ namespace Minded.Extensions.WebApi
         {
             try
             {
-                var result = await ProcessQueryAsync(query, cancellationToken);
+                TResult result = await ProcessQueryAsync(query, cancellationToken);
                 return _rulesProcessor.ProcessQueryRules(operation, result);
             }
             catch (OperationCanceledException)
@@ -48,7 +48,7 @@ namespace Minded.Extensions.WebApi
         {
             try
             {
-                var result = await ProcessCommandAsync(command, cancellationToken);
+                ICommandResponse result = await ProcessCommandAsync(command, cancellationToken);
                 return _rulesProcessor.ProcessCommandRules(operation, result);
             }
             catch (OperationCanceledException)
@@ -67,7 +67,7 @@ namespace Minded.Extensions.WebApi
         {
             try
             {
-                var result = await ProcessCommandAsync<TResult>(command, cancellationToken);
+                ICommandResponse<TResult> result = await ProcessCommandAsync<TResult>(command, cancellationToken);
                 return _rulesProcessor.ProcessCommandRules<TResult>(operation, result);
             }
             catch (OperationCanceledException)

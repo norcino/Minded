@@ -104,7 +104,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new CreateEntityCommand { Id = 1, Name = "Test Entity", ShouldSucceed = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -123,7 +123,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new CreateEntityWithoutContentCommand { Id = 1, ShouldSucceed = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.Create, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.Create, command);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusResult = result as StatusCodeResult;
@@ -138,7 +138,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new CreateEntityCommand { Id = 1, Name = "Invalid", ShouldSucceed = false };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -161,7 +161,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new UpdateEntityCommand { Id = 1, Name = "Updated Entity", ShouldSucceed = true, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.UpdateWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.UpdateWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -180,7 +180,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new UpdateEntityWithoutContentCommand { Id = 1, ShouldSucceed = true, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.Update, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.Update, command);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusResult = result as StatusCodeResult;
@@ -195,7 +195,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new UpdateEntityCommand { Id = 999, Name = "Non-existent", ShouldSucceed = false, EntityExists = false };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.UpdateWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.UpdateWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -210,7 +210,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new UpdateEntityCommand { Id = 1, Name = "Invalid", ShouldSucceed = false, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.UpdateWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.UpdateWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -233,7 +233,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new PatchEntityCommand { Id = 1, Name = "Patched Entity", ShouldSucceed = true, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.PatchWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.PatchWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -252,7 +252,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new PatchEntityWithoutContentCommand { Id = 1, ShouldSucceed = true, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.Patch, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.Patch, command);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusResult = result as StatusCodeResult;
@@ -267,7 +267,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new PatchEntityCommand { Id = 999, Name = "Non-existent", ShouldSucceed = false, EntityExists = false };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.PatchWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.PatchWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -282,7 +282,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new PatchEntityCommand { Id = 1, Name = "Invalid", ShouldSucceed = false, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.PatchWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.PatchWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -305,7 +305,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new DeleteEntityCommand { Id = 1, ShouldSucceed = true, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.Delete, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.Delete, command);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusResult = result as StatusCodeResult;
@@ -320,7 +320,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new DeleteEntityCommand { Id = 999, ShouldSucceed = false, EntityExists = false };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.Delete, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.Delete, command);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusResult = result as StatusCodeResult;
@@ -339,7 +339,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var query = new GetEntitiesQuery { ReturnEmpty = false };
 
-            var result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
+            IActionResult result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -357,7 +357,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var query = new GetEntitiesQuery { ReturnEmpty = true };
 
-            var result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
+            IActionResult result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -379,7 +379,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var query = new GetEntityByIdQuery { Id = 1, EntityExists = true };
 
-            var result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
+            IActionResult result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -397,7 +397,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var query = new GetEntityByIdQuery { Id = 999, EntityExists = false };
 
-            var result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
+            IActionResult result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -416,7 +416,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new ExecuteActionWithContentCommand { Id = 1, ShouldSucceed = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.ActionWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.ActionWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -435,7 +435,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new ExecuteActionWithResultContentCommand { Value = 42, ShouldSucceed = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.ActionWithResultContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.ActionWithResultContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -451,7 +451,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new ExecuteActionCommand { ShouldSucceed = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.Action, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.Action, command);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusResult = result as StatusCodeResult;
@@ -466,7 +466,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new ExecuteActionWithContentCommand { Id = 1, ShouldSucceed = false };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.ActionWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.ActionWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -489,7 +489,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new CreateEntityCommand { Id = 1, Name = "Test", ShouldSucceed = false, IsNotAuthorized = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -508,7 +508,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var command = new CreateEntityCommand { Id = 1, Name = "Test", ShouldSucceed = false, IsNotAuthenticated = true };
 
-            var result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
+            IActionResult result = await _restMediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -527,7 +527,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var query = new GetEntityByIdQuery { Id = 1, EntityExists = true, IsNotAuthorized = true };
 
-            var result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
+            IActionResult result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -546,7 +546,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             var query = new GetEntityByIdQuery { Id = 1, EntityExists = true, IsNotAuthenticated = true };
 
-            var result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
+            IActionResult result = await _restMediator.ProcessRestQueryAsync(RestOperation.GetSingle, query);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;

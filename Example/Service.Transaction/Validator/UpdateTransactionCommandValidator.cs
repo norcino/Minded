@@ -57,7 +57,7 @@ namespace Service.Transaction.Validator
             }
 
             // Validate the transaction entity
-            var transactionValidationResult = await _transactionValidator.ValidateAsync(command.Transaction);
+            IValidationResult transactionValidationResult = await _transactionValidator.ValidateAsync(command.Transaction);
             return transactionValidationResult.Merge(validationResult);
         }
     }

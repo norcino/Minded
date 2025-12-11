@@ -140,7 +140,7 @@ namespace Minded.Extensions.Validation.Tests
             var sut = new ValidationResult();
             var other = new ValidationResult();
 
-            var result = sut.Merge(other);
+            IValidationResult result = sut.Merge(other);
 
             result.Should().BeSameAs(sut);
         }

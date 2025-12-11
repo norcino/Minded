@@ -43,7 +43,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Succeeds_WhenTransactionIsValidForCreation()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Id = 0;
@@ -56,7 +56,7 @@ namespace Service.Transaction.Tests
             _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<Service.Category.Query.ExistsCategoryByIdQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
@@ -70,7 +70,7 @@ namespace Service.Transaction.Tests
         {
             var command = new CreateTransactionCommand(null);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -86,7 +86,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenTransactionHasId()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Id = 5;
@@ -95,7 +95,7 @@ namespace Service.Transaction.Tests
                 });
             var command = new CreateTransactionCommand(transaction);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -111,7 +111,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenCategoryIdIsZero()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Id = 0;
@@ -120,7 +120,7 @@ namespace Service.Transaction.Tests
                 });
             var command = new CreateTransactionCommand(transaction);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -136,7 +136,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenCategoryDoesNotExist()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Id = 0;
@@ -149,7 +149,7 @@ namespace Service.Transaction.Tests
             _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<Service.Category.Query.ExistsCategoryByIdQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -165,7 +165,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_MergesResultsFromTransactionValidator()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Id = 0;
@@ -183,7 +183,7 @@ namespace Service.Transaction.Tests
             _transactionValidatorMock.Setup(v => v.ValidateAsync(transaction))
                 .ReturnsAsync(transactionValidationResult);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>

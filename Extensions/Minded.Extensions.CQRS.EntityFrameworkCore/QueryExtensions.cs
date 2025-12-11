@@ -17,7 +17,7 @@ namespace Minded.Framework.CQRS.Query
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                 IOrderedQueryable<T> oq = null;
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-                foreach (var order in o.OrderBy)
+                foreach (OrderDescriptor order in o.OrderBy)
                 {
                     if (order.Order == Order.Ascending)
                     {
@@ -86,7 +86,7 @@ namespace Minded.Framework.CQRS.Query
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                 IOrderedQueryable<T> oq = null;
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-                foreach(var order in o.OrderBy)
+                foreach(OrderDescriptor order in o.OrderBy)
                 {
                     if(order.Order == Order.Ascending)
                     {
@@ -195,7 +195,7 @@ namespace Minded.Framework.CQRS.Query
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS8603 // Possible null reference return.
 
-            var result = await queryable.FirstOrDefaultAsync();
+            T result = await queryable.FirstOrDefaultAsync();
 
             var response = (IQueryResponse<T>)Activator.CreateInstance(typeof(T), result);
             return (IQueryResponse<T>)response;
@@ -208,9 +208,9 @@ namespace Minded.Framework.CQRS.Query
         #region Private methods
         private static Expression<Func<T, object>> LambdaOf<T>(string propertyName)
         {
-            var parameter = Expression.Parameter(typeof(T));
-            var property = Expression.Property(parameter, propertyName);
-            var propertyObject = Expression.Convert(property, typeof(object));
+            ParameterExpression parameter = Expression.Parameter(typeof(T));
+            MemberExpression property = Expression.Property(parameter, propertyName);
+            UnaryExpression propertyObject = Expression.Convert(property, typeof(object));
 
             return Expression.Lambda<Func<T, object>>(propertyObject, parameter);
         }

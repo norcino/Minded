@@ -35,7 +35,7 @@ namespace Service.Transaction.QueryHandler
         /// <returns>List of transactions matching the query criteria</returns>
         public Task<List<Data.Entity.Transaction>> HandleAsync(GetTransactionsQuery query, CancellationToken cancellationToken = default)
         {
-            var result = _context.Transactions.AsQueryable().ApplyODataQueryOptions(query.Options);
+            IEnumerable<Data.Entity.Transaction> result = _context.Transactions.AsQueryable().ApplyODataQueryOptions(query.Options);
             return Task.FromResult(result.ToList());
         }
     }

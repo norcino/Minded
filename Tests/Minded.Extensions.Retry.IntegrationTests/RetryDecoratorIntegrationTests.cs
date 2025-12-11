@@ -37,11 +37,11 @@ namespace Minded.Extensions.Retry.IntegrationTests
         {
             var command = new TestCommandWithRetry();
             var handler = new TestCommandWithRetryHandler();
-            var options = Options.Create(new RetryOptions { DefaultRetryCount = 3, DefaultDelay1 = 10 });
-            var logger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithRetry>>>().Object;
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { DefaultRetryCount = 3, DefaultDelay1 = 10 });
+            ILogger<RetryCommandHandlerDecorator<TestCommandWithRetry>> logger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithRetry>>>().Object;
             var decorator = new RetryCommandHandlerDecorator<TestCommandWithRetry>(handler, logger, options);
 
-            var response = await decorator.HandleAsync(command);
+            ICommandResponse response = await decorator.HandleAsync(command);
 
             response.Should().NotBeNull();
             response.Successful.Should().BeTrue();
@@ -56,8 +56,8 @@ namespace Minded.Extensions.Retry.IntegrationTests
         {
             var command = new TestCommandWithoutRetry();
             var handler = new TestCommandWithoutRetryHandler();
-            var options = Options.Create(new RetryOptions { DefaultRetryCount = 3 });
-            var logger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithoutRetry>>>().Object;
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { DefaultRetryCount = 3 });
+            ILogger<RetryCommandHandlerDecorator<TestCommandWithoutRetry>> logger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithoutRetry>>>().Object;
             var decorator = new RetryCommandHandlerDecorator<TestCommandWithoutRetry>(handler, logger, options);
 
             Func<Task> act = async () => await decorator.HandleAsync(command);
@@ -74,8 +74,8 @@ namespace Minded.Extensions.Retry.IntegrationTests
         {
             var query = new TestQueryWithRetry();
             var handler = new TestQueryWithRetryHandler();
-            var options = Options.Create(new RetryOptions { DefaultRetryCount = 2, DefaultDelay1 = 5, ApplyToAllQueries = false });
-            var logger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithRetry, int>>>().Object;
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { DefaultRetryCount = 2, DefaultDelay1 = 5, ApplyToAllQueries = false });
+            ILogger<RetryQueryHandlerDecorator<TestQueryWithRetry, int>> logger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithRetry, int>>>().Object;
             var decorator = new RetryQueryHandlerDecorator<TestQueryWithRetry, int>(handler, logger, options);
 
             var result = await decorator.HandleAsync(query);
@@ -92,8 +92,8 @@ namespace Minded.Extensions.Retry.IntegrationTests
         {
             var query = new TestQueryWithoutRetry();
             var handler = new TestQueryWithoutRetryHandler();
-            var options = Options.Create(new RetryOptions { DefaultRetryCount = 2, ApplyToAllQueries = false });
-            var logger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithoutRetry, int>>>().Object;
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { DefaultRetryCount = 2, ApplyToAllQueries = false });
+            ILogger<RetryQueryHandlerDecorator<TestQueryWithoutRetry, int>> logger = new Mock<ILogger<RetryQueryHandlerDecorator<TestQueryWithoutRetry, int>>>().Object;
             var decorator = new RetryQueryHandlerDecorator<TestQueryWithoutRetry, int>(handler, logger, options);
 
             Func<Task> act = async () => await decorator.HandleAsync(query);
@@ -110,12 +110,12 @@ namespace Minded.Extensions.Retry.IntegrationTests
         {
             var command = new TestCommandWithCustomDelays();
             var handler = new TestCommandWithCustomDelaysHandler();
-            var options = Options.Create(new RetryOptions { DefaultRetryCount = 2 });
-            var logger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithCustomDelays>>>().Object;
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { DefaultRetryCount = 2 });
+            ILogger<RetryCommandHandlerDecorator<TestCommandWithCustomDelays>> logger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithCustomDelays>>>().Object;
             var decorator = new RetryCommandHandlerDecorator<TestCommandWithCustomDelays>(handler, logger, options);
-            var startTime = DateTime.UtcNow;
+            DateTime startTime = DateTime.UtcNow;
 
-            var response = await decorator.HandleAsync(command);
+            ICommandResponse response = await decorator.HandleAsync(command);
 
             var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
             response.Successful.Should().BeTrue();

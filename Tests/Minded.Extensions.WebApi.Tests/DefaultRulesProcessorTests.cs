@@ -40,10 +40,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_Generic_WithNullRule_AndSuccessfulResult_ReturnsOkObjectResult()
         {
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(operation, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, queryResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -58,10 +58,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_Generic_WithNullRule_AndUnsuccessfulResult_ReturnsBadRequestObjectResult()
         {
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = false };
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(operation, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, queryResult);
 
             result.Should().BeOfType<BadRequestObjectResult>();
             var badRequestResult = result as BadRequestObjectResult;
@@ -76,11 +76,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_Generic_WithRuleContentResponseFull_ReturnsObjectResultWithFullResponse()
         {
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.OK, ContentResponse.Full, r => true);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(operation, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, queryResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -96,11 +96,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_Generic_WithRuleContentResponseResult_ReturnsObjectResultWithResultOnly()
         {
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.OK, ContentResponse.Result, r => true);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(operation, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, queryResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -116,11 +116,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_Generic_WithRuleContentResponseNone_ReturnsStatusCodeResult()
         {
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.NoContent, ContentResponse.None, r => true);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(operation, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, queryResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -134,11 +134,11 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessQueryRules_Generic_WithNullResult_AndMatchingRule_ReturnsNotFound()
         {
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.NotFound, ContentResponse.None, r => r == null);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules<string>(operation, null);
+            IActionResult result = _sut.ProcessQueryRules<string>(operation, null);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -156,10 +156,10 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessQueryRules_NonGeneric_WithNullResult_AndNullRule_ReturnsOkResult()
         {
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(operation, (object)null);
+            IActionResult result = _sut.ProcessQueryRules(operation, (object)null);
 
             result.Should().BeOfType<OkResult>();
         }
@@ -172,10 +172,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_NonGeneric_WithPlainObject_AndNullRule_ReturnsOkObjectResult()
         {
             var plainResult = Any.String();
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(operation, plainResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, plainResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -190,10 +190,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_NonGeneric_WithSuccessfulIQueryResponse_AndNullRule_ReturnsOkObjectResult()
         {
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(operation, (object)queryResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, (object)queryResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -208,11 +208,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_NonGeneric_WithPlainObject_AndMatchingRule_ReturnsObjectResult()
         {
             var plainResult = Any.String();
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.OK, ContentResponse.Result, r => r != null);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(operation, plainResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, plainResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -228,11 +228,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_NonGeneric_WithIQueryResponse_AndMatchingRule_ReturnsObjectResultWithResult()
         {
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.OK, ContentResponse.Result, r => r != null);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(operation, (object)queryResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, (object)queryResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -248,11 +248,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessQueryRules_NonGeneric_WithRuleContentResponseNone_ReturnsStatusCodeResult()
         {
             var plainResult = Any.String();
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.NoContent, ContentResponse.None, r => r != null);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(operation, plainResult);
+            IActionResult result = _sut.ProcessQueryRules(operation, plainResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -266,11 +266,11 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessQueryRules_NonGeneric_WithNullResult_AndMatchingRule_ReturnsNotFound()
         {
-            var operation = RestOperation.GetSingle;
+            RestOperation operation = RestOperation.GetSingle;
             var rule = new QueryRestRule(operation, HttpStatusCode.NotFound, ContentResponse.None, r => r == null);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(operation, (object)null);
+            IActionResult result = _sut.ProcessQueryRules(operation, (object)null);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -288,10 +288,10 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessCommandRules_NonGeneric_WithNullResult_AndNullRule_ReturnsOkResult()
         {
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules(operation, (ICommandResponse)null);
+            IActionResult result = _sut.ProcessCommandRules(operation, (ICommandResponse)null);
 
             result.Should().BeOfType<OkResult>();
         }
@@ -304,10 +304,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_NonGeneric_WithSuccessfulResult_AndNullRule_ReturnsOkObjectResult()
         {
             var commandResult = new CommandResponse { Successful = true };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -322,10 +322,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_NonGeneric_WithUnsuccessfulResult_AndNullRule_ReturnsBadRequestObjectResult()
         {
             var commandResult = new CommandResponse { Successful = false };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<BadRequestObjectResult>();
             var badRequestResult = result as BadRequestObjectResult;
@@ -340,11 +340,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_NonGeneric_WithRuleContentResponseResult_ReturnsObjectResult()
         {
             var commandResult = new CommandResponse { Successful = true };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             var rule = new CommandRestRule(operation, HttpStatusCode.Created, ContentResponse.Result, r => r.Successful);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -360,11 +360,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_NonGeneric_WithRuleContentResponseNone_ReturnsStatusCodeResult()
         {
             var commandResult = new CommandResponse { Successful = true };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             var rule = new CommandRestRule(operation, HttpStatusCode.Created, ContentResponse.None, r => r.Successful);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -379,11 +379,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_NonGeneric_WithUnsuccessfulResult_AndMatchingRule_ReturnsBadRequest()
         {
             var commandResult = new CommandResponse { Successful = false };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             var rule = new CommandRestRule(operation, HttpStatusCode.BadRequest, ContentResponse.Result, r => !r.Successful);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -401,10 +401,10 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessCommandRules_Generic_WithNullResult_AndNullRule_ReturnsOkResult()
         {
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules<string>(operation, null);
+            IActionResult result = _sut.ProcessCommandRules<string>(operation, null);
 
             result.Should().BeOfType<OkResult>();
         }
@@ -417,10 +417,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_Generic_WithSuccessfulResult_AndNullRule_ReturnsOkObjectResult()
         {
             var commandResult = new CommandResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -435,10 +435,10 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_Generic_WithUnsuccessfulResult_AndNullRule_ReturnsBadRequestObjectResult()
         {
             var commandResult = new CommandResponse<string>(Any.String()) { Successful = false };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<BadRequestObjectResult>();
             var badRequestResult = result as BadRequestObjectResult;
@@ -453,11 +453,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_Generic_WithRuleContentResponseFull_ReturnsObjectResultWithFullResponse()
         {
             var commandResult = new CommandResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             var rule = new CommandRestRule(operation, HttpStatusCode.Created, ContentResponse.Full, r => r.Successful);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -473,11 +473,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_Generic_WithRuleContentResponseResult_ReturnsObjectResultWithResultOnly()
         {
             var commandResult = new CommandResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             var rule = new CommandRestRule(operation, HttpStatusCode.Created, ContentResponse.Result, r => r.Successful);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -493,11 +493,11 @@ namespace Minded.Extensions.WebApi.Tests
         public void ProcessCommandRules_Generic_WithRuleContentResponseNone_ReturnsStatusCodeResult()
         {
             var commandResult = new CommandResponse<string>(Any.String()) { Successful = true };
-            var operation = RestOperation.Create;
+            RestOperation operation = RestOperation.Create;
             var rule = new CommandRestRule(operation, HttpStatusCode.NoContent, ContentResponse.None, r => r.Successful);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -519,12 +519,12 @@ namespace Minded.Extensions.WebApi.Tests
                     new OutcomeEntry(Any.String(), Any.String(), null, Severity.Error, GenericErrorCodes.SubjectNotFound)
                 }
             };
-            var operation = RestOperation.Update;
+            RestOperation operation = RestOperation.Update;
             var rule = new CommandRestRule(operation, HttpStatusCode.NotFound, ContentResponse.None,
                 r => !r.Successful && r.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.SubjectNotFound));
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(operation, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(operation, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -546,7 +546,7 @@ namespace Minded.Extensions.WebApi.Tests
             var processor = new DefaultRulesProcessor(realProvider);
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
 
-            var result = processor.ProcessQueryRules(RestOperation.GetSingle, queryResult);
+            IActionResult result = processor.ProcessQueryRules(RestOperation.GetSingle, queryResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -564,7 +564,7 @@ namespace Minded.Extensions.WebApi.Tests
             var realProvider = new DefaultRestRulesProvider();
             var processor = new DefaultRulesProcessor(realProvider);
 
-            var result = processor.ProcessQueryRules(RestOperation.GetSingle, (object)null);
+            IActionResult result = processor.ProcessQueryRules(RestOperation.GetSingle, (object)null);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -590,7 +590,7 @@ namespace Minded.Extensions.WebApi.Tests
                 }
             };
 
-            var result = processor.ProcessQueryRules(RestOperation.GetSingle, queryResult);
+            IActionResult result = processor.ProcessQueryRules(RestOperation.GetSingle, queryResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -608,7 +608,7 @@ namespace Minded.Extensions.WebApi.Tests
             var processor = new DefaultRulesProcessor(realProvider);
             var plainResult = Any.String();
 
-            var result = processor.ProcessQueryRules(RestOperation.GetMany, plainResult);
+            IActionResult result = processor.ProcessQueryRules(RestOperation.GetMany, plainResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -627,7 +627,7 @@ namespace Minded.Extensions.WebApi.Tests
             var processor = new DefaultRulesProcessor(realProvider);
             var commandResult = new CommandResponse { Successful = true };
 
-            var result = processor.ProcessCommandRules(RestOperation.Create, commandResult);
+            IActionResult result = processor.ProcessCommandRules(RestOperation.Create, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -652,7 +652,7 @@ namespace Minded.Extensions.WebApi.Tests
                 }
             };
 
-            var result = processor.ProcessCommandRules(RestOperation.Update, commandResult);
+            IActionResult result = processor.ProcessCommandRules(RestOperation.Update, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -670,7 +670,7 @@ namespace Minded.Extensions.WebApi.Tests
             var processor = new DefaultRulesProcessor(realProvider);
             var commandResult = new CommandResponse<string>(Any.String()) { Successful = true };
 
-            var result = processor.ProcessCommandRules(RestOperation.Create, commandResult);
+            IActionResult result = processor.ProcessCommandRules(RestOperation.Create, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -691,7 +691,7 @@ namespace Minded.Extensions.WebApi.Tests
         {
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules<string>(RestOperation.GetSingle, null);
+            IActionResult result = _sut.ProcessQueryRules<string>(RestOperation.GetSingle, null);
 
             result.Should().BeOfType<OkResult>();
         }
@@ -707,7 +707,7 @@ namespace Minded.Extensions.WebApi.Tests
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = false };
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, (object)queryResult);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, (object)queryResult);
 
             result.Should().BeOfType<BadRequestObjectResult>();
             var badRequestResult = result as BadRequestObjectResult;
@@ -728,7 +728,7 @@ namespace Minded.Extensions.WebApi.Tests
             var queryResult = new QueryResponse<string>(null) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -745,7 +745,7 @@ namespace Minded.Extensions.WebApi.Tests
             var queryResult = new QueryResponse<string>(null) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, (object)queryResult);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, (object)queryResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -762,7 +762,7 @@ namespace Minded.Extensions.WebApi.Tests
             var commandResult = new CommandResponse<string>(null) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -781,7 +781,7 @@ namespace Minded.Extensions.WebApi.Tests
             var secondRule = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.Accepted, ContentResponse.Full, (o) => true);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { firstRule, secondRule });
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -801,7 +801,7 @@ namespace Minded.Extensions.WebApi.Tests
             var secondRule = new CommandRestRule(RestOperation.Create, HttpStatusCode.OK, ContentResponse.Result, (o) => true);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { firstRule, secondRule });
 
-            var result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -819,7 +819,7 @@ namespace Minded.Extensions.WebApi.Tests
             var rule = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.NotFound, ContentResponse.None, null);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -837,7 +837,7 @@ namespace Minded.Extensions.WebApi.Tests
             var rule = new CommandRestRule(RestOperation.Update, HttpStatusCode.NoContent, ContentResponse.None, null);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(RestOperation.Update, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(RestOperation.Update, commandResult);
 
             result.Should().BeOfType<StatusCodeResult>();
             var statusCodeResult = result as StatusCodeResult;
@@ -854,7 +854,7 @@ namespace Minded.Extensions.WebApi.Tests
             var plainObject = new { Name = Any.String(), Value = Any.Int() };
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, plainObject);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, plainObject);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -871,7 +871,7 @@ namespace Minded.Extensions.WebApi.Tests
             var commandResult = new CommandResponse { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
-            var result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -888,7 +888,7 @@ namespace Minded.Extensions.WebApi.Tests
             var queryResult = new QueryResponse<string>(Any.String()) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns((List<IQueryRestRule>)null);
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -905,7 +905,7 @@ namespace Minded.Extensions.WebApi.Tests
             var commandResult = new CommandResponse<string>(Any.String()) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns((List<ICommandRestRule>)null);
 
-            var result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
 
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
@@ -923,7 +923,7 @@ namespace Minded.Extensions.WebApi.Tests
             var rule = new QueryRestRule(RestOperation.Any, HttpStatusCode.OK, ContentResponse.Result, (o) => true);
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule> { rule });
 
-            var result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
+            IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
@@ -944,7 +944,7 @@ namespace Minded.Extensions.WebApi.Tests
             var rule = new CommandRestRule(RestOperation.Create | RestOperation.Update, HttpStatusCode.Accepted, ContentResponse.Result, (o) => true);
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule> { rule });
 
-            var result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
+            IActionResult result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);
 
             // Since Create.HasFlag(Create|Update) is false, no rule matches, falls back to default
             result.Should().BeOfType<OkObjectResult>();

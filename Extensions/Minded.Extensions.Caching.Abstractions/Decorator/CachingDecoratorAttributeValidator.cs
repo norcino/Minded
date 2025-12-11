@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Minded.Extensions.Caching.Decorator;
@@ -26,11 +27,11 @@ namespace Minded.Extensions.Caching.Abstractions.Decorator
                 .ToList();
 
             // Extract the types implementing the CacheAttribute
-            var typesWithCacheAttribute = assemblies
+            IEnumerable<Type> typesWithCacheAttribute = assemblies
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(t => t.GetCustomAttributes(typeof(CacheAttribute), true).Length > 0);
 
-            foreach (var type in typesWithCacheAttribute)
+            foreach (Type type in typesWithCacheAttribute)
             {
                 if (!typeof(IGenerateCacheKey).IsAssignableFrom(type))
                 {

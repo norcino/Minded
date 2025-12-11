@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Query;
+using System.Collections.Generic;
 
 namespace Minded.Extensions.Exception.Decorator
 {
@@ -39,12 +40,15 @@ namespace Minded.Extensions.Exception.Decorator
             }
             catch (System.Exception ex)
             {
-                var queryJson = "Query serialization unavailable";
+                string queryJson = "Query serialization unavailable";
 
                 try
                 {
-                    // Sanitize query before serialization to protect sensitive data
-                    var sanitizedQuery = _dataSanitizer.Sanitize(query);
+                    // First, sanitize query to remove non-serializable types and excluded properties
+                    IDictionary<string, object> diagnosticSanitized = DiagnosticDataSanitizer.Sanitize(query);
+
+                    // Then apply data protection sanitization to protect sensitive data
+                    IDictionary<string, object> sanitizedQuery = _dataSanitizer.Sanitize(diagnosticSanitized);
                     queryJson = JsonSerializer.Serialize(sanitizedQuery);
                 }
                 catch { }

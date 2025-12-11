@@ -2,7 +2,6 @@
 using System.IO;
 using System.Reflection;
 using Common.Configuration;
-using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,13 +19,10 @@ using Minded.Extensions.Validation.Decorator;
 using Minded.Extensions.Caching.Memory.Decorator;
 using Minded.Extensions.Retry.Decorator;
 using Minded.Extensions.DataProtection;
-using System.Linq;
 using Serilog;
 using Application.Api.OData;
-using Microsoft.AspNetCore.OData;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using Microsoft.OpenApi.Models;
-
+using Microsoft.AspNetCore.OData;
 
 namespace Application.Api
 {
@@ -40,7 +36,7 @@ namespace Application.Api
         {
             HostingEnvironment = env;
 
-            var builder = new ConfigurationBuilder()
+            IConfigurationBuilder builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
@@ -92,9 +88,9 @@ namespace Application.Api
         /// <param name="app">The application builder</param>
         private void SeedDatabaseForDevelopment(IApplicationBuilder app)
         {
-            using (var scope = app.ApplicationServices.CreateScope())
+            using (IServiceScope scope = app.ApplicationServices.CreateScope())
             {
-                var context = scope.ServiceProvider.GetService<IMindedExampleContext>();
+                IMindedExampleContext context = scope.ServiceProvider.GetService<IMindedExampleContext>();
                 if (context != null)
                 {
                     var seeder = new DatabaseSeeder(context);
@@ -206,10 +202,10 @@ namespace Application.Api
             if (services == null)
                 throw new ArgumentNullException(nameof(services));
 
-            var serviceProvider = services.BuildServiceProvider();
-            var configuration = serviceProvider.GetService<IConfiguration>();
+            ServiceProvider serviceProvider = services.BuildServiceProvider();
+            IConfiguration configuration = serviceProvider.GetService<IConfiguration>();
             var connectionString = configuration.GetConnectionString(Constants.ConfigConnectionStringName);
-            var databaseType = DatabaseType.SQLServer;
+            DatabaseType databaseType = DatabaseType.SQLServer;
 
             try
             {
@@ -243,7 +239,7 @@ namespace Application.Api
                     // so must use a singleton context, open the connection and manually close it when disposing the context
                     services.AddSingleton<IMindedExampleContext>(s =>
                     {
-                        var context = s.GetService<MindedExampleContext>();
+                        MindedExampleContext context = s.GetService<MindedExampleContext>();
                         context.Database.OpenConnection();
                         context.Database.EnsureCreated();
 
@@ -264,7 +260,7 @@ namespace Application.Api
 
                     services.AddTransient<IMindedExampleContext>(service =>
                     {
-                        var context = services.BuildServiceProvider()
+                        MindedExampleContext context = services.BuildServiceProvider()
                         .GetService<MindedExampleContext>();
                         context.Database.EnsureCreated();
 
@@ -291,7 +287,7 @@ namespace Application.Api
 
                         services.AddTransient<IMindedExampleContext>(s =>
                         {
-                            var context = s.GetService<MindedExampleContext>();
+                            MindedExampleContext context = s.GetService<MindedExampleContext>();
                             context.Database.EnsureCreated();
 
                             // Seed the database with sample data for debugging (only in development)

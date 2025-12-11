@@ -21,7 +21,7 @@ namespace Minded.Framework.Mediator
         /// <inheritdoc cref="IMediator.ProcessQueryAsync{TResult}(IQuery{TResult}, CancellationToken)"/>
         public async Task<TResult> ProcessQueryAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default)
         {
-            var handlerType = typeof(IQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResult));
+            Type handlerType = typeof(IQueryHandler<,>).MakeGenericType(query.GetType(), typeof(TResult));
             dynamic handler = _services.GetService(handlerType);
 
             if (handler == null)
@@ -33,7 +33,7 @@ namespace Minded.Framework.Mediator
         /// <inheritdoc cref="IMediator.ProcessCommandAsync(ICommand, CancellationToken)"/>
         public async Task<ICommandResponse> ProcessCommandAsync(ICommand command, CancellationToken cancellationToken = default)
         {
-            var handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
+            Type handlerType = typeof(ICommandHandler<>).MakeGenericType(command.GetType());
             dynamic handler = _services.GetService(handlerType);
 
             if (handler == null)
@@ -45,17 +45,17 @@ namespace Minded.Framework.Mediator
         /// <inheritdoc cref="IMediator.ProcessCommandAsync{TResult}(ICommand{TResult}, CancellationToken)"/>
         public async Task<ICommandResponse<TResult>> ProcessCommandAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
         {
-            var commandType = command.GetType();
-            var resultType = typeof(TResult);
+            Type commandType = command.GetType();
+            Type resultType = typeof(TResult);
             Type[] typeArgs = { commandType, resultType };
 
-            var handlerType = typeof(ICommandHandler<,>).MakeGenericType(typeArgs);
+            Type handlerType = typeof(ICommandHandler<,>).MakeGenericType(typeArgs);
             dynamic handler = _services.GetService(handlerType);
 
             if (handler == null)
                 throw new InvalidOperationException($"Unable to retrieve the handler for command: {handlerType.FullName}");
 
-            var result = await handler.HandleAsync((dynamic)command, cancellationToken);
+            dynamic result = await handler.HandleAsync((dynamic)command, cancellationToken);
 
             if (result != null)
                 return result;

@@ -30,7 +30,7 @@ namespace Service.Transaction.CommandHandler
         /// <returns>Successful command response</returns>
         public async Task<ICommandResponse> HandleAsync(DeleteTransactionCommand command, CancellationToken cancellationToken = default)
         {
-            var transaction = await _context.Transactions.SingleOrDefaultAsync(t => t.Id == command.TransactionId, cancellationToken);
+            Data.Entity.Transaction transaction = await _context.Transactions.SingleOrDefaultAsync(t => t.Id == command.TransactionId, cancellationToken);
 
             _context.Transactions.Remove(transaction);
             await _context.SaveChangesAsync(cancellationToken);

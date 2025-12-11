@@ -57,10 +57,10 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithResolver(category);
 
             // Assert
-            Assert.IsTrue(json.Contains("\"Id\":1"));
-            Assert.IsTrue(json.Contains("\"Name\":\"Electronics\""));
-            Assert.IsTrue(json.Contains("\"Description\":\"Electronic items\""));
-            Assert.IsFalse(json.Contains("Transactions"), "Transactions should not be serialized when not expanded");
+            Assert.Contains("\"Id\":1", json);
+            Assert.Contains("\"Name\":\"Electronics\"", json);
+            Assert.Contains("\"Description\":\"Electronic items\"", json);
+            Assert.DoesNotContain("Transactions", json, "Transactions should not be serialized when not expanded");
         }
 
         [TestMethod]
@@ -85,10 +85,10 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithResolver(category);
 
             // Assert
-            Assert.IsTrue(json.Contains("\"Id\":1"));
-            Assert.IsTrue(json.Contains("\"Name\":\"Electronics\""));
-            Assert.IsTrue(json.Contains("\"Transactions\""), "Transactions should be serialized when expanded");
-            Assert.IsTrue(json.Contains("\"Description\":\"Purchase\""));
+            Assert.Contains("\"Id\":1", json);
+            Assert.Contains("\"Name\":\"Electronics\"", json);
+            Assert.Contains("\"Transactions\"", json, "Transactions should be serialized when expanded");
+            Assert.Contains("\"Description\":\"Purchase\"", json);
         }
 
         [TestMethod]
@@ -112,10 +112,10 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithResolver(transaction);
 
             // Assert
-            Assert.IsTrue(json.Contains("\"Category\""), "Category should be serialized when expanded");
-            Assert.IsTrue(json.Contains("\"User\""), "User should be serialized when expanded");
-            Assert.IsTrue(json.Contains("\"Electronics\""));
-            Assert.IsTrue(json.Contains("\"John Doe\""));
+            Assert.Contains("\"Category\"", json, "Category should be serialized when expanded");
+            Assert.Contains("\"User\"", json, "User should be serialized when expanded");
+            Assert.Contains("\"Electronics\"", json);
+            Assert.Contains("\"John Doe\"", json);
         }
 
         [TestMethod]
@@ -139,10 +139,10 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithResolver(transaction);
 
             // Assert
-            Assert.IsTrue(json.Contains("\"Category\""), "Category should be serialized when expanded");
-            Assert.IsFalse(json.Contains("\"User\""), "User should not be serialized when not expanded");
-            Assert.IsTrue(json.Contains("\"Electronics\""));
-            Assert.IsFalse(json.Contains("\"John Doe\""));
+            Assert.Contains("\"Category\"", json, "Category should be serialized when expanded");
+            Assert.DoesNotContain("\"User\"", json, "User should not be serialized when not expanded");
+            Assert.Contains("\"Electronics\"", json);
+            Assert.DoesNotContain("\"John Doe\"", json);
         }
 
         [TestMethod]
@@ -166,7 +166,7 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithResolver(category);
 
             // Assert
-            Assert.IsTrue(json.Contains("\"Transactions\""), "Transactions should be serialized (case-insensitive match)");
+            Assert.Contains("\"Transactions\"", json, "Transactions should be serialized (case-insensitive match)");
         }
 
         [TestMethod]
@@ -189,7 +189,7 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithResolver(category);
 
             // Assert
-            Assert.IsFalse(json.Contains("Transactions"), "Transactions should not be serialized when HttpContext is null");
+            Assert.DoesNotContain("Transactions", json, "Transactions should not be serialized when HttpContext is null");
         }
 
         [TestMethod]
@@ -213,7 +213,7 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithCustomResolver(transaction, customResolver);
 
             // Assert
-            Assert.IsTrue(json.Contains("\"Category\""), "Category should be serialized when expanded with custom logic");
+            Assert.Contains("\"Category\"", json, "Category should be serialized when expanded with custom logic");
         }
 
         [TestMethod]
@@ -233,9 +233,9 @@ namespace Application.Api.Tests.OData
             var json = SerializeWithResolver(category);
 
             // Assert
-            Assert.IsTrue(json.Contains("\"Id\":1"), "Id should always be serialized (non-virtual)");
-            Assert.IsTrue(json.Contains("\"Name\":\"Electronics\""), "Name should always be serialized (non-virtual)");
-            Assert.IsTrue(json.Contains("\"Description\":\"Electronic items\""), "Description should always be serialized (non-virtual)");
+            Assert.Contains("\"Id\":1", json, "Id should always be serialized (non-virtual)");
+            Assert.Contains("\"Name\":\"Electronics\"", json, "Name should always be serialized (non-virtual)");
+            Assert.Contains("\"Description\":\"Electronic items\"", json, "Description should always be serialized (non-virtual)");
         }
 
         #region Helper Methods

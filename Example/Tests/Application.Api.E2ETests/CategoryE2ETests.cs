@@ -31,7 +31,7 @@ namespace Application.Api.IntegrationTests
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(MaxPageItemNumber);
 
@@ -50,7 +50,7 @@ namespace Application.Api.IntegrationTests
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
             categories.Should().HaveCount(0);
         }
         #endregion
@@ -79,7 +79,7 @@ namespace Application.Api.IntegrationTests
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(desiredNumber);
         }
@@ -91,7 +91,7 @@ namespace Application.Api.IntegrationTests
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
             categories.Should().BeEmpty();
         }
         #endregion
@@ -111,7 +111,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/category?$orderby=Name desc");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(expectedCategories);
             categories.Should().BeInDescendingOrder(c => c.Name);
@@ -131,7 +131,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/category?$orderby=Name");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(expectedCategories);
             categories.Should().BeInAscendingOrder(c => c.Name);
@@ -146,7 +146,7 @@ namespace Application.Api.IntegrationTests
             await Seed<Category>(c => c.Id, NumberOfTransactionsToCreate);
 
             var response = await _sutClient.GetAsync("/api/category?$orderby=Id");
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(NumberOfTransactionsToCreate);
             categories.Should().BeInAscendingOrder(c => c.Id);
@@ -159,7 +159,7 @@ namespace Application.Api.IntegrationTests
             await Seed<Category>(c => c.Id, NumberOfTransactionsToCreate);
 
             var response = await _sutClient.GetAsync("/api/category?$orderby=Id desc");
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(NumberOfTransactionsToCreate);
             categories.Should().BeInDescendingOrder(c => c.Id);
@@ -175,21 +175,21 @@ namespace Application.Api.IntegrationTests
             response.Should().NotBeNull();
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
             categories.Should().BeEmpty();
         }
 
         [TestMethod]
         public async Task GET_should_return_sole_existing_category_and_200Ok_when_only_one_exist()
         {
-            var expectedCategories = await Seed<Category>(c => c.Id);
+            IEnumerable<Category> expectedCategories = await Seed<Category>(c => c.Id);
 
             var response = await _sutClient.GetAsync("/api/category");
 
             response.Should().NotBeNull();
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
             categories.Count.Should().Be(expectedCategories.Count());
 
             categories.Should().BeEquivalentTo(expectedCategories, o => o.Excluding(c => c.Id));
@@ -199,14 +199,14 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_return_all_Categories_and_200Ok()
         {
             var numberOfExistingCategories = 10;
-            var expectedCategories = await Seed<Category>(c => c.Id, numberOfExistingCategories);
+            IEnumerable<Category> expectedCategories = await Seed<Category>(c => c.Id, numberOfExistingCategories);
 
             var response = await _sutClient.GetAsync("/api/category");
 
             response.Should().NotBeNull();
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
             categories.Count.Should().Be(expectedCategories.Count());
 
             categories.Should().BeEquivalentTo(expectedCategories, o => o.Excluding(c => c.Id));
@@ -221,7 +221,7 @@ namespace Application.Api.IntegrationTests
 
             var response = await _sutClient.GetAsync("/api/category");
 
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
             categories.Should().HaveCount(MaxPageItemNumber);
         }
         #endregion
@@ -238,7 +238,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_byId_should_return_200Ok_when_entity_when_specified_Id_exists()
         {
-            var category = await SeedOne<Category>(c => c.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
             var response = await _sutClient.GetAsync($"/api/category/{category.Id}");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
@@ -247,9 +247,9 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task GET_byId_should_return_correct_and_complete_entity_when_the_specified_Id_exists()
         {
-            var expectedCategory = await SeedOne<Category>(c => c.Id);
+            Category expectedCategory = await SeedOne<Category>(c => c.Id);
             var response = await _sutClient.GetAsync($"/api/category/{expectedCategory.Id}");
-            var category = await response.Content.ReadAsAsync<Category>();
+            Category category = await response.Content.ReadAsAsync<Category>();
 
             category.Should().BeEquivalentTo(expectedCategory, o => o.Excluding(c => c.Id));
         }
@@ -259,7 +259,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_should_return_201Created_passing_valid_entity()
         {
-            var expectedCategory = Builder<Category>.New().Build(c => c.Id = 0);
+            Category expectedCategory = Builder<Category>.New().Build(c => c.Id = 0);
             var response = await _sutClient.PostAsync("/api/category", expectedCategory);
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.Created);
@@ -268,10 +268,10 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_creates_valid_entity()
         {
-            var expectedCategory = Builder<Category>.New().Build(c => c.Id = 0);
+            Category expectedCategory = Builder<Category>.New().Build(c => c.Id = 0);
             var response = await _sutClient.PostAsync("/api/Category", expectedCategory);
 
-            var category = await response.Content.ReadAsAsync<Category>();
+            Category category = await response.Content.ReadAsAsync<Category>();
 
             category.Should().BeEquivalentTo(expectedCategory, o => o.Excluding(c => c.Id));
         }
@@ -279,7 +279,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_should_return_BadRequest_400BadRequest_when_entity_contains_Id()
         {
-            var expectedCategory = Builder<Category>.New().Build(c => c.Id = Any.Int());
+            Category expectedCategory = Builder<Category>.New().Build(c => c.Id = Any.Int());
 
             var response = await _sutClient.PostAsync("/api/Category", expectedCategory);
 
@@ -292,7 +292,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task DELETE_should_return_200Ok_when_category_deleted()
         {
-            var expectedCategory = await SeedOne<Category>(c => c.Id);
+            Category expectedCategory = await SeedOne<Category>(c => c.Id);
             var response = await _sutClient.DeleteAsync($"/api/category/{expectedCategory.Id}");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
@@ -320,7 +320,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_return_200Ok_when_updating_existing_category()
         {
-            var category = await SeedOne<Category>(c => c.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
             category.Name = Any.String();
             category.Description = Any.String();
 
@@ -332,7 +332,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_update_category_with_new_values()
         {
-            var category = await SeedOne<Category>(c => c.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
             var newName = Any.String();
             var newDescription = Any.String();
 
@@ -342,7 +342,7 @@ namespace Application.Api.IntegrationTests
             await _sutClient.PutAsync($"/api/category/{category.Id}", category);
 
             var response = await _sutClient.GetAsync($"/api/category/{category.Id}");
-            var updatedCategory = await response.Content.ReadAsAsync<Category>();
+            Category updatedCategory = await response.Content.ReadAsAsync<Category>();
 
             updatedCategory.Name.Should().Be(newName);
             updatedCategory.Description.Should().Be(newDescription);
@@ -351,7 +351,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_return_404NotFound_when_category_does_not_exist()
         {
-            var category = Builder<Category>.New().Build(c => c.Id = Any.Int());
+            Category category = Builder<Category>.New().Build(c => c.Id = Any.Int());
 
             var response = await _sutClient.PutAsync($"/api/category/{category.Id}", category);
 
@@ -361,7 +361,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_return_400BadRequest_when_Id_in_body_does_not_match_Id_in_url()
         {
-            var category = await SeedOne<Category>(c => c.Id);
+            Category category = await SeedOne<Category>(c => c.Id);
             var differentId = category.Id + 1;
 
             var response = await _sutClient.PutAsync($"/api/category/{differentId}", category);
@@ -385,7 +385,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync($"/api/category?$filter=Name eq '{targetName}'");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(1);
             categories.First().Name.Should().Be(targetName);
@@ -404,7 +404,7 @@ namespace Application.Api.IntegrationTests
             var response = await _sutClient.GetAsync("/api/category?$filter=Active eq true");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
-            var categories = await response.Content.ReadAsAsync<List<Category>>();
+            List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
 
             categories.Should().HaveCount(5);
             categories.Should().OnlyContain(c => c.Active);

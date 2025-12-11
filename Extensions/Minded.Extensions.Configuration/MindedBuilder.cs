@@ -42,11 +42,11 @@ namespace Minded.Extensions.Configuration
 
         private void InvokeAttributeValidators()
         {
-            var validatorInterface = typeof(IDecoratingAttributeValidator);
-            foreach (var assembly in SourceAssemblies(AssemblyFilter))
+            Type validatorInterface = typeof(IDecoratingAttributeValidator);
+            foreach (Assembly assembly in SourceAssemblies(AssemblyFilter))
             {
-                var validatorTypes = GetTypesImplementingInterfaceInAssembly(assembly, validatorInterface);
-                foreach (var validatorType in validatorTypes)
+                IEnumerable<Type> validatorTypes = GetTypesImplementingInterfaceInAssembly(assembly, validatorInterface);
+                foreach (Type validatorType in validatorTypes)
                 {
                     var validator = (IDecoratingAttributeValidator) Activator.CreateInstance(validatorType);
                     validator.Validate(AssemblyFilter);
@@ -183,13 +183,13 @@ namespace Minded.Extensions.Configuration
         /// <param name="genericInterface">Generic interface</param>
         public void RegisterAllTypesInServiceAssembliesImplementingInterface(Type genericInterface, Func<AssemblyName, bool> assemblyFilter = null)
         {
-            foreach (var assembly in SourceAssemblies(assemblyFilter ?? AssemblyFilter))
+            foreach (Assembly assembly in SourceAssemblies(assemblyFilter ?? AssemblyFilter))
             {
-                var validatorTypes = GetGenericTypesImplementingInterfaceInAssembly(assembly, genericInterface);
+                IEnumerable<Type> validatorTypes = GetGenericTypesImplementingInterfaceInAssembly(assembly, genericInterface);
 
-                foreach (var validatorType in validatorTypes)
+                foreach (Type validatorType in validatorTypes)
                 {
-                    var interfaceType = GetGenericInterfaceInType(validatorType, genericInterface);
+                    Type interfaceType = GetGenericInterfaceInType(validatorType, genericInterface);
                     if (!ServiceCollection.Any(descriptor => descriptor.ServiceType == interfaceType && descriptor.ImplementationType == validatorType))
                     {
                         ServiceCollection.Add(new ServiceDescriptor(interfaceType, validatorType, ServiceLifetime.Transient));
@@ -265,16 +265,16 @@ namespace Minded.Extensions.Configuration
             if (requiredAttributeType != null)
             {
                 // Target type could be ICommand or IQuery
-                var targetType = interfaceType.GetGenericArguments().FirstOrDefault();
+                Type targetType = interfaceType.GetGenericArguments().FirstOrDefault();
                 if (targetType == null) return;
 
-                var attribute = TypeDescriptor.GetAttributes(targetType)[requiredAttributeType];
+                Attribute attribute = TypeDescriptor.GetAttributes(targetType)[requiredAttributeType];
 
                 // If the required attribute is not present, do not register the current decorator
                 if (attribute == null) return;
             }
 
-            foreach (var descriptor in GetDescriptors(interfaceType))
+            foreach (ServiceDescriptor descriptor in GetDescriptors(interfaceType))
             {
                 object Factory(IServiceProvider serviceProvider)
                 {
@@ -286,10 +286,10 @@ namespace Minded.Extensions.Configuration
                         : descriptor.ImplementationFactory(serviceProvider);
 
                     // Create the decorator type including generic types
-                    var decoratorType = genericDecoratorType.MakeGenericType(interfaceType.GetGenericArguments());
+                    Type decoratorType = genericDecoratorType.MakeGenericType(interfaceType.GetGenericArguments());
 
                     // Create the logger type
-                    var loggerType = typeof(ILogger<>).MakeGenericType(decoratorType);
+                    Type loggerType = typeof(ILogger<>).MakeGenericType(decoratorType);
 
                     Type dependantType = null;
                     if(optionalDependencyType != null)
@@ -310,7 +310,7 @@ namespace Minded.Extensions.Configuration
         public object CreateInstance(IServiceProvider serviceProvider, Type instanceType, object[] additionalArguments)
         {
             // Find the appropriate constructor
-            var constructor = instanceType.GetConstructors().FirstOrDefault();
+            ConstructorInfo constructor = instanceType.GetConstructors().FirstOrDefault();
             if (constructor == null)
             {
                 throw new InvalidOperationException($"No public constructors defined for {instanceType}");
@@ -320,7 +320,7 @@ namespace Minded.Extensions.Configuration
             var parameters = new List<object>();
 
             // Iterate over the constructor parameters
-            foreach (var parameter in constructor.GetParameters())
+            foreach (ParameterInfo parameter in constructor.GetParameters())
             {
                 // If the parameter is one of the additional arguments, add it
                 var additionalArgument = additionalArguments.FirstOrDefault(arg => parameter.ParameterType.IsAssignableFrom(arg.GetType()));
@@ -387,7 +387,7 @@ namespace Minded.Extensions.Configuration
 
             var assemblies = DependencyContext.Default.GetDefaultAssemblyNames().Where(a => assemblyNameFilter(a)).ToList();
 
-            foreach (var assemblyName in assemblies)
+            foreach (AssemblyName assemblyName in assemblies)
             {
                 yield return Assembly.Load(assemblyName);
             }

@@ -22,7 +22,7 @@ namespace Minded.Framework.CQRS.Tests
         public void Constructor_WithAscendingOrder_SetsPropertiesCorrectly()
         {
             var propertyName = Any.String();
-            var order = Order.Ascending;
+            Order order = Order.Ascending;
 
             var descriptor = new OrderDescriptor(order, propertyName);
 
@@ -38,7 +38,7 @@ namespace Minded.Framework.CQRS.Tests
         public void Constructor_WithDescendingOrder_SetsPropertiesCorrectly()
         {
             var propertyName = Any.String();
-            var order = Order.Descending;
+            Order order = Order.Descending;
 
             var descriptor = new OrderDescriptor(order, propertyName);
 
@@ -53,7 +53,7 @@ namespace Minded.Framework.CQRS.Tests
         [TestMethod]
         public void Constructor_WithNullPropertyName_SetsPropertyNameToNull()
         {
-            var order = Order.Ascending;
+            Order order = Order.Ascending;
 
             var descriptor = new OrderDescriptor(order, null);
 
@@ -68,7 +68,7 @@ namespace Minded.Framework.CQRS.Tests
         [TestMethod]
         public void Constructor_WithEmptyPropertyName_SetsPropertyNameToEmpty()
         {
-            var order = Order.Descending;
+            Order order = Order.Descending;
 
             var descriptor = new OrderDescriptor(order, string.Empty);
 

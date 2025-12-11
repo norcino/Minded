@@ -43,7 +43,7 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_Succeeds_WhenCategoryExistsAndIsValid()
         {
-            var category = Builder<Data.Entity.Category>.New()
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New()
                 .Build(c =>
                 {
                     c.Id = 5;
@@ -54,7 +54,7 @@ namespace Service.Category.Tests
             _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<Service.Category.Query.ExistsCategoryByIdQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
@@ -66,7 +66,7 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenCommandIdDoesNotMatchCategoryId()
         {
-            var category = Builder<Data.Entity.Category>.New()
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New()
                 .Build(c =>
                 {
                     c.Id = 10;
@@ -74,7 +74,7 @@ namespace Service.Category.Tests
                 });
             var command = new UpdateCategoryCommand(5, category);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -92,7 +92,7 @@ namespace Service.Category.Tests
         {
             var command = new UpdateCategoryCommand(5, null);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -108,7 +108,7 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenCategoryDoesNotExist()
         {
-            var category = Builder<Data.Entity.Category>.New()
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New()
                 .Build(c =>
                 {
                     c.Id = 999;
@@ -119,7 +119,7 @@ namespace Service.Category.Tests
             _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<Service.Category.Query.ExistsCategoryByIdQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -135,7 +135,7 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_MergesResultsFromCategoryValidator()
         {
-            var category = Builder<Data.Entity.Category>.New()
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New()
                 .Build(c =>
                 {
                     c.Id = 5;
@@ -152,7 +152,7 @@ namespace Service.Category.Tests
             _categoryValidatorMock.Setup(v => v.ValidateAsync(category))
                 .ReturnsAsync(categoryValidationResult);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>

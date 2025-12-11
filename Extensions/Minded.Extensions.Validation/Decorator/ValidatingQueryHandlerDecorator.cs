@@ -65,7 +65,7 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogDebug(QueryStaticHelper.LogTemplate, _queryValidator.GetType().Name);
 
-            var valResult = await _queryValidator.ValidateAsync(Query);
+            IValidationResult valResult = await _queryValidator.ValidateAsync(Query);
 
             TResult result = default;
 
@@ -79,7 +79,7 @@ namespace Minded.Extensions.Validation.Decorator
                 _logger.LogInformation(QueryStaticHelper.ValidationFailureTemplate, _queryValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
                 Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
-                var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
+                Type queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
                 result = (TResult)Activator.CreateInstance(queryResponseType);
                 ((IMessageResponse)result).Successful = valResult.IsValid;
                 ((IMessageResponse)result).OutcomeEntries = valResult.OutcomeEntries.ToList();
@@ -90,7 +90,7 @@ namespace Minded.Extensions.Validation.Decorator
             {
                 // If here it means that result is of type IQueryResult, if null it means this has not been correctly handled in the inner decorator
                 Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
-                var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
+                Type queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
                 result = (TResult) Activator.CreateInstance(queryResponseType);
                 ((IMessageResponse)result).Successful = false;
             }

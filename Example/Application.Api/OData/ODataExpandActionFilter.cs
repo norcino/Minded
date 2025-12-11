@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.Mvc.Filters;
+using System.Reflection;
 
 namespace Application.Api.OData
 {
@@ -46,7 +47,7 @@ namespace Application.Api.OData
             }
 
             // Get the SelectExpand property using reflection
-            var selectExpandProperty = odataQueryOptions.GetType().GetProperty("SelectExpand");
+            PropertyInfo selectExpandProperty = odataQueryOptions.GetType().GetProperty("SelectExpand");
             var selectExpand = selectExpandProperty?.GetValue(odataQueryOptions);
 
             if (selectExpand == null)
@@ -57,7 +58,7 @@ namespace Application.Api.OData
             }
 
             // Get the RawExpand property (contains the raw $expand string like "Transactions,User")
-            var rawExpandProperty = selectExpand.GetType().GetProperty("RawExpand");
+            PropertyInfo rawExpandProperty = selectExpand.GetType().GetProperty("RawExpand");
             var rawExpand = rawExpandProperty?.GetValue(selectExpand) as string;
 
             if (string.IsNullOrWhiteSpace(rawExpand))

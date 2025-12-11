@@ -43,7 +43,7 @@ namespace Minded.Framework.Decorator.Tests
             var mockHandler = new Mock<ICommandHandler<TestCommand>>();
             var decorator = new TestCommandDecorator(mockHandler.Object);
 
-            var innerHandler = decorator.InnerCommandHandler;
+            ICommandHandler<TestCommand> innerHandler = decorator.InnerCommandHandler;
 
             innerHandler.Should().BeSameAs(mockHandler.Object);
         }
@@ -74,7 +74,7 @@ namespace Minded.Framework.Decorator.Tests
             var mockHandler = new Mock<ICommandHandler<TestCommandWithResult, string>>();
             var decorator = new TestCommandWithResultDecorator(mockHandler.Object);
 
-            var innerHandler = decorator.InnerCommandHandler;
+            ICommandHandler<TestCommandWithResult, string> innerHandler = decorator.InnerCommandHandler;
 
             innerHandler.Should().BeSameAs(mockHandler.Object);
         }
@@ -105,7 +105,7 @@ namespace Minded.Framework.Decorator.Tests
             var mockHandler = new Mock<IQueryHandler<TestQuery, int>>();
             var decorator = new TestQueryDecorator(mockHandler.Object);
 
-            var innerHandler = decorator.InnerQueryHandler;
+            IQueryHandler<TestQuery, int> innerHandler = decorator.InnerQueryHandler;
 
             innerHandler.Should().BeSameAs(mockHandler.Object);
         }

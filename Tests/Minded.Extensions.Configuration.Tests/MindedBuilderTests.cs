@@ -36,7 +36,7 @@ namespace Minded.Extensions.Configuration.Tests
         public void TheInstatioationOfMindedBuilder_ShouldAutomatically_InvokeAttributeValidators()
         {
             var serviceCollection = new ServiceCollection();
-            var configuration = new Mock<IConfiguration>().Object;
+            IConfiguration configuration = new Mock<IConfiguration>().Object;
             var assemblyFilter = new Func<AssemblyName, bool>(a =>
                 a.Name.StartsWith("Minded.Extensions.Caching.Abstractions") ||
                 this.GetType().Assembly.FullName.StartsWith(a.Name)
@@ -63,7 +63,7 @@ namespace Minded.Extensions.Configuration.Tests
         public void TheInstatioationOfMindedBuilder_ShouldAutomatically_InvokeAttributeValidators_IgnoringAssembliesNotInFilter()
         {
             var serviceCollection = new ServiceCollection();
-            var configuration = new Mock<IConfiguration>().Object;
+            IConfiguration configuration = new Mock<IConfiguration>().Object;
             var assemblyFilter = new Func<AssemblyName, bool>(name =>
                 name.Name == "Minded.Extensions.Caching.Abstractions"
                 // The failing class is located in this assebly: "Minded.Testing.Common"

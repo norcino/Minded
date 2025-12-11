@@ -46,7 +46,7 @@ namespace Minded.Extensions.Logging.Decorator
 
             try
             {
-                var response = await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                TResult response = await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
                 stopWatch.Stop();
                 Log(_logger, query, _options, _dataSanitizer,
                     "in {Duration:c} - Completed",
@@ -123,7 +123,7 @@ namespace Minded.Extensions.Logging.Decorator
                     continue;
                 }
 
-                var type = param.GetType();
+                Type type = param.GetType();
 
                 // For primitive types and strings, no sanitization needed
                 if (type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) ||
@@ -134,7 +134,7 @@ namespace Minded.Extensions.Logging.Decorator
                 else
                 {
                     // For complex objects, sanitize and convert to JSON for logging
-                    var sanitizedDict = dataSanitizer.Sanitize(param);
+                    IDictionary<string, object> sanitizedDict = dataSanitizer.Sanitize(param);
                     sanitized[i] = sanitizedDict != null ? JsonSerializer.Serialize(sanitizedDict) : param;
                 }
             }
@@ -162,7 +162,7 @@ namespace Minded.Extensions.Logging.Decorator
             if (messageResponse == null || messageResponse.OutcomeEntries == null || !messageResponse.OutcomeEntries.Any())
                 return;
 
-            var minimumSeverity = options.Value.GetEffectiveMinimumSeverityLevel();
+            Severity minimumSeverity = options.Value.GetEffectiveMinimumSeverityLevel();
 
             // Filter outcome entries based on severity level
             // Severity enum: Error = 0, Warning = 1, Info = 2
@@ -174,9 +174,9 @@ namespace Minded.Extensions.Logging.Decorator
             if (!filteredEntries.Any())
                 return;
 
-            foreach (var entry in filteredEntries)
+            foreach (IOutcomeEntry entry in filteredEntries)
             {
-                var logLevel = MapSeverityToLogLevel(entry.Severity);
+                LogLevel logLevel = MapSeverityToLogLevel(entry.Severity);
                 var template = "[Tracking:{TraceId}] {QueryName:l} - Outcome: [{Severity}] {Message} (Property: {PropertyName}, Code: {ErrorCode})";
                 var parameters = new object[]
                 {

@@ -58,12 +58,12 @@ namespace Minded.Extensions.Transaction.Decorator
             }
 
             // Determine timeout: use attribute value if specified, otherwise use default
-            var timeout = attribute.TimeoutSeconds > 0
+            TimeSpan timeout = attribute.TimeoutSeconds > 0
                 ? TimeSpan.FromSeconds(attribute.TimeoutSeconds)
                 : _options.Value.DefaultTimeout;
 
             // Create transaction scope with async flow enabled
-            using (var scope = TransactionManager.CreateTransactionScope(
+            using (TransactionScope scope = TransactionManager.CreateTransactionScope(
                 attribute.TransactionScopeOption,
                 attribute.IsolationLevel,
                 timeout))
@@ -75,7 +75,7 @@ namespace Minded.Extensions.Transaction.Decorator
 
                 try
                 {
-                    var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    ICommandResponse<TResult> response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
 
                     // Determine if transaction should be committed
                     var shouldCommit = response.Successful || !_options.Value.RollbackOnUnsuccessfulResponse;

@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore.Query;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Data.Common
 {
@@ -19,13 +20,13 @@ namespace Data.Common
         /// <returns>SQL query generated on the deferred execution</returns>
         public static string ToSql<TEntity>(this IQueryable<TEntity> query) where TEntity : class
         {
-            var enumerator = query.Provider.Execute<IEnumerable<TEntity>>(query.Expression).GetEnumerator();
+            IEnumerator<TEntity> enumerator = query.Provider.Execute<IEnumerable<TEntity>>(query.Expression).GetEnumerator();
             var relationalCommandCache = enumerator.Private("_relationalCommandCache");
-            var selectExpression = relationalCommandCache.Private<SelectExpression>("_selectExpression");
-            var factory = relationalCommandCache.Private<IQuerySqlGeneratorFactory>("_querySqlGeneratorFactory");
+            SelectExpression selectExpression = relationalCommandCache.Private<SelectExpression>("_selectExpression");
+            IQuerySqlGeneratorFactory factory = relationalCommandCache.Private<IQuerySqlGeneratorFactory>("_querySqlGeneratorFactory");
 
-            var sqlGenerator = factory.Create();
-            var command = sqlGenerator.GetCommand(selectExpression);
+            QuerySqlGenerator sqlGenerator = factory.Create();
+            IRelationalCommand command = sqlGenerator.GetCommand(selectExpression);
 
             string sql = command.CommandText;
             return sql;

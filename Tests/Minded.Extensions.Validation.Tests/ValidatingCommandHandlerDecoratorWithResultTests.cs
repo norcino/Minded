@@ -57,7 +57,7 @@ namespace Minded.Extensions.Validation.Tests
             mockHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var result = await sut.HandleAsync(command);
+            ICommandResponse<int> result = await sut.HandleAsync(command);
 
             result.Should().Be(expectedResponse);
             mockValidator.Verify(v => v.ValidateAsync(It.IsAny<TestNonValidatedCommandWithResult>()), Times.Never);
@@ -79,7 +79,7 @@ namespace Minded.Extensions.Validation.Tests
             _mockValidator.Setup(v => v.ValidateAsync(command))
                 .ReturnsAsync(validationResult.Object);
 
-            var result = await _sut.HandleAsync(command);
+            ICommandResponse<string> result = await _sut.HandleAsync(command);
 
             result.Successful.Should().BeFalse();
             result.OutcomeEntries.Should().ContainSingle();
@@ -105,7 +105,7 @@ namespace Minded.Extensions.Validation.Tests
             _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(handlerResponse);
 
-            var result = await _sut.HandleAsync(command);
+            ICommandResponse<string> result = await _sut.HandleAsync(command);
 
             result.Successful.Should().BeTrue();
             result.Result.Should().Be(expectedResult);

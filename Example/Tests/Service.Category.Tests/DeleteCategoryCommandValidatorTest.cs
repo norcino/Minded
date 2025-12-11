@@ -15,6 +15,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using FluentAssertions;
 using QM.Common.Testing;
+using Minded.Extensions.Validation;
 
 namespace Service.Category.Tests
 {
@@ -48,10 +49,10 @@ namespace Service.Category.Tests
             {
                 new Data.Entity.Category { Id = categoryId }
             };
-            var mockDbSet = categories.AsQueryable().GetMockDbSet();
+            Mock<DbSet<Data.Entity.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
@@ -67,10 +68,10 @@ namespace Service.Category.Tests
             var command = new DeleteCategoryCommand(categoryId);
 
             var categories = new List<Data.Entity.Category>();
-            var mockDbSet = categories.AsQueryable().GetMockDbSet();
+            Mock<DbSet<Data.Entity.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -94,10 +95,10 @@ namespace Service.Category.Tests
                 new Data.Entity.Category { Id = categoryId },
                 new Data.Entity.Category { Id = 99 }
             };
-            var mockDbSet = categories.AsQueryable().GetMockDbSet();
+            Mock<DbSet<Data.Entity.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);
 
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeTrue();
         }

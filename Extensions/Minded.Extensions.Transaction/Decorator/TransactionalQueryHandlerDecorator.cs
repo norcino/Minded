@@ -61,12 +61,12 @@ namespace Minded.Extensions.Transaction.Decorator
             }
 
             // Determine timeout: use attribute value if specified, otherwise use default
-            var timeout = attribute.TimeoutSeconds > 0
+            TimeSpan timeout = attribute.TimeoutSeconds > 0
                 ? TimeSpan.FromSeconds(attribute.TimeoutSeconds)
                 : _options.Value.DefaultTimeout;
 
             // Create transaction scope with async flow enabled
-            using (var scope = TransactionManager.CreateTransactionScope(
+            using (System.Transactions.TransactionScope scope = TransactionManager.CreateTransactionScope(
                 attribute.TransactionScopeOption,
                 attribute.IsolationLevel,
                 timeout))
@@ -78,7 +78,7 @@ namespace Minded.Extensions.Transaction.Decorator
 
                 try
                 {
-                    var result = await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                    TResult result = await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
 
                     // Queries always complete successfully (no Successful property to check)
                     scope.Complete();

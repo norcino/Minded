@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Minded.Extensions.Configuration;
@@ -16,13 +17,13 @@ namespace Minded.Framework.Mediator
         /// <param name="lifeTime"></param>
         public static void AddQueryHandlers(this MindedBuilder builder, Action<MindedBuilder, Type> decorators = null, Func<AssemblyName, bool> assemblyFilter = null, ServiceLifetime lifeTime = ServiceLifetime.Transient)
         {
-            foreach (var assembly in builder.SourceAssemblies(assemblyFilter ?? builder.AssemblyFilter))
+            foreach (Assembly assembly in builder.SourceAssemblies(assemblyFilter ?? builder.AssemblyFilter))
             {
-                var queryHandlers = builder.GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
+                IEnumerable<Type> queryHandlers = builder.GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(IQueryHandler<,>));
 
-                foreach (var handlerType in queryHandlers)
+                foreach (Type handlerType in queryHandlers)
                 {
-                    var interfaceType = builder.GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
+                    Type interfaceType = builder.GetGenericInterfaceInType(handlerType, typeof(IQueryHandler<,>));
 
                     // Register the handler by it's interface
                     builder.Register(sc => sc.Add(new ServiceDescriptor(interfaceType, handlerType, lifeTime)));
@@ -42,13 +43,13 @@ namespace Minded.Framework.Mediator
         /// <param name="lifeTime"></param>
         public static void AddCommandHandlers(this MindedBuilder builder, Func<AssemblyName, bool> assemblyFilter = null, ServiceLifetime lifeTime = ServiceLifetime.Transient)
         {
-            foreach (var assembly in builder.SourceAssemblies(assemblyFilter ?? builder.AssemblyFilter))
+            foreach (Assembly assembly in builder.SourceAssemblies(assemblyFilter ?? builder.AssemblyFilter))
             {
-                var commandHandlers = builder.GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<>));
+                IEnumerable<Type> commandHandlers = builder.GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<>));
 
-                foreach (var handlerType in commandHandlers)
+                foreach (Type handlerType in commandHandlers)
                 {
-                    var interfaceType = builder.GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<>));
+                    Type interfaceType = builder.GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<>));
 
                     // Register the handler by it's interface
                     builder.Register(sc => sc.Add(new ServiceDescriptor(interfaceType, handlerType, lifeTime)));
@@ -61,9 +62,9 @@ namespace Minded.Framework.Mediator
 
                 commandHandlers = builder.GetGenericTypesImplementingInterfaceInAssembly(assembly, typeof(ICommandHandler<,>));
 
-                foreach (var handlerType in commandHandlers)
+                foreach (Type handlerType in commandHandlers)
                 {
-                    var interfaceType = builder.GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<,>));
+                    Type interfaceType = builder.GetGenericInterfaceInType(handlerType, typeof(ICommandHandler<,>));
 
                     // Register the handler by it's interface
                     builder.Register(sc => sc.Add(new ServiceDescriptor(interfaceType, handlerType, lifeTime)));

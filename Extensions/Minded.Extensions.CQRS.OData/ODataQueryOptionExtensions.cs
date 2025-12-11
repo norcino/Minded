@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.OData.Edm;
 using Minded.Framework.CQRS.Query;
@@ -20,12 +21,12 @@ namespace Minded.Extensions.CQRS.OData
         /// <param name="options">OData query options to use for the IQuery setup</param>
         public static void ApplyODataQueryOptions<T>(this IQuery<T> query, ODataQueryOptions options)
         {
-            var filter = options.Filter;
-            var orderBy = options.OrderBy;
-            var skip = options.Skip;
-            var top = options.Top;
-            var selectExpand = options.SelectExpand;
-            var count = options.Count;
+            FilterQueryOption filter = options.Filter;
+            OrderByQueryOption orderBy = options.OrderBy;
+            SkipQueryOption skip = options.Skip;
+            TopQueryOption top = options.Top;
+            SelectExpandQueryOption selectExpand = options.SelectExpand;
+            CountQueryOption count = options.Count;
 
             if (count != null && query is ICanCount)
             {
@@ -42,11 +43,11 @@ namespace Minded.Extensions.CQRS.OData
                     }
                     else
                     {
-                        var genericTypeArgs = typeof(T).GenericTypeArguments;
+                        Type[] genericTypeArgs = typeof(T).GenericTypeArguments;
 
                         if (genericTypeArgs != null && genericTypeArgs.Count() == 1)
                         {
-                            var method = typeof(ODataQueryOptionExtensions).GetMethod("GetFilterExpression", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).MakeGenericMethod(genericTypeArgs[0]);
+                            MethodInfo method = typeof(ODataQueryOptionExtensions).GetMethod("GetFilterExpression", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).MakeGenericMethod(genericTypeArgs[0]);
                             query.GetType().GetProperty("Filter").SetValue(query, method.Invoke(null, new[] { filter }));
                         }
                     }
@@ -75,7 +76,7 @@ namespace Minded.Extensions.CQRS.OData
             if (orderBy != null && query is ICanOrderBy)
             {
                 var orderDescriptors = new List<OrderDescriptor>();
-                foreach(var orderByNode in orderBy.OrderByNodes)
+                foreach(OrderByNode orderByNode in orderBy.OrderByNodes)
                 {                    
                     orderDescriptors.Add(
                         new OrderDescriptor(
@@ -88,12 +89,12 @@ namespace Minded.Extensions.CQRS.OData
 
         public static void ApplyODataQueryOptions<T>(this IQuery<IQueryResponse<T>> query, ODataQueryOptions options)
         {
-            var filter = options.Filter;
-            var orderBy = options.OrderBy;
-            var skip = options.Skip;
-            var top = options.Top;
-            var selectExpand = options.SelectExpand;
-            var count = options.Count;
+            FilterQueryOption filter = options.Filter;
+            OrderByQueryOption orderBy = options.OrderBy;
+            SkipQueryOption skip = options.Skip;
+            TopQueryOption top = options.Top;
+            SelectExpandQueryOption selectExpand = options.SelectExpand;
+            CountQueryOption count = options.Count;
 
             if (count != null && query is ICanCount)
             {
@@ -110,11 +111,11 @@ namespace Minded.Extensions.CQRS.OData
                     }
                     else
                     {
-                        var genericTypeArgs = typeof(T).GenericTypeArguments;
+                        Type[] genericTypeArgs = typeof(T).GenericTypeArguments;
 
                         if (genericTypeArgs != null && genericTypeArgs.Count() == 1)
                         {
-                            var method = typeof(ODataQueryOptionExtensions).GetMethod("GetFilterExpression", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).MakeGenericMethod(genericTypeArgs[0]);
+                            MethodInfo method = typeof(ODataQueryOptionExtensions).GetMethod("GetFilterExpression", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).MakeGenericMethod(genericTypeArgs[0]);
                             query.GetType().GetProperty("Filter").SetValue(query, method.Invoke(null, new[] { filter }));
                         }
                     }
@@ -143,7 +144,7 @@ namespace Minded.Extensions.CQRS.OData
             if (orderBy != null && query is ICanOrderBy)
             {
                 var orderDescriptors = new List<OrderDescriptor>();
-                foreach (var orderByNode in orderBy.OrderByNodes)
+                foreach (OrderByNode orderByNode in orderBy.OrderByNodes)
                 {
                     orderDescriptors.Add(
                         new OrderDescriptor(
@@ -165,7 +166,7 @@ namespace Minded.Extensions.CQRS.OData
         {
             if (options == null) return query;
 
-            var queryable = options.ApplyTo(query);
+            IQueryable queryable = options.ApplyTo(query);
 
             if (queryable is IQueryable<T> queryableEntity)
             {
@@ -186,7 +187,7 @@ namespace Minded.Extensions.CQRS.OData
         private static Expression<Func<TEntity, bool>> GetFilterExpression<TEntity>(this FilterQueryOption filter)
         {
             IQueryable<TEntity> enumerable = Enumerable.Empty<TEntity>().AsQueryable();
-            var param = Expression.Parameter(typeof(TEntity));
+            ParameterExpression param = Expression.Parameter(typeof(TEntity));
 
             if (filter != null)
             {
@@ -216,24 +217,24 @@ namespace Minded.Extensions.CQRS.OData
 
         private static T Unwrap<T>(object item) where T : class, new()
         {
-            var instanceProperty = item.GetType().GetProperty("Instance");
+            PropertyInfo instanceProperty = item.GetType().GetProperty("Instance");
             var value = (T)instanceProperty.GetValue(item);
 
             if (value != null) return value;
 
             value = new T();
-            var containerProperty = item.GetType().GetProperty("Container");
+            PropertyInfo containerProperty = item.GetType().GetProperty("Container");
             var container = containerProperty.GetValue(item);
 
             if (container == null) return (T)null;
 
-            var containerType = container.GetType();
+            Type containerType = container.GetType();
             var containerItem = container;
             var returnNull = true;
 
             for (var i = 0; containerItem != null; i++)
             {
-                var containerItemType = containerItem.GetType();
+                Type containerItemType = containerItem.GetType();
                 var containerItemValue = containerItemType.GetProperty("Value").GetValue(containerItem);
 
                 if (containerItemValue == null)
@@ -243,7 +244,7 @@ namespace Minded.Extensions.CQRS.OData
                 }
 
                 var containerItemName = containerItemType.GetProperty("Name").GetValue(containerItem) as string;
-                var expandedProp = typeof(T).GetProperty(containerItemName);
+                PropertyInfo expandedProp = typeof(T).GetProperty(containerItemName);
 
                 if (expandedProp.SetMethod == null)
                 {
@@ -253,12 +254,12 @@ namespace Minded.Extensions.CQRS.OData
 
                 if (containerItemValue.GetType() != typeof(string) && containerItemValue is IEnumerable containerValues)
                 {
-                    var listType = typeof(List<>).MakeGenericType(expandedProp.PropertyType.GenericTypeArguments[0]);
+                    Type listType = typeof(List<>).MakeGenericType(expandedProp.PropertyType.GenericTypeArguments[0]);
                     var expandedList = (IList)Activator.CreateInstance(listType);
 
                     foreach (var expandedItem in containerValues)
                     {
-                        var expandedInstanceProp = expandedItem.GetType().GetProperty("Instance");
+                        PropertyInfo expandedInstanceProp = expandedItem.GetType().GetProperty("Instance");
                         var expandedValue = expandedInstanceProp.GetValue(expandedItem);
                         expandedList.Add(expandedValue);
                     }
@@ -268,7 +269,7 @@ namespace Minded.Extensions.CQRS.OData
                 }
                 else
                 {
-                    var expandedInstanceProp = containerItemValue.GetType().GetProperty("Instance");
+                    PropertyInfo expandedInstanceProp = containerItemValue.GetType().GetProperty("Instance");
 
                     if (expandedInstanceProp == null)
                     {
@@ -285,9 +286,9 @@ namespace Minded.Extensions.CQRS.OData
                         }
                         else
                         {
-                            var genericType = containerItemValue.GetType().GenericTypeArguments[0];
-                            var unwrapMethod = typeof(ODataQueryOptionExtensions).GetMethod(nameof(Unwrap));
-                            var unwrapGenericMethod = unwrapMethod.MakeGenericMethod(genericType);
+                            Type genericType = containerItemValue.GetType().GenericTypeArguments[0];
+                            MethodInfo unwrapMethod = typeof(ODataQueryOptionExtensions).GetMethod(nameof(Unwrap));
+                            MethodInfo unwrapGenericMethod = unwrapMethod.MakeGenericMethod(genericType);
                             expandedValue = unwrapGenericMethod.Invoke(null, new[] { containerItemValue });
                             if (expandedValue != null)
                             {

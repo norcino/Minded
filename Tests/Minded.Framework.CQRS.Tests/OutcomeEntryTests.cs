@@ -65,7 +65,7 @@ namespace Minded.Framework.CQRS.Tests
             var propertyName = Any.String();
             var message = Any.String();
             var attemptedValue = Any.String();
-            var severity = Severity.Error;
+            Severity severity = Severity.Error;
             var errorCode = Any.String();
 
             var outcome = new OutcomeEntry(propertyName, message, attemptedValue, severity, errorCode);
@@ -87,7 +87,7 @@ namespace Minded.Framework.CQRS.Tests
             var propertyName = Any.String();
             var message = Any.String();
             var attemptedValue = Any.String();
-            var severity = Severity.Warning;
+            Severity severity = Severity.Warning;
 
             var outcome = new OutcomeEntry(propertyName, message, attemptedValue, severity, null);
 

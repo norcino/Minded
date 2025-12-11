@@ -71,7 +71,7 @@ namespace Minded.Extensions.DataProtection
                 return null;
 
             var result = new Dictionary<string, object>();
-            var type = obj.GetType();
+            Type type = obj.GetType();
 
             // Handle primitive types and strings directly
             if (type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) || type == typeof(Guid) || type.IsEnum)
@@ -81,9 +81,9 @@ namespace Minded.Extensions.DataProtection
             }
 
             // Get all public properties
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
-            foreach (var property in properties)
+            foreach (PropertyInfo property in properties)
             {
                 try
                 {
@@ -124,7 +124,7 @@ namespace Minded.Extensions.DataProtection
             if (value == null)
                 return null;
 
-            var type = value.GetType();
+            Type type = value.GetType();
 
             // Handle primitive types, strings, and common value types
             if (type.IsPrimitive || type == typeof(string) || type == typeof(DateTime) || 

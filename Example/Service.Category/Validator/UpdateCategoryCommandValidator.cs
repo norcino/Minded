@@ -56,7 +56,7 @@ namespace Service.Category.Validator
             }
 
             // Validate the category entity
-            var categoryValidationResult = await _categoryValidator.ValidateAsync(command.Category);
+            IValidationResult categoryValidationResult = await _categoryValidator.ValidateAsync(command.Category);
             return categoryValidationResult.Merge(validationResult);
         }
     }

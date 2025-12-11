@@ -24,7 +24,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<ICommandHandler<TestCommandWithResult, int>>();
             var mockLogger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithResult, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryCommandHandlerDecorator<TestCommandWithResult, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var command = new TestCommandWithResult();
@@ -33,7 +33,7 @@ namespace Minded.Extensions.Retry.Tests
             mockInnerHandler.Setup(h => h.HandleAsync(It.IsAny<TestCommandWithResult>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var result = await sut.HandleAsync(command, CancellationToken.None);
+            ICommandResponse<int> result = await sut.HandleAsync(command, CancellationToken.None);
 
             result.Should().Be(expectedResponse);
             result.Result.Should().Be(expectedResult);
@@ -45,7 +45,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<ICommandHandler<TestCommandWithResultAndRetry, int>>();
             var mockLogger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var command = new TestCommandWithResultAndRetry();
@@ -54,7 +54,7 @@ namespace Minded.Extensions.Retry.Tests
             mockInnerHandler.Setup(h => h.HandleAsync(It.IsAny<TestCommandWithResultAndRetry>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var result = await sut.HandleAsync(command, CancellationToken.None);
+            ICommandResponse<int> result = await sut.HandleAsync(command, CancellationToken.None);
 
             result.Should().Be(expectedResponse);
             result.Result.Should().Be(expectedResult);
@@ -66,7 +66,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<ICommandHandler<TestCommandWithResultAndRetry, int>>();
             var mockLogger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var command = new TestCommandWithResultAndRetry();
@@ -83,7 +83,7 @@ namespace Minded.Extensions.Retry.Tests
                     return Task.FromResult<ICommandResponse<int>>(expectedResponse);
                 });
 
-            var result = await sut.HandleAsync(command, CancellationToken.None);
+            ICommandResponse<int> result = await sut.HandleAsync(command, CancellationToken.None);
 
             result.Should().Be(expectedResponse);
             result.Result.Should().Be(expectedResult);
@@ -95,14 +95,14 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<ICommandHandler<TestCommandWithResultAndRetry, int>>();
             var mockLogger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var command = new TestCommandWithResultAndRetry();
             mockInnerHandler.Setup(h => h.HandleAsync(It.IsAny<TestCommandWithResultAndRetry>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("Persistent failure"));
 
-            var act = async () => await sut.HandleAsync(command, CancellationToken.None);
+            Func<Task<ICommandResponse<int>>> act = async () => await sut.HandleAsync(command, CancellationToken.None);
 
             await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Persistent failure");
             mockInnerHandler.Verify(h => h.HandleAsync(It.IsAny<TestCommandWithResultAndRetry>(), It.IsAny<CancellationToken>()), Times.Exactly(4)); // 1 initial + 3 retries
@@ -113,7 +113,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<ICommandHandler<TestCommandWithResultAndMultipleDelays, int>>();
             var mockLogger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithResultAndMultipleDelays, int>>>();
-            var options = Options.Create(new RetryOptions());
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions());
             var sut = new RetryCommandHandlerDecorator<TestCommandWithResultAndMultipleDelays, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var command = new TestCommandWithResultAndMultipleDelays();
@@ -130,9 +130,9 @@ namespace Minded.Extensions.Retry.Tests
                     return Task.FromResult<ICommandResponse<int>>(expectedResponse);
                 });
 
-            var startTime = DateTime.UtcNow;
-            var result = await sut.HandleAsync(command, CancellationToken.None);
-            var elapsed = DateTime.UtcNow - startTime;
+            DateTime startTime = DateTime.UtcNow;
+            ICommandResponse<int> result = await sut.HandleAsync(command, CancellationToken.None);
+            TimeSpan elapsed = DateTime.UtcNow - startTime;
 
             result.Should().Be(expectedResponse);
             elapsed.TotalMilliseconds.Should().BeGreaterThanOrEqualTo(140); // 50ms + 100ms with some tolerance
@@ -143,7 +143,7 @@ namespace Minded.Extensions.Retry.Tests
         {
             var mockInnerHandler = new Mock<ICommandHandler<TestCommandWithResultAndRetry, int>>();
             var mockLogger = new Mock<ILogger<RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>>>();
-            var options = Options.Create(new RetryOptions { DefaultDelay1 = 50 });
+            IOptions<RetryOptions> options = Options.Create(new RetryOptions { DefaultDelay1 = 50 });
             var sut = new RetryCommandHandlerDecorator<TestCommandWithResultAndRetry, int>(mockInnerHandler.Object, mockLogger.Object, options);
 
             var command = new TestCommandWithResultAndRetry();
@@ -160,9 +160,9 @@ namespace Minded.Extensions.Retry.Tests
                     return Task.FromResult<ICommandResponse<int>>(expectedResponse);
                 });
 
-            var startTime = DateTime.UtcNow;
-            var result = await sut.HandleAsync(command, CancellationToken.None);
-            var elapsed = DateTime.UtcNow - startTime;
+            DateTime startTime = DateTime.UtcNow;
+            ICommandResponse<int> result = await sut.HandleAsync(command, CancellationToken.None);
+            TimeSpan elapsed = DateTime.UtcNow - startTime;
 
             result.Should().Be(expectedResponse);
             elapsed.TotalMilliseconds.Should().BeGreaterThanOrEqualTo(40); // 50ms with some tolerance

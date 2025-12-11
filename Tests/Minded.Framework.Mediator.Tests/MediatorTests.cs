@@ -127,7 +127,7 @@ namespace Minded.Framework.Mediator.Tests
             _mockServiceProvider.Setup(sp => sp.GetService(typeof(ICommandHandler<TestCommand>)))
                                 .Returns(mockHandler.Object);
 
-            var result = await _sut.ProcessCommandAsync(command);
+            ICommandResponse result = await _sut.ProcessCommandAsync(command);
 
             result.Should().Be(expectedResponse);
             result.Successful.Should().BeTrue();
@@ -172,7 +172,7 @@ namespace Minded.Framework.Mediator.Tests
             _mockServiceProvider.Setup(sp => sp.GetService(typeof(ICommandHandler<TestCommandWithResult, string>)))
                                 .Returns(mockHandler.Object);
 
-            var result = await _sut.ProcessCommandAsync(command);
+            ICommandResponse<string> result = await _sut.ProcessCommandAsync(command);
 
             result.Should().Be(expectedResponse);
             result.Result.Should().Be(expectedResult);
@@ -211,7 +211,7 @@ namespace Minded.Framework.Mediator.Tests
             _mockServiceProvider.Setup(sp => sp.GetService(typeof(ICommandHandler<TestCommandWithResult, string>)))
                                 .Returns(mockHandler.Object);
 
-            var result = await _sut.ProcessCommandAsync(command);
+            ICommandResponse<string> result = await _sut.ProcessCommandAsync(command);
 
             result.Should().NotBeNull();
             result.Successful.Should().BeFalse();

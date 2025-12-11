@@ -21,7 +21,7 @@ namespace Minded.Extensions.WebApi
 
         public IActionResult ProcessQueryRules<T>(RestOperation operation, IQueryResponse<T> result)
         {
-            var rule = GetQueryRule(operation, result);
+            IQueryRestRule rule = GetQueryRule(operation, result);
 
             if (rule == null)
             {
@@ -71,7 +71,7 @@ namespace Minded.Extensions.WebApi
         /// <returns></returns>
         public virtual IActionResult ProcessQueryRules(RestOperation operation, object result)
         {
-            var rule = GetQueryRule(operation, result);
+            IQueryRestRule rule = GetQueryRule(operation, result);
 
             if (rule == null)
             {
@@ -134,7 +134,7 @@ namespace Minded.Extensions.WebApi
         /// <returns>ActionResult to be returned to the API</returns>
         public virtual IActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result)
         {
-            var rule = GetCommandRule(operation, result);
+            ICommandRestRule rule = GetCommandRule(operation, result);
 
             if (rule == null)
             {
@@ -174,7 +174,7 @@ namespace Minded.Extensions.WebApi
         /// <returns>ActionResult to be returned to the API</returns>
         public virtual IActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result)
         {
-            var rule = GetCommandRule(operation, result);
+            ICommandRestRule rule = GetCommandRule(operation, result);
 
             if (rule == null)
             {

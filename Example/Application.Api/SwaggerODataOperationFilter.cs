@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -32,9 +33,9 @@ namespace Application.Api
                 return;
 
             // Remove the ODataQueryOptions parameter from Swagger
-            foreach (var odataParam in odataParameters)
+            foreach (ApiParameterDescription odataParam in odataParameters)
             {
-                var paramToRemove = operation.Parameters
+                OpenApiParameter paramToRemove = operation.Parameters
                     .FirstOrDefault(p => p.Name == odataParam.Name);
 
                 if (paramToRemove != null)
@@ -105,7 +106,7 @@ namespace Application.Api
             };
 
             // Add the OData parameters to the operation
-            foreach (var param in odataQueryParams)
+            foreach (OpenApiParameter param in odataQueryParams)
             {
                 operation.Parameters.Add(param);
             }

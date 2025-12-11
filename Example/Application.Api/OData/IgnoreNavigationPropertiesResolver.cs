@@ -54,11 +54,11 @@ namespace Application.Api.OData
         /// <returns>List of JSON properties with conditional serialization for navigation properties</returns>
         protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
         {
-            var properties = base.CreateProperties(type, memberSerialization);
+            IList<JsonProperty> properties = base.CreateProperties(type, memberSerialization);
 
-            foreach (var property in properties)
+            foreach (JsonProperty property in properties)
             {
-                var propertyInfo = type.GetProperty(property.PropertyName);
+                PropertyInfo propertyInfo = type.GetProperty(property.PropertyName);
                 if (propertyInfo == null)
                     continue;
 
@@ -70,7 +70,7 @@ namespace Application.Api.OData
                 if (propertyInfo.GetCustomAttribute<JsonPropertyAttribute>() != null)
                     continue;
 
-                var propertyType = propertyInfo.PropertyType;
+                Type propertyType = propertyInfo.PropertyType;
 
                 // Check if it's a navigation property (collection or reference)
                 if (IsCollectionType(propertyType) || _isNavigationProperty(propertyType))
@@ -101,7 +101,7 @@ namespace Application.Api.OData
         /// </summary>
         private bool IsVirtualProperty(PropertyInfo propertyInfo)
         {
-            var getMethod = propertyInfo.GetGetMethod();
+            MethodInfo getMethod = propertyInfo.GetGetMethod();
             return getMethod != null && getMethod.IsVirtual && !getMethod.IsFinal;
         }
 

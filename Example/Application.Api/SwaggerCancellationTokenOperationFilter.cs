@@ -29,7 +29,7 @@ namespace Application.Api
                                          pd.Type == typeof(CancellationToken))))
                 .ToList();
 
-            foreach (var parameter in cancellationTokenParameters)
+            foreach (OpenApiParameter parameter in cancellationTokenParameters)
             {
                 operation.Parameters.Remove(parameter);
             }

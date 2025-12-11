@@ -30,7 +30,7 @@ namespace Service.Category.CommandHandler
         /// <returns>Successful command response</returns>
         public async Task<ICommandResponse> HandleAsync(DeleteCategoryCommand command, CancellationToken cancellationToken = default)
         {
-            var category = await _context.Categories.SingleOrDefaultAsync(c => c.Id == command.CategoryId, cancellationToken);
+            Data.Entity.Category category = await _context.Categories.SingleOrDefaultAsync(c => c.Id == command.CategoryId, cancellationToken);
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync(cancellationToken);

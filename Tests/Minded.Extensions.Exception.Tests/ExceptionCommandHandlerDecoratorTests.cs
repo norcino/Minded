@@ -55,7 +55,7 @@ namespace Minded.Extensions.Exception.Tests
             _mockInnerHandler.Setup(h => h.HandleAsync(command, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var result = await _sut.HandleAsync(command);
+            ICommandResponse result = await _sut.HandleAsync(command);
 
             result.Should().Be(expectedResponse);
             _mockInnerHandler.Verify(h => h.HandleAsync(command, It.IsAny<CancellationToken>()), Times.Once);

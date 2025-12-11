@@ -6,6 +6,7 @@ using Service.Category.Validator;
 using Builder;
 using FluentAssertions;
 using Minded.Framework.CQRS.Abstractions;
+using Minded.Extensions.Validation;
 
 namespace Service.Category.Tests
 {
@@ -23,8 +24,8 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_suceed_when_category_is_valid()
         {
-            var category = Builder<Data.Entity.Category>.New().Build();
-            var result = await _sut.ValidateAsync(category);
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New().Build();
+            IValidationResult result = await _sut.ValidateAsync(category);
 
             result.OutcomeEntries.Should().BeEmpty();
             result.IsValid.Should().BeTrue();
@@ -33,8 +34,8 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_fails_when_name_is_null()
         {
-            var category = Builder<Data.Entity.Category>.New().Build(e => e.Name = null);
-            var result = await _sut.ValidateAsync(category);
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New().Build(e => e.Name = null);
+            IValidationResult result = await _sut.ValidateAsync(category);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -47,8 +48,8 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_fails_when_name_is_empty()
         {
-            var category = Builder<Data.Entity.Category>.New().Build(e => { e.Name = ""; });
-            var result = await _sut.ValidateAsync(category);
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New().Build(e => { e.Name = ""; });
+            IValidationResult result = await _sut.ValidateAsync(category);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -61,8 +62,8 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_fails_when_name_is_made_of_spaces()
         {
-            var category = Builder<Data.Entity.Category>.New().Build(e => { e.Name = "    "; });
-            var result = await _sut.ValidateAsync(category);
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New().Build(e => { e.Name = "    "; });
+            IValidationResult result = await _sut.ValidateAsync(category);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>

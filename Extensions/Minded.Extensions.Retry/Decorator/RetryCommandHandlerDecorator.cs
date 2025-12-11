@@ -70,7 +70,7 @@ namespace Minded.Extensions.Retry.Decorator
                             retryCount);
                     }
 
-                    var response = await InnerCommandHandler.HandleAsync(command, cancellationToken);
+                    ICommandResponse response = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
                     if (attempt > 0)
                     {
@@ -186,7 +186,7 @@ namespace Minded.Extensions.Retry.Decorator
                             retryCount);
                     }
 
-                    var response = await InnerCommandHandler.HandleAsync(command, cancellationToken);
+                    ICommandResponse<TResult> response = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
                     if (attempt > 0)
                     {

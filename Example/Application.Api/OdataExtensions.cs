@@ -3,7 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Query.Validator;
 
 namespace Application.Api
 {
@@ -11,18 +14,18 @@ namespace Application.Api
 
         public static void X<TEntity>(ODataQueryOptions<TEntity> odataOptions)
         {
-            var apply = odataOptions.Apply;
-            var context = odataOptions.Context;
-            var rawValues = odataOptions.RawValues;
-            var count = odataOptions.Count;
-            var filter = odataOptions.Filter;
-            var orderBy = odataOptions.OrderBy;
-            var httpRequest = odataOptions.Request;
-            var selectExpand = odataOptions.SelectExpand;
-            var skip = odataOptions.Skip;
-            var skipToken = odataOptions.SkipToken;
-            var top = odataOptions.Top;
-            var validator = odataOptions.Validator;
+            ApplyQueryOption apply = odataOptions.Apply;
+            ODataQueryContext context = odataOptions.Context;
+            ODataRawQueryOptions rawValues = odataOptions.RawValues;
+            CountQueryOption count = odataOptions.Count;
+            FilterQueryOption filter = odataOptions.Filter;
+            OrderByQueryOption orderBy = odataOptions.OrderBy;
+            HttpRequest httpRequest = odataOptions.Request;
+            SelectExpandQueryOption selectExpand = odataOptions.SelectExpand;
+            SkipQueryOption skip = odataOptions.Skip;
+            SkipTokenQueryOption skipToken = odataOptions.SkipToken;
+            TopQueryOption top = odataOptions.Top;
+            IODataQueryValidator validator = odataOptions.Validator;
         }
 
         /// <summary>
@@ -33,8 +36,8 @@ namespace Application.Api
         /// <returns>Expression which can be uset to filter an IQueryable of TEntity</returns>
         public static Expression<Func<TEntity, bool>> GetFilterExpression<TEntity>(this FilterQueryOption filter)
         {
-            var enumerable = Enumerable.Empty<TEntity>().AsQueryable();
-            var param = Expression.Parameter(typeof(TEntity));
+            IQueryable<TEntity> enumerable = Enumerable.Empty<TEntity>().AsQueryable();
+            ParameterExpression param = Expression.Parameter(typeof(TEntity));
             if (filter != null)
             {
                 enumerable = (IQueryable<TEntity>)filter.ApplyTo(enumerable, new ODataQuerySettings());
@@ -66,7 +69,7 @@ namespace Application.Api
                 return query;
             }
 
-            var queryable = options.ApplyTo(query);
+            IQueryable queryable = options.ApplyTo(query);
 
             if (queryable is IQueryable<T> queriableEntity)
             {
@@ -86,7 +89,7 @@ namespace Application.Api
 
         private static T Unwrap<T>(object item) where T : class, new()
         {
-            var instanceProp = item.GetType().GetProperty("Instance");
+            PropertyInfo instanceProp = item.GetType().GetProperty("Instance");
             var value = (T)instanceProp.GetValue(item);
 
             if (value != null)
@@ -95,7 +98,7 @@ namespace Application.Api
             }
 
             value = new T();
-            var containerProp = item.GetType().GetProperty("Container");
+            PropertyInfo containerProp = item.GetType().GetProperty("Container");
             var container = containerProp.GetValue(item);
 
             if (container == null)
@@ -103,13 +106,13 @@ namespace Application.Api
                 return (T)null;
             }
 
-            var containerType = container.GetType();
+            Type containerType = container.GetType();
             var containerItem = container;
             var allNull = true;
 
             for (var i = 0; containerItem != null; i++)
             {
-                var containerItemType = containerItem.GetType();
+                Type containerItemType = containerItem.GetType();
                 var containerItemValue = containerItemType.GetProperty("Value").GetValue(containerItem);
 
                 if (containerItemValue == null)
@@ -119,7 +122,7 @@ namespace Application.Api
                 }
 
                 var containerItemName = containerItemType.GetProperty("Name").GetValue(containerItem) as string;
-                var expandedProp = typeof(T).GetProperty(containerItemName);
+                PropertyInfo expandedProp = typeof(T).GetProperty(containerItemName);
 
                 if (expandedProp.SetMethod == null)
                 {
@@ -129,12 +132,12 @@ namespace Application.Api
 
                 if (containerItemValue.GetType() != typeof(string) && containerItemValue is IEnumerable containerValues)
                 {
-                    var listType = typeof(List<>).MakeGenericType(expandedProp.PropertyType.GenericTypeArguments[0]);
+                    Type listType = typeof(List<>).MakeGenericType(expandedProp.PropertyType.GenericTypeArguments[0]);
                     var expandedList = (IList)Activator.CreateInstance(listType);
 
                     foreach (var expandedItem in containerValues)
                     {
-                        var expandedInstanceProp = expandedItem.GetType().GetProperty("Instance");
+                        PropertyInfo expandedInstanceProp = expandedItem.GetType().GetProperty("Instance");
                         var expandedValue = expandedInstanceProp.GetValue(expandedItem);
                         expandedList.Add(expandedValue);
                     }
@@ -144,7 +147,7 @@ namespace Application.Api
                 }
                 else
                 {
-                    var expandedInstanceProp = containerItemValue.GetType().GetProperty("Instance");
+                    PropertyInfo expandedInstanceProp = containerItemValue.GetType().GetProperty("Instance");
 
                     if (expandedInstanceProp == null)
                     {
@@ -161,9 +164,9 @@ namespace Application.Api
                         }
                         else
                         {
-                            var t = containerItemValue.GetType().GenericTypeArguments[0];
-                            var wrapInfo = typeof(OdataExtensions).GetMethod(nameof(Unwrap));
-                            var wrapT = wrapInfo.MakeGenericMethod(t);
+                            Type t = containerItemValue.GetType().GenericTypeArguments[0];
+                            MethodInfo wrapInfo = typeof(OdataExtensions).GetMethod(nameof(Unwrap));
+                            MethodInfo wrapT = wrapInfo.MakeGenericMethod(t);
                             expandedValue = wrapT.Invoke(null, new[] { containerItemValue });
                             if (expandedValue != null)
                             {

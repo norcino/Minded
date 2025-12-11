@@ -22,7 +22,7 @@ namespace Service.Category.QueryHandler
 
         public async Task<IQueryResponse<IEnumerable<Data.Entity.Category>>> HandleAsync(GetCategoriesQuery query, CancellationToken cancellationToken = default)
         {
-            var result = await query.ApplyQueryTo(_context.Categories.AsQueryable()).ToListAsync(cancellationToken);
+            List<Data.Entity.Category> result = await query.ApplyQueryTo(_context.Categories.AsQueryable()).ToListAsync(cancellationToken);
             var response = new QueryResponse<IEnumerable<Data.Entity.Category>>(result);
 
             return response;

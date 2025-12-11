@@ -31,6 +31,8 @@ Added configuration options to control sensitive data visibility with provider p
 * Added `AddDataProtection<TImplementation>()` for custom sanitizer implementations
 * Added automatic data sanitization in `LoggingCommandHandlerDecorator` and `LoggingQueryHandlerDecorator`
 * Added automatic data sanitization in `ExceptionCommandHandlerDecorator` and `ExceptionQueryHandlerDecorator`
+* Added `DiagnosticDataSanitizer` to remove non-serializable types and excluded properties before applying IDataSanitizer
+* Added `[ExcludeFromSerializedDiagnosticLogging]` attribute to mark properties that should never appear in exception logs
 * Added protection against infinite recursion with max depth limit (3 levels)
 * Added collection truncation in logs (max 10 items) to prevent excessive log size
 

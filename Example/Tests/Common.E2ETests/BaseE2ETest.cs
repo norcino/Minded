@@ -37,7 +37,7 @@ namespace Common.E2ETests
         private IServiceCollection _serviceCollection;
         private DbConnection _connection;
         private IMindedExampleContext _context;
-        private static TestingProfile _currentTestingProfile;
+        private static TestingProfile s_currentTestingProfile;
         private IConfigurationRoot _configuration;
         private Mock<IMindedExampleContext> _mockIMindedExampleContext;
         private ServiceProvider _serviceProvider;
@@ -57,21 +57,6 @@ namespace Common.E2ETests
             // Reset the database before each test
             // This ensures each test starts with a clean database
             await ResetDb();
-        }
-
-        [TestCleanup]
-        public void BaseTestTestCleanup()
-        {
-            // Do not dispose the client here - it will be disposed in ClassCleanup
-            // Disposing it here would break subsequent tests
-        }
-
-        [ClassCleanup]
-        public static void BaseTestClassCleanup()
-        {
-            // This method is static and cannot access instance fields
-            // The client will be disposed by the garbage collector
-            // or we can implement IDisposable pattern if needed
         }
 
         /// <summary>
@@ -126,20 +111,20 @@ namespace Common.E2ETests
                 .Build();
 
             // Load the configured testing profile
-            _currentTestingProfile = (TestingProfile) Enum.Parse(typeof(TestingProfile), _configuration.GetValue<string>("TestingProfile"));
+            s_currentTestingProfile = (TestingProfile) Enum.Parse(typeof(TestingProfile), _configuration.GetValue<string>("TestingProfile"));
 
             // Setup mocked environment object
             var mockEnv = new Mock<IWebHostEnvironment>();
-            mockEnv.SetupProperty(p => p.EnvironmentName, _currentTestingProfile.ToString());
+            mockEnv.SetupProperty(p => p.EnvironmentName, s_currentTestingProfile.ToString());
             mockEnv.SetupProperty(p => p.ApplicationName, GetType().Assembly.FullName);
             mockEnv.SetupProperty(p => p.ContentRootPath, AppContext.BaseDirectory);
             mockEnv.SetupProperty(p => p.WebRootPath, AppContext.BaseDirectory);
-            var env = mockEnv.Object;
+            IWebHostEnvironment env = mockEnv.Object;
 
             _mockIMindedExampleContext = new Mock<IMindedExampleContext>(MockBehavior.Strict);
             SetupDbContextMockObject();
 
-            var applicationFactory = new WebApplicationFactory<Startup>().WithWebHostBuilder(builder =>
+            WebApplicationFactory<Startup> applicationFactory = new WebApplicationFactory<Startup>().WithWebHostBuilder(builder =>
             {
                 builder.ConfigureTestServices(services => {
                     ConfigureContext(services);
@@ -154,10 +139,10 @@ namespace Common.E2ETests
 
                 // Set the environment to the testing profile to prevent automatic seeding in Startup.cs
                 // This ensures that Startup.SeedDatabaseForDevelopment() is not called during tests
-                builder.UseEnvironment(_currentTestingProfile.ToString());
+                builder.UseEnvironment(s_currentTestingProfile.ToString());
             });
 
-            var client = applicationFactory.CreateClient();
+            HttpClient client = applicationFactory.CreateClient();
             _context = _serviceProvider.GetService<IMindedExampleContext>();
 
             return client;
@@ -186,21 +171,21 @@ namespace Common.E2ETests
         private void ConfigureContext(IServiceCollection services)
         {
             _serviceCollection = services;
-            switch (_currentTestingProfile)
+            switch (s_currentTestingProfile)
             {
                 case TestingProfile.UnitTesting:
                     services.OverrideAddScoped(_mockIMindedExampleContext.Object);
-                    _seeder = new Seeder(_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
+                    _seeder = new Seeder(s_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
                     break;
                 case TestingProfile.E2ELive:
                     // Remove any existing DbContext registrations from Startup.cs
-                    var descriptorDbContext = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
+                    ServiceDescriptor descriptorDbContext = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
                     if (descriptorDbContext != null)
                     {
                         services.Remove(descriptorDbContext);
                     }
 
-                    var descriptorIMindedContext = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
+                    ServiceDescriptor descriptorIMindedContext = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
                     if (descriptorIMindedContext != null)
                     {
                         services.Remove(descriptorIMindedContext);
@@ -218,7 +203,7 @@ namespace Common.E2ETests
 
                     services.AddSingleton<IMindedExampleContext>(s =>
                     {
-                        var context = s.GetService<MindedExampleContext>();
+                        MindedExampleContext context = s.GetService<MindedExampleContext>();
                         _connection = context.Database.GetDbConnection();
                         _connection.Open(); // Keep connection open to maintain in-memory database
                         context.Database.EnsureCreated();
@@ -228,7 +213,7 @@ namespace Common.E2ETests
                         if (_context == null)
                         {
                             _context = context;
-                            _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
+                            _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
                         }
 
                         return context;
@@ -236,13 +221,13 @@ namespace Common.E2ETests
                     break;
                 case TestingProfile.E2E:
                     // Remove any existing DbContext registrations from Startup.cs
-                    var descriptorDbContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
+                    ServiceDescriptor descriptorDbContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
                     if (descriptorDbContextE2E != null)
                     {
                         services.Remove(descriptorDbContextE2E);
                     }
 
-                    var descriptorIMindedContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
+                    ServiceDescriptor descriptorIMindedContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
                     if (descriptorIMindedContextE2E != null)
                     {
                         services.Remove(descriptorIMindedContextE2E);
@@ -259,7 +244,7 @@ namespace Common.E2ETests
                         _context = s.GetService<MindedExampleContext>();
                         _context.Database.EnsureCreated();
                         // DO NOT seed the database here - let the tests control seeding
-                        _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
+                        _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
                         return _context;
                     });
                     break;
@@ -271,15 +256,15 @@ namespace Common.E2ETests
         /// </summary>
         public async Task ResetDb(CancellationToken cancellationToken = default)
         {
-            if (_currentTestingProfile == TestingProfile.UnitTesting)
+            if (s_currentTestingProfile == TestingProfile.UnitTesting)
             {
                 _mockIMindedExampleContext.Reset();
                 SetupDbContextMockObject();
-                _seeder = new Seeder(_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
+                _seeder = new Seeder(s_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
                 return;
             }
 
-            if (_currentTestingProfile == TestingProfile.E2ELive)
+            if (s_currentTestingProfile == TestingProfile.E2ELive)
             {
                 _context.ChangeTracker.Clear();
                 await _context.Database.CloseConnectionAsync();
@@ -314,9 +299,11 @@ namespace Common.E2ETests
                     string usersTable = concreteContext.Model.FindEntityType(typeof(User))?.GetTableName() ?? "Users";
 
                     // Delete child entities first (Transactions depend on Categories and Users)
+#pragma warning disable EF1002 // Risk of vulnerability to SQL injection.
                     await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {transactionsTable}", cancellationToken);
                     await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {categoriesTable}", cancellationToken);
                     await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {usersTable}", cancellationToken);
+#pragma warning restore EF1002 // Risk of vulnerability to SQL injection.
 
                     // Reset the auto-increment counters for SQLite
                     // This ensures IDs start from 1 for each test, making tests more predictable
@@ -327,7 +314,7 @@ namespace Common.E2ETests
                 }
 
                 // Recreate the seeder with the same context (which is a singleton)
-                _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
+                _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
                 return;
             }
 
@@ -335,7 +322,7 @@ namespace Common.E2ETests
             await _context.Database.EnsureCreatedAsync(cancellationToken);
 
             // Recreate the seeder with the refreshed context
-            _seeder = new Seeder(_currentTestingProfile, _context, _mockIMindedExampleContext);
+            _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
         }
     }
 }

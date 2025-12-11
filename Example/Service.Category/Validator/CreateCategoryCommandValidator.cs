@@ -28,7 +28,7 @@ namespace Service.Category.Validator
                 return validationResult;
             }
 
-            var result = _categoryValidator.ValidateAsync(command.Category);
+            Task<IValidationResult> result = _categoryValidator.ValidateAsync(command.Category);
 
             if (command.Category.Id != 0)
             {

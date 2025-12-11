@@ -125,7 +125,7 @@ namespace Minded.Extensions.Logging.Tests
         public void MinimumOutcomeSeverityLevelProvider_CanBeSetAndInvoked()
         {
             var options = new LoggingOptions();
-            var expectedSeverity = Severity.Warning;
+            Severity expectedSeverity = Severity.Warning;
 
             options.MinimumOutcomeSeverityLevelProvider = () => expectedSeverity;
 
@@ -158,7 +158,7 @@ namespace Minded.Extensions.Logging.Tests
                 MinimumOutcomeSeverityLevelProvider = () => Severity.Error
             };
 
-            var result = options.GetEffectiveMinimumSeverityLevel();
+            Severity result = options.GetEffectiveMinimumSeverityLevel();
 
             result.Should().Be(Severity.Error);
         }
@@ -176,7 +176,7 @@ namespace Minded.Extensions.Logging.Tests
                 MinimumOutcomeSeverityLevelProvider = null
             };
 
-            var result = options.GetEffectiveMinimumSeverityLevel();
+            Severity result = options.GetEffectiveMinimumSeverityLevel();
 
             result.Should().Be(Severity.Warning);
         }
@@ -189,19 +189,19 @@ namespace Minded.Extensions.Logging.Tests
         [TestMethod]
         public void GetEffectiveMinimumSeverityLevel_IsDynamic_WhenProviderChanges()
         {
-            var currentSeverity = Severity.Info;
+            Severity currentSeverity = Severity.Info;
             var options = new LoggingOptions
             {
                 MinimumOutcomeSeverityLevelProvider = () => currentSeverity
             };
 
-            var firstResult = options.GetEffectiveMinimumSeverityLevel();
+            Severity firstResult = options.GetEffectiveMinimumSeverityLevel();
             firstResult.Should().Be(Severity.Info);
 
             // Simulate feature flag change
             currentSeverity = Severity.Error;
 
-            var secondResult = options.GetEffectiveMinimumSeverityLevel();
+            Severity secondResult = options.GetEffectiveMinimumSeverityLevel();
             secondResult.Should().Be(Severity.Error);
         }
 

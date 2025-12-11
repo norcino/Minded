@@ -1,15 +1,16 @@
 # Minded.Extensions.Logging
 
-Logging decorator for automatic request/response logging with configurable detail levels, outcome tracking, and optional sensitive data protection.
+Logging decorator for automatic command and query execution logging with configurable detail levels, outcome tracking, custom templates, and optional sensitive data protection (requires `Minded.Extensions.DataProtection`).
 
 ## Features
 
-- Request and response logging
-- Outcome entry logging with severity filtering
-- **Optional sensitive data protection** - Automatically hide PII and confidential data from logs (requires `Minded.Extensions.DataProtection`)
-- Dynamic configuration via providers (feature flags support)
-- Template data logging control
-- GDPR/CCPA compliance support
+- **Automatic logging** for all command and query executions (start, complete, fail)
+- **TraceId correlation** for request tracking across distributed systems
+- **Execution timing** for performance monitoring
+- **Outcome entry logging** with severity filtering (errors, warnings, info)
+- **Custom log templates** via the `ILoggable` interface
+- **Sensitive data protection** integration (requires `Minded.Extensions.DataProtection`)
+- **Dynamic configuration** via providers (feature flags support)
 
 ## Installation
 
@@ -17,229 +18,385 @@ Logging decorator for automatic request/response logging with configurable detai
 dotnet add package Minded.Extensions.Logging
 ```
 
-For sensitive data protection, also install:
+> **Note**: This package includes `Minded.Extensions.DataProtection` as a dependency, so you don't need to install it separately.
 
-```bash
-dotnet add package Minded.Extensions.DataProtection
-```
+### Default Behavior (No Explicit Configuration)
 
-## Quick Start
+If you don't explicitly configure DataProtection (i.e., you don't call `AddDataProtection()`), the logging decorator uses a **NullDataSanitizer** which:
 
-### Basic Usage (Without Data Protection)
+- **Logs all properties** - including those marked with `[SensitiveData]`
+- **Does NOT hide sensitive data** - all values are visible in logs
+- **Works out-of-the-box** - no additional setup required
 
-```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
-{
-    builder.AddLogging();
-});
-```
+This is suitable for development environments or applications without sensitive data requirements.
 
-### With Sensitive Data Protection
+### To Enable Sensitive Data Protection
 
-#### 1. Mark Sensitive Properties
-
-Use the `[SensitiveData]` attribute to mark properties containing PII or confidential business data:
-
-```csharp
-using Minded.Extensions.DataProtection.Abstractions;
-
-public class User
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-
-    [SensitiveData]  // Will be omitted from logs by default
-    public string Email { get; set; }
-
-    [SensitiveData]  // Will be omitted from logs by default
-    public string Surname { get; set; }
-}
-
-public class CreateUserCommand : ICommand<User>
-{
-    public User User { get; set; }
-}
-```
-
-#### 2. Configure DataProtection
-
-By default, sensitive data is **hidden** for security and compliance. You can enable it for development:
-
-```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
-{
-    // Configure DataProtection
-    builder.AddDataProtection(options =>
-    {
-        // Option 1: Static configuration
-        options.ShowSensitiveData = false;  // Default: hide sensitive data
-
-        // Option 2: Dynamic configuration (recommended)
-        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
-    });
-
-    // Add logging (will use DataProtection automatically)
-    builder.AddLogging();
-});
-```
-
-#### 3. Automatic Protection
-
-When a command or query is logged, sensitive properties are automatically omitted:
-
-```csharp
-// Without [SensitiveData] - all properties logged:
-{
-    "Id": 123,
-    "Name": "John",
-    "Email": "john.doe@example.com",
-    "Surname": "Doe"
-}
-
-// With [SensitiveData] and ShowSensitiveData = false (default):
-{
-    "Id": 123,
-    "Name": "John"
-    // Email and Surname are omitted
-}
-```
-
-## Configuration Options
-
-### DataProtection Options
-
-See [Minded.Extensions.DataProtection](../Minded.Extensions.DataProtection/README.md) for complete DataProtection configuration options.
-
-### Logging Options
-
-#### ShowSensitiveData (bool) - DEPRECATED
-
-**Note**: This option has been moved to `DataProtectionOptions`. For backward compatibility, it still exists in `LoggingOptions` but is deprecated.
-
-Use `DataProtectionOptions.ShowSensitiveData` instead:
+If you want to hide properties marked with `[SensitiveData]`, you must explicitly configure DataProtection:
 
 ```csharp
 builder.AddDataProtection(options =>
 {
-    options.ShowSensitiveData = false;  // Hide sensitive data (default)
+    options.ShowSensitiveData = false; // Hide sensitive data (production)
+    // Or dynamically:
+    // options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+});
+
+builder.AddCommandLoggingDecorator();
+builder.AddQueryLoggingDecorator();
+```
+
+See [Sensitive Data Protection](#sensitive-data-protection) for more details.
+
+## Quick Start
+
+### Registration
+
+Register the logging decorators in your `Program.cs` or `Startup.cs`:
+
+```csharp
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+{
+    // Add command logging decorator
+    builder.AddCommandLoggingDecorator();
+
+    // Add query logging decorator
+    builder.AddQueryLoggingDecorator();
 });
 ```
 
-#### ShowSensitiveDataProvider (Func<bool>) - DEPRECATED
+### What Gets Logged Automatically
 
-**Note**: This option has been moved to `DataProtectionOptions`. For backward compatibility, it still exists in `LoggingOptions` but is deprecated.
+Once registered, **all commands and queries are automatically logged**. No additional interfaces are required for basic logging.
 
-Use `DataProtectionOptions.ShowSensitiveDataProvider` instead:
+#### Example Log Output
 
-Dynamic provider for runtime configuration. Takes precedence over `ShowSensitiveData`.
+Commands:
 
-```csharp
-// Show sensitive data only in development environment
-options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
-
-// Show sensitive data based on feature flag
-options.ShowSensitiveDataProvider = () => _featureFlags.IsEnabled("ShowSensitiveDataInLogs");
-
-// Show sensitive data based on configuration
-options.ShowSensitiveDataProvider = () => _configuration.GetValue<bool>("Logging:ShowSensitiveData");
+```text
+[Tracking:a1b2c3d4-e5f6-7890-abcd-ef1234567890] CreateUserCommand - Started
+[Tracking:a1b2c3d4-e5f6-7890-abcd-ef1234567890] CreateUserCommand in 00:00:00.0234567 - Completed: True
 ```
 
-## Best Practices
+Queries:
 
-### 1. Mark All Sensitive Properties
+```text
+[Tracking:b2c3d4e5-f6a7-8901-bcde-f12345678901] GetUserByIdQuery - Started
+[Tracking:b2c3d4e5-f6a7-8901-bcde-f12345678901] GetUserByIdQuery in 00:00:00.0123456 - Completed
+```
 
-Always mark properties containing personal or confidential data:
+On exception:
+
+```text
+[Tracking:c3d4e5f6-a7b8-9012-cdef-123456789012] CreateUserCommand in 00:00:00.0345678 - Failed: User already exists
+```
+
+## Configuration Options
+
+### Complete LoggingOptions Reference
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `Enabled` | `bool` | `false` | Enable/disable logging |
+| `EnabledProvider` | `Func<bool>` | `null` | Dynamic enable/disable (takes precedence over `Enabled`) |
+| `LogMessageTemplateData` | `bool` | `false` | Include custom template data from `ILoggable` interface |
+| `LogMessageTemplateDataProvider` | `Func<bool>` | `null` | Dynamic template data toggle |
+| `LogOutcomeEntries` | `bool` | `false` | Enable/disable Log outcome entries from command/query responses |
+| `LogOutcomeEntriesProvider` | `Func<bool>` | `null` | Dynamic outcome logging toggle |
+| `MinimumOutcomeSeverityLevel` | `Severity` | `Info` | Minimum outcome entries severity to log: `Error`, `Warning`, or `Info` |
+| `MinimumOutcomeSeverityLevelProvider` | `Func<Severity>` | `null` | Dynamic severity filter for outcome entries|
+
+### Configuration via appsettings.json
+
+The parameterless registration methods read from `Minded:LoggingOptions`:
+
+```json
+{
+  "Minded": {
+    "LoggingOptions": {
+      "Enabled": true,
+      "LogMessageTemplateData": true,
+      "LogOutcomeEntries": true,
+      "MinimumOutcomeSeverityLevel": "Warning"
+    }
+  }
+}
+```
+
+### Programmatic Configuration
 
 ```csharp
+builder.AddCommandLoggingDecorator(options =>
+{
+    options.Enabled = true;
+    options.LogMessageTemplateData = true;
+    options.LogOutcomeEntries = true;
+    options.MinimumOutcomeSeverityLevel = Severity.Warning;
+});
+
+builder.AddQueryLoggingDecorator(options =>
+{
+    options.Enabled = true;
+    options.LogMessageTemplateData = true;
+});
+```
+
+### Dynamic Configuration with Providers
+
+Use providers for runtime configuration based on feature flags, environment, or configuration:
+
+```csharp
+builder.AddCommandLoggingDecorator(options =>
+{
+    // Enable logging based on environment
+    options.EnabledProvider = () => !_environment.IsProduction();
+
+    // Log outcome entries based on feature flag
+    options.LogOutcomeEntriesProvider = () => _featureFlags.IsEnabled("DetailedLogging");
+
+    // Adjust severity based on configuration
+    options.MinimumOutcomeSeverityLevelProvider = () =>
+        _configuration.GetValue<Severity>("Logging:MinSeverity", Severity.Warning);
+});
+```
+
+## Custom Logging with ILoggable Interface
+
+The `ILoggable` interface is **optional**. Implement it when you want to add custom contextual data to your logs.
+
+### ILoggable Interface
+
+```csharp
+public interface ILoggable
+{
+    /// <summary>
+    /// Template to be used for string interpolation (Serilog-style placeholders)
+    /// </summary>
+    string LoggingTemplate { get; }
+
+    /// <summary>
+    /// List of parameters which will be substituted in the template
+    /// </summary>
+    object[] LoggingParameters { get; }
+}
+```
+
+### Example: Command with Custom Logging
+
+```csharp
+using Minded.Extensions.Logging;
+using Minded.Framework.CQRS.Command;
+
+public class CreateTransactionCommand : ICommand<Transaction>, ILoggable
+{
+    public Transaction Transaction { get; set; }
+    public Guid TraceId { get; } = Guid.NewGuid();
+
+    // Custom logging template - uses Serilog-style placeholders
+    public string LoggingTemplate => "Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}";
+
+    // Parameters matching the template placeholders
+    public object[] LoggingParameters => new object[]
+    {
+        Transaction.Credit,
+        Transaction.Debit,
+        Transaction.CategoryId
+    };
+}
+```
+
+### Log Output with ILoggable
+
+When `LogMessageTemplateData = true`, the custom template is appended to the standard log:
+
+```text
+[Tracking:a1b2c3d4-...] CreateTransactionCommand Credit: 100.00 Debit: 0.00 CategoryId: 5 - Started
+[Tracking:a1b2c3d4-...] CreateTransactionCommand Credit: 100.00 Debit: 0.00 CategoryId: 5 in 00:00:00.0234567 - Completed: True
+```
+
+## Outcome Entries Logging
+
+### What Are Outcome Entries?
+
+Outcome entries are structured messages attached to command/query responses. They represent:
+
+- **Validation errors** (e.g., "Name is required")
+- **Business rule violations** (e.g., "Insufficient funds")
+- **Warnings** (e.g., "Near credit limit")
+- **Informational messages** (e.g., "Created new customer record")
+
+### Where Do They Come From?
+
+Outcome entries are part of `ICommandResponse.OutcomeEntries` or `IQueryResponse.OutcomeEntries`:
+
+```csharp
+public interface IMessageResponse
+{
+    bool Successful { get; set; }
+    List<IOutcomeEntry> OutcomeEntries { get; set; }
+}
+
+public interface IOutcomeEntry
+{
+    string PropertyName { get; }      // Property that caused the issue
+    string Message { get; }           // Human-readable message
+    string ErrorCode { get; set; }    // Error code for localization
+    Severity Severity { get; set; }   // Error, Warning, or Info
+    object AttemptedValue { get; }    // The value that failed
+}
+```
+
+### Enabling Outcome Entry Logging
+
+```csharp
+builder.AddCommandLoggingDecorator(options =>
+{
+    options.Enabled = true;
+    options.LogOutcomeEntries = true;
+    options.MinimumOutcomeSeverityLevel = Severity.Warning; // Only Warning and Error
+});
+```
+
+### Outcome Entry Log Output
+
+```text
+[Tracking:a1b2c3d4-...] CreateUserCommand - Outcome: [Error] Email is required (Property: Email, Code: NotEmpty)
+[Tracking:a1b2c3d4-...] CreateUserCommand - Outcome: [Warning] Password is weak (Property: Password, Code: WeakPassword)
+```
+
+### Severity Levels and Log Levels
+
+| Outcome Severity | .NET Log Level |
+|------------------|----------------|
+| `Severity.Error` (0) | `LogLevel.Error` |
+| `Severity.Warning` (1) | `LogLevel.Warning` |
+| `Severity.Info` (2) | `LogLevel.Information` |
+
+The `MinimumOutcomeSeverityLevel` filter works as follows:
+
+- `Severity.Error` (0) → Only log Error entries
+- `Severity.Warning` (1) → Log Warning and Error entries
+- `Severity.Info` (2) → Log all entries (default)
+
+## TraceId Correlation
+
+Every command and query has a `TraceId` property (from `IMessage` interface) for request correlation:
+
+```csharp
+public interface IMessage
+{
+    /// <summary>
+    /// Tracing Id used to track all commands and queries coming from the same request
+    /// </summary>
+    Guid TraceId { get; }
+}
+```
+
+### Passing TraceId Across Operations
+
+```csharp
+// In a controller or handler, pass the same TraceId to correlate operations
+var traceId = Guid.NewGuid();
+
+var userQuery = new GetUserByIdQuery(userId, traceId);
+var user = await _mediator.Send(userQuery);
+
+var createOrderCommand = new CreateOrderCommand(order, traceId);
+await _mediator.Send(createOrderCommand);
+
+// Both operations will have the same TraceId in logs
+```
+
+## Sensitive Data Protection
+
+For GDPR/CCPA compliance, you can configure DataProtection to hide properties marked with `[SensitiveData]`.
+
+> **📚 For complete DataProtection documentation**, see [Minded.Extensions.DataProtection README](../Minded.Extensions.DataProtection/README.md).
+
+### 1. Mark Sensitive Properties
+
+```csharp
+using Minded.Extensions.DataProtection.Abstractions;
+
 public class Customer
 {
     public int Id { get; set; }
-    public string CompanyName { get; set; }
+    public string Name { get; set; }
 
     [SensitiveData]
     public string Email { get; set; }
-
-    [SensitiveData]
-    public string PhoneNumber { get; set; }
-
-    [SensitiveData]
-    public string TaxId { get; set; }
 
     [SensitiveData]
     public string CreditCardNumber { get; set; }
 }
 ```
 
-### 2. Use Provider Pattern for Environment-Specific Configuration
+### 2. Configure DataProtection
 
 ```csharp
-services.AddMinded(builder =>
+builder.AddDataProtection(options =>
 {
-    builder.AddLogging(options =>
-    {
-        // Show sensitive data in development, hide in production
-        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+    // Hide sensitive data by default
+    options.ShowSensitiveData = false;
 
-        // Or use configuration
-        options.ShowSensitiveDataProvider = () =>
-            _configuration.GetValue<bool>("Logging:ShowSensitiveData", false);
+    // Or dynamic: show only in development
+    options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+});
+
+builder.AddCommandLoggingDecorator();
+```
+
+### 3. Automatic Protection
+
+When logged, sensitive properties are automatically omitted:
+
+```json
+// Without [SensitiveData]:
+{ "Id": 123, "Name": "John", "Email": "john@example.com" }
+
+// With [SensitiveData] (ShowSensitiveData = false):
+{ "Id": 123, "Name": "John" }
+```
+
+## Complete Example
+
+```csharp
+// Program.cs
+services.AddMinded(Configuration, asm => asm.Name.StartsWith("Service."), builder =>
+{
+    // Enable data protection for sensitive data handling
+    builder.AddDataProtection(options =>
+    {
+        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+    });
+
+    // Enable command logging with full configuration
+    builder.AddCommandLoggingDecorator(options =>
+    {
+        options.Enabled = true;
+        options.LogMessageTemplateData = true;    // Include ILoggable data
+        options.LogOutcomeEntries = true;         // Log validation errors, etc.
+        options.MinimumOutcomeSeverityLevel = Severity.Warning;
+    });
+
+    // Enable query logging
+    builder.AddQueryLoggingDecorator(options =>
+    {
+        options.Enabled = true;
+        options.LogMessageTemplateData = true;
     });
 });
-```
 
-### 3. Never Log Sensitive Data in Production
-
-Keep `ShowSensitiveData = false` in production to comply with:
-- **GDPR** (General Data Protection Regulation)
-- **CCPA** (California Consumer Privacy Act)
-- **PCI DSS** (Payment Card Industry Data Security Standard)
-- **HIPAA** (Health Insurance Portability and Accountability Act)
-
-### 4. Nested Objects Are Supported
-
-The data sanitizer recursively inspects nested objects:
-
-```csharp
-public class Order
+// Command with custom logging
+public class CreateOrderCommand : ICommand<Order>, ILoggable
 {
-    public int Id { get; set; }
-    public decimal Total { get; set; }
+    public Order Order { get; set; }
+    public Guid TraceId { get; } = Guid.NewGuid();
 
-    public Customer Customer { get; set; }  // Customer.Email will be hidden
-    public List<OrderItem> Items { get; set; }
+    public string LoggingTemplate => "CustomerId: {CustomerId} Total: {Total}";
+    public object[] LoggingParameters => new object[] { Order.CustomerId, Order.Total };
 }
 ```
-
-## Advanced Features
-
-### Collection Truncation
-
-Collections are automatically truncated to 10 items in logs to prevent excessive log size:
-
-```csharp
-// If Items has 100 elements, only first 10 will be logged
-public class Order
-{
-    public List<OrderItem> Items { get; set; }  // Max 10 items in logs
-}
-```
-
-### Recursion Protection
-
-The sanitizer has a maximum depth of 3 levels to prevent infinite recursion:
-
-```csharp
-public class Node
-{
-    public int Id { get; set; }
-    public Node Parent { get; set; }  // Will be inspected up to 3 levels deep
-    public List<Node> Children { get; set; }
-}
-```
-
-## Usage
-
-See the [main documentation](https://github.com/norcino/Minded) for comprehensive usage examples.
 
 ## License
 
@@ -249,5 +406,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 
 - [GitHub Repository](https://github.com/norcino/Minded)
 - [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.Logging)
+- [DataProtection Documentation](../Minded.Extensions.DataProtection/README.md)
 - [Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

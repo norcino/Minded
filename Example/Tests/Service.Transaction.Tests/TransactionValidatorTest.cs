@@ -6,6 +6,7 @@ using Service.Transaction.Validator;
 using Builder;
 using FluentAssertions;
 using Minded.Framework.CQRS.Abstractions;
+using Minded.Extensions.Validation;
 
 namespace Service.Transaction.Tests
 {
@@ -30,7 +31,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Succeeds_WhenTransactionIsValid()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Description = "Valid description";
@@ -39,7 +40,7 @@ namespace Service.Transaction.Tests
                     t.CategoryId = 1;
                 });
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.OutcomeEntries.Should().BeEmpty();
             result.IsValid.Should().BeTrue();
@@ -51,10 +52,10 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenDescriptionIsNull()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t => t.Description = null);
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -70,10 +71,10 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenDescriptionIsEmpty()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t => t.Description = "");
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -89,10 +90,10 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenDescriptionIsWhitespace()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t => t.Description = "    ");
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -108,7 +109,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenBothCreditAndDebitAreZero()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Credit = 0;
@@ -116,7 +117,7 @@ namespace Service.Transaction.Tests
                     t.CategoryId = 1;
                 });
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -132,7 +133,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Succeeds_WhenCreditHasValueAndDebitIsZero()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Credit = 100;
@@ -140,7 +141,7 @@ namespace Service.Transaction.Tests
                     t.CategoryId = 1;
                 });
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeTrue();
         }
@@ -151,7 +152,7 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Succeeds_WhenDebitHasValueAndCreditIsZero()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.Credit = 0;
@@ -159,7 +160,7 @@ namespace Service.Transaction.Tests
                     t.CategoryId = 1;
                 });
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeTrue();
         }
@@ -170,14 +171,14 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Fails_WhenCategoryIdIsZero()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.CategoryId = 0;
                     t.Credit = 100;
                 });
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -193,14 +194,14 @@ namespace Service.Transaction.Tests
         [TestMethod]
         public async Task Validation_Succeeds_WhenCategoryIdIsValid()
         {
-            var transaction = Builder<Data.Entity.Transaction>.New()
+            Data.Entity.Transaction transaction = Builder<Data.Entity.Transaction>.New()
                 .Build(t =>
                 {
                     t.CategoryId = 5;
                     t.Credit = 100;
                 });
 
-            var result = await _sut.ValidateAsync(transaction);
+            IValidationResult result = await _sut.ValidateAsync(transaction);
 
             result.IsValid.Should().BeTrue();
         }

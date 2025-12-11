@@ -101,7 +101,7 @@ namespace Minded.Extensions.Validation.Tests
             _mockValidator.Setup(v => v.ValidateAsync(query))
                 .ReturnsAsync(validationResult.Object);
 
-            var result = await _sut.HandleAsync(query);
+            IQueryResponse<int> result = await _sut.HandleAsync(query);
 
             result.Successful.Should().BeFalse();
             result.OutcomeEntries.Should().ContainSingle();
@@ -127,7 +127,7 @@ namespace Minded.Extensions.Validation.Tests
             _mockInnerHandler.Setup(h => h.HandleAsync(query, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(handlerResponse);
 
-            var result = await _sut.HandleAsync(query);
+            IQueryResponse<int> result = await _sut.HandleAsync(query);
 
             result.Successful.Should().BeTrue();
             result.OutcomeEntries.Should().Contain(validationEntry);
@@ -152,7 +152,7 @@ namespace Minded.Extensions.Validation.Tests
             _mockInnerHandler.Setup(h => h.HandleAsync(query, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(handlerResponse);
 
-            var result = await _sut.HandleAsync(query);
+            IQueryResponse<int> result = await _sut.HandleAsync(query);
 
             result.OutcomeEntries.Should().NotBeNull();
             result.OutcomeEntries.Should().Contain(validationEntry);

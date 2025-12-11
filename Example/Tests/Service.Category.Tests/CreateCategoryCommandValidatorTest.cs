@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Builder;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Minded.Extensions.Validation;
 using Minded.Framework.CQRS.Abstractions;
 using Service.Category.Command;
 using Service.Category.Validator;
@@ -22,10 +23,10 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_succeed_when_category_is_valid_for_creation()
         {
-            var category = Builder<Data.Entity.Category>.New()
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New()
                 .Build(e => { e.Name = "Category name"; e.Id = 0; });
             var command = new CreateCategoryCommand(category);
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result.IsValid);
@@ -36,7 +37,7 @@ namespace Service.Category.Tests
         public async Task Validation_fails_when_category_in_command_is_null()
         {
             var command = new CreateCategoryCommand(null);
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             Assert.IsNotNull(result);
             Assert.IsFalse(result.IsValid);
@@ -49,14 +50,14 @@ namespace Service.Category.Tests
         [TestMethod]
         public async Task Validation_fails_when_category_in_command_has_id()
         {
-            var category = Builder<Data.Entity.Category>.New()
+            Data.Entity.Category category = Builder<Data.Entity.Category>.New()
                 .Build(e => {
                     e.Name = "Category name";
                     e.Id = 1;
                 });
             
             var command = new CreateCategoryCommand(category);
-            var result = await _sut.ValidateAsync(command);
+            IValidationResult result = await _sut.ValidateAsync(command);
 
             Assert.IsNotNull(result);
             Assert.IsFalse(result.IsValid);

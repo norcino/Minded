@@ -57,8 +57,8 @@ namespace Application.Api.OData
 
                 // Build a temporary service provider to get the HttpContextAccessor
                 // This is necessary because we're configuring serialization during service registration
-                var serviceProvider = builder.Services.BuildServiceProvider();
-                var httpContextAccessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
+                ServiceProvider serviceProvider = builder.Services.BuildServiceProvider();
+                IHttpContextAccessor httpContextAccessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
 
                 options.SerializerSettings.ContractResolver = new IgnoreNavigationPropertiesResolver(
                     httpContextAccessor,

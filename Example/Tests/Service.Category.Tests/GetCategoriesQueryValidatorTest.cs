@@ -8,6 +8,7 @@ using Minded.Framework.CQRS.Abstractions;
 using Service.Category.Query;
 using Service.Category.Validator;
 using FluentAssertions;
+using Minded.Extensions.Validation;
 
 namespace Service.Category.Tests
 {
@@ -37,7 +38,7 @@ namespace Service.Category.Tests
                 Top = null
             };
 
-            var result = await _sut.ValidateAsync(query);
+            IValidationResult result = await _sut.ValidateAsync(query);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
@@ -54,7 +55,7 @@ namespace Service.Category.Tests
                 Top = 50
             };
 
-            var result = await _sut.ValidateAsync(query);
+            IValidationResult result = await _sut.ValidateAsync(query);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
@@ -71,7 +72,7 @@ namespace Service.Category.Tests
                 Top = 100
             };
 
-            var result = await _sut.ValidateAsync(query);
+            IValidationResult result = await _sut.ValidateAsync(query);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
@@ -88,7 +89,7 @@ namespace Service.Category.Tests
                 Top = 101
             };
 
-            var result = await _sut.ValidateAsync(query);
+            IValidationResult result = await _sut.ValidateAsync(query);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -109,7 +110,7 @@ namespace Service.Category.Tests
                 Top = 500
             };
 
-            var result = await _sut.ValidateAsync(query);
+            IValidationResult result = await _sut.ValidateAsync(query);
 
             result.IsValid.Should().BeFalse();
             result.OutcomeEntries.Any(e =>
@@ -129,7 +130,7 @@ namespace Service.Category.Tests
                 Top = 0
             };
 
-            var result = await _sut.ValidateAsync(query);
+            IValidationResult result = await _sut.ValidateAsync(query);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();

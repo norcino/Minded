@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,12 +39,15 @@ namespace Minded.Extensions.Exception.Decorator
             }
             catch (System.Exception ex)
             {
-                var commandJson = "Command serialization unavailable";
+                string commandJson = "Command serialization unavailable";
 
                 try
                 {
-                    // Sanitize command before serialization to protect sensitive data
-                    var sanitizedCommand = _dataSanitizer.Sanitize(command);
+                    // First, sanitize command to remove non-serializable types and excluded properties
+                    IDictionary<string, object> diagnosticSanitized = DiagnosticDataSanitizer.Sanitize(command);
+
+                    // Then apply data protection sanitization to protect sensitive data
+                    IDictionary<string, object> sanitizedCommand = _dataSanitizer.Sanitize(diagnosticSanitized);
                     commandJson = JsonSerializer.Serialize(sanitizedCommand);
                 }
                 catch { }
@@ -83,12 +87,15 @@ namespace Minded.Extensions.Exception.Decorator
             }
             catch (System.Exception ex)
             {
-                var commandJson = "Command serialization unavailable";
+                string commandJson = "Command serialization unavailable";
 
                 try
                 {
-                    // Sanitize command before serialization to protect sensitive data
-                    var sanitizedCommand = _dataSanitizer.Sanitize(command);
+                    // First, sanitize command to remove non-serializable types and excluded properties
+                    IDictionary<string, object> diagnosticSanitized = DiagnosticDataSanitizer.Sanitize(command);
+
+                    // Then apply data protection sanitization to protect sensitive data
+                    IDictionary<string, object> sanitizedCommand = _dataSanitizer.Sanitize(diagnosticSanitized);
                     commandJson = JsonSerializer.Serialize(sanitizedCommand);
                 }
                 catch { }

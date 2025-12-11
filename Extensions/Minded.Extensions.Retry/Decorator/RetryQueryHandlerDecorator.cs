@@ -83,7 +83,7 @@ namespace Minded.Extensions.Retry.Decorator
                             retryCount);
                     }
 
-                    var result = await InnerQueryHandler.HandleAsync(query, cancellationToken);
+                    TResult result = await InnerQueryHandler.HandleAsync(query, cancellationToken);
 
                     if (attempt > 0)
                     {

@@ -11,7 +11,10 @@
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Moq" />
     <PackageReference Include="MSTest.TestAdapter" />
@@ -26,6 +29,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.EntityFrameworkCore\Minded.Extensions.CQRS.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="testappsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

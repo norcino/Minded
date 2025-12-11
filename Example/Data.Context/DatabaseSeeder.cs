@@ -45,7 +45,7 @@ namespace Data.Context
         /// </summary>
         private void SeedUsers()
         {
-            var users = new[]
+            User[] users = new[]
             {
                 new User
                 {
@@ -80,7 +80,7 @@ namespace Data.Context
         /// </summary>
         private void SeedCategories()
         {
-            var categories = new[]
+            Category[] categories = new[]
             {
                 new Category
                 {
@@ -165,9 +165,9 @@ namespace Data.Context
         /// </summary>
         private void SeedTransactions()
         {
-            var baseDate = DateTime.Now.AddDays(-30);
-            
-            var transactions = new[]
+            DateTime baseDate = DateTime.Now.AddDays(-30);
+
+            Transaction[] transactions = new[]
             {
                 // User 1 - John Doe transactions
                 new Transaction

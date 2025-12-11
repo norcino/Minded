@@ -12,12 +12,12 @@
 
 - [Introduction](#introduction)
 - [Why Minded?](#why-minded)
-  - [🔒 Sensitive Data Protection](#-sensitive-data-protection-new-in-v120)
 - [Core Concepts](#core-concepts)
 - [Getting Started](#getting-started)
 - [For Engineers Adopting Minded](#for-engineers-adopting-minded)
 - [For Engineers Extending Minded](#for-engineers-extending-minded)
 - [For Contributors](#for-contributors)
+- [Performance Considerations](#performance-considerations)
 - [Example Application](#example-application)
 - [Available Packages](#available-packages)
 - [Documentation](#documentation)
@@ -60,56 +60,10 @@ Minded Framework helps you achieve clean architecture by:
 - **Centralized Cross-Cutting Concerns** - Validation, logging, caching, exception handling via decorators
 - **RESTful API Support** - RestMediator automatically maps operations to HTTP responses
 - **Production-Ready** - Includes cancellation token support, proper error handling, and monitoring-friendly logging
-- **🔒 Sensitive Data Protection** - Automatic PII/confidential data protection in logs for GDPR/CCPA compliance
-
-### 🔒 Sensitive Data Protection (NEW in v1.2.0)
-
-Minded now includes built-in protection for sensitive data in logs, helping you comply with GDPR, CCPA, and other privacy regulations.
-
-**Mark sensitive properties with a simple attribute:**
-
-```csharp
-using Minded.Extensions.DataProtection.Abstractions;
-
-public class User
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-
-    [SensitiveData]  // Automatically hidden from logs
-    public string Email { get; set; }
-
-    [SensitiveData]  // Automatically hidden from logs
-    public string Surname { get; set; }
-}
-```
-
-**Configure DataProtection based on environment:**
-
-```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
-{
-    // Add DataProtection with environment-based configuration
-    builder.AddDataProtection(options =>
-    {
-        // Show sensitive data only in development
-        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
-    });
-
-    // Add decorators that will use DataProtection
-    builder.AddLogging();
-    builder.AddExceptionHandling();
-});
-```
-
-**What gets protected:**
-- Properties marked with `[SensitiveData]` are omitted from logs by default
-- Works recursively on nested objects
-- Applies to both logging and exception decorators when DataProtection is configured
-- Secure by default - sensitive data is hidden in production
-- Optional - Logging and Exception decorators work without DataProtection installed
-
-**Learn more:** See [DataProtection Documentation](Extensions/Minded.Extensions.DataProtection/README.md) for complete details.
+- **Sensitive Data Protection** - Automatic PII/confidential data protection in logs for GDPR/CCPA compliance
+- **Extensibility** - Add your own decorators for custom cross-cutting concerns
+- **Centralized Configuration** - All decorators and handlers are registered in one place
+- **Vast Ecosystem** - Leverage existing libraries for validation, logging, caching, transaction, retry, etc.
 
 ---
 
@@ -453,7 +407,7 @@ builder.AddQueryExceptionDecorator();
 
 **Features**:
 - Catches all exceptions from handlers
-- Logs exceptions with full context
+- Logs exceptions with full context (command/query type, properties, exception details)
 - Distinguishes between `OperationCanceledException` (logged as Information) and real errors (logged as Error)
 - Wraps exceptions in `CommandHandlerException` or `QueryHandlerException`
 
@@ -650,7 +604,7 @@ public class TenantCacheKeyPrefixProvider : IGlobalCacheKeyPrefixProvider
 }
 ```
 
-#### Transaction Decorator (Commands Only)
+#### Transaction Decorator
 
 **Purpose**: Wrap command execution in a database transaction with automatic rollback on failure
 
@@ -841,16 +795,16 @@ public async Task<ICommandResponse> HandleAsync(CreateOrderCommand command, ...)
 }
 ```
 
-**⚠️ Important Limitations**:
+** Important Limitations**:
 
 The transaction decorator **ONLY** covers database operations. It **DOES NOT** roll back:
 
-- ❌ Remote service calls (HTTP, gRPC, etc.)
-- ❌ Message queue operations (RabbitMQ, Azure Service Bus, etc.)
-- ❌ File system operations
-- ❌ External API calls
-- ❌ Email sending
-- ❌ Cache updates (unless using transactional cache)
+- Remote service calls (HTTP, gRPC, etc.)
+- Message queue operations (RabbitMQ, Azure Service Bus, etc.)
+- File system operations
+- External API calls
+- Email sending
+- Cache updates (unless using transactional cache)
 
 **Example of what gets rolled back vs what doesn't**:
 ```csharp
@@ -859,11 +813,11 @@ public class CreateOrderCommand : ICommand<Order>
 {
     public async Task HandleAsync(...)
     {
-        // ✅ WILL BE ROLLED BACK on error
+        // WILL BE ROLLED BACK on error
         await _context.Orders.AddAsync(order);
         await _context.SaveChangesAsync();
 
-        // ❌ WILL NOT BE ROLLED BACK on error
+        // WILL NOT BE ROLLED BACK on error
         await _httpClient.PostAsync("https://api.payment.com/charge", ...);
         await _serviceBusClient.SendMessageAsync(new OrderCreatedMessage());
         await _emailService.SendOrderConfirmationAsync(order);
@@ -882,13 +836,13 @@ public class CreateOrderCommand : ICommand<Order>
 
 **When to Use Transaction Decorator**:
 
-✅ **Use for**:
+**Use for**:
 - Multiple database operations that must succeed/fail together
 - Commands that invoke nested commands/queries (all share same transaction)
 - Operations requiring consistent database state (use appropriate isolation level)
 - Financial operations requiring atomicity
 
-❌ **Don't use for**:
+**Don't use for**:
 - Single database operation (DbContext already uses transaction)
 - Read-only queries (unless you need consistent snapshot with specific isolation level)
 - Operations involving external services (use Saga pattern instead)
@@ -912,7 +866,7 @@ builder.AddCommandTransactionDecorator()     // Transaction only wraps handler
        .AddCommandHandlers();
 ```
 
-**Query Transaction Support** (⚠️ Rarely Needed):
+**Query Transaction Support** (Rarely Needed):
 
 Queries can use transactions for consistent snapshots:
 
@@ -932,7 +886,7 @@ public class GetOrderWithItemsQuery : IQuery<OrderDto>
 - Specific isolation level to prevent read anomalies
 - Read locks to prevent updates during query execution
 
-### Working with RestMediator
+#### WebApi Decorator - Working with RestMediator
 
 The `RestMediator` simplifies REST API development by automatically mapping command/query results to HTTP responses.
 
@@ -1010,6 +964,58 @@ public class CategoryController : ControllerBase
 
 **See**: [RestMediator Documentation](Extensions/Minded.Extensions.WebApi/Readme.md)
 
+#### Data Protection Decorator - Sensitive Data Protection
+
+Minded now includes built-in protection for sensitive data in logs, helping you comply with GDPR, CCPA, and other privacy regulations.
+
+**Mark sensitive properties with a simple attribute:**
+
+```csharp
+using Minded.Extensions.DataProtection.Abstractions;
+
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    [SensitiveData]  // Automatically hidden from logs
+    public string Email { get; set; }
+
+    [SensitiveData]  // Automatically hidden from logs
+    public string Surname { get; set; }
+}
+```
+
+**Configure DataProtection based on environment:**
+
+```csharp
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+{
+    // Add DataProtection with environment-based configuration
+    builder.AddDataProtection(options =>
+    {
+        // Show sensitive data only in development
+        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+    });
+
+    // Add decorators that will use DataProtection
+    builder.AddLogging();
+    builder.AddExceptionHandling();
+});
+```
+
+**What gets protected:**
+- Properties marked with `[SensitiveData]` are omitted from logs by default
+- Works recursively on nested objects
+- Applies to both logging and exception decorators when DataProtection is configured
+- Secure by default - sensitive data is hidden in production
+- Optional - Logging and Exception decorators work without DataProtection installed
+
+**Learn more:** See [DataProtection Documentation](Extensions/Minded.Extensions.DataProtection/README.md) for complete details.
+
+---
+
+# Work in progress
 ### OData Support
 
 Minded supports OData queries through the `Minded.Extensions.OData` package.
@@ -1362,24 +1368,24 @@ We welcome contributions to the Minded framework! Here's how you can help:
 ### Getting Started
 
 1. **Fork the Repository**
-   ```bash
+   ````powershell
    git clone https://github.com/norcino/Minded.git
    cd Minded
-   ```
+   ````
 
 2. **Build the Solution**
-   ```bash
+   ````bash
    dotnet build
-   ```
+   ````
 
 3. **Run Tests**
-   ```bash
+   ````bash
    dotnet test
-   ```
+   ````
 
 ### Project Structure
 
-```
+````
 Minded/
 ├── Framework/                          # Core framework packages
 │   ├── Minded.Framework.CQRS.Abstractions/
@@ -1398,7 +1404,7 @@ Minded/
 │   ├── Service.Transaction/
 │   └── Tests/
 └── Tests/                              # Framework tests
-```
+````
 
 ### Contribution Guidelines
 
@@ -1514,6 +1520,66 @@ We're particularly interested in contributions in these areas:
 - **Bug Reports**: [Open an issue](https://github.com/norcino/Minded/issues)
 - **Feature Requests**: [Open an issue](https://github.com/norcino/Minded/issues)
 - **Questions**: [Start a discussion](https://github.com/norcino/Minded/discussions)
+
+---
+
+## Performance Considerations
+
+The Minded Framework is designed with performance in mind, but understanding how the decorator pipeline works will help you build efficient applications.
+
+### Decorator Pipeline Overhead
+
+Each decorator adds a small amount of overhead to request processing. While this is typically negligible, consider the following:
+
+- **Decorator Order Matters** - Place lightweight decorators (like logging) before heavy ones (like validation)
+- **Avoid Heavy Operations** - Decorators run on every request; keep them fast and focused
+- **Use Async/Await Properly** - All handlers and decorators support async operations; use them for I/O-bound work
+- **Caching Strategy** - Use the caching decorator for expensive queries, but be mindful of cache invalidation
+
+### Memory and Allocation
+
+- **Command/Query Objects** - These are typically small, short-lived objects that are quickly garbage collected
+- **Handler Registration** - Handlers are registered as scoped or transient services; choose appropriately based on your needs
+- **Decorator Chain** - The decorator chain is built once per request and disposed after execution
+
+### Database Performance
+
+When using Entity Framework Core integration:
+
+- **Use Projections** - Select only the data you need in queries
+- **Avoid N+1 Queries** - Use `.Include()` or projections to load related data efficiently
+- **Transaction Scope** - The transaction decorator uses `TransactionScope`; be aware of distributed transaction implications
+- **Connection Pooling** - Entity Framework Core handles connection pooling; configure appropriately for your load
+
+### Caching Best Practices
+
+- **Cache Expensive Queries** - Use the caching decorator for queries that are expensive to compute
+- **Set Appropriate TTL** - Balance freshness with performance; shorter TTL = more database hits
+- **Cache Key Generation** - The framework generates cache keys based on query properties; ensure your queries are properly structured
+- **Memory Limits** - Monitor memory usage when using in-memory caching for large result sets
+
+### Monitoring and Profiling
+
+- **Logging Decorator** - Use structured logging to track request duration and identify bottlenecks
+- **Application Insights** - The logging decorator integrates with standard .NET logging; connect to Application Insights or similar tools
+- **Custom Metrics** - Add custom decorators to track specific performance metrics
+- **Cancellation Tokens** - Always pass and respect cancellation tokens to allow request cancellation
+
+### Scalability
+
+- **Stateless Design** - Handlers should be stateless; all state should be in the command/query or injected services
+- **Horizontal Scaling** - The framework is designed for stateless, horizontally scalable applications
+- **Async All the Way** - Use async/await throughout your handlers for better thread pool utilization
+- **Background Processing** - For long-running operations, consider using background jobs instead of synchronous handlers
+
+### Benchmarking
+
+For high-performance scenarios, consider:
+
+- **Measure First** - Profile your application to identify actual bottlenecks before optimizing
+- **Decorator Overhead** - In most applications, decorator overhead is <1ms per request
+- **Handler Performance** - Focus optimization efforts on handler logic, not the framework
+- **Load Testing** - Test under realistic load to understand your application's performance characteristics
 
 ---
 
@@ -1766,6 +1832,7 @@ All Minded packages are available on NuGet:
 | Package | Version | Description |
 |---------|---------|-------------|
 | [Minded.Framework.CQRS.Abstractions](https://www.nuget.org/packages/Minded.Framework.CQRS.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Framework.CQRS.Abstractions.svg) | Core CQRS interfaces (ICommand, IQuery, ICommandHandler, IQueryHandler) |
+| [Minded.Framework.CQRS](https://www.nuget.org/packages/Minded.Framework.CQRS/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Framework.CQRS.svg) | CQRS implementation with base command and query classes |
 | [Minded.Framework.Mediator.Abstractions](https://www.nuget.org/packages/Minded.Framework.Mediator.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Framework.Mediator.Abstractions.svg) | Mediator interfaces |
 | [Minded.Framework.Mediator](https://www.nuget.org/packages/Minded.Framework.Mediator/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Framework.Mediator.svg) | Mediator implementation |
 | [Minded.Framework.Decorator](https://www.nuget.org/packages/Minded.Framework.Decorator/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Framework.Decorator.svg) | Base classes for decorators |
@@ -1774,14 +1841,21 @@ All Minded packages are available on NuGet:
 
 | Package | Version | Description |
 |---------|---------|-------------|
+| [Minded.Extensions.Configuration](https://www.nuget.org/packages/Minded.Extensions.Configuration/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Configuration.svg) | Configuration infrastructure and MindedBuilder for fluent decorator registration |
 | [Minded.Extensions.WebApi](https://www.nuget.org/packages/Minded.Extensions.WebApi/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.WebApi.svg) | RestMediator for RESTful APIs |
-| [Minded.Extensions.Validation](https://www.nuget.org/packages/Minded.Extensions.Validation/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Validation.svg) | Validation decorator and interfaces |
-| [Minded.Extensions.Logging](https://www.nuget.org/packages/Minded.Extensions.Logging/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Logging.svg) | Logging decorator |
-| [Minded.Extensions.Exception](https://www.nuget.org/packages/Minded.Extensions.Exception/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Exception.svg) | Exception handling decorator |
+| [Minded.Extensions.Validation.Abstractions](https://www.nuget.org/packages/Minded.Extensions.Validation.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Validation.Abstractions.svg) | Validation interfaces and abstractions |
+| [Minded.Extensions.Validation](https://www.nuget.org/packages/Minded.Extensions.Validation/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Validation.svg) | Validation decorator with FluentValidation integration |
+| [Minded.Extensions.Logging](https://www.nuget.org/packages/Minded.Extensions.Logging/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Logging.svg) | Logging decorator with sensitive data protection |
+| [Minded.Extensions.Exception](https://www.nuget.org/packages/Minded.Extensions.Exception/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Exception.svg) | Exception handling decorator with sensitive data sanitization |
 | [Minded.Extensions.Retry](https://www.nuget.org/packages/Minded.Extensions.Retry/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Retry.svg) | Retry decorator for transient failure handling |
-| [Minded.Extensions.Caching.Memory](https://www.nuget.org/packages/Minded.Extensions.Caching.Memory/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Caching.Memory.svg) | In-memory caching decorator |
-| [Minded.Extensions.Transaction](https://www.nuget.org/packages/Minded.Extensions.Transaction/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Transaction.svg) | Transaction decorator |
-| [Minded.Extensions.OData](https://www.nuget.org/packages/Minded.Extensions.OData/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.OData.svg) | OData query support |
+| [Minded.Extensions.Caching.Abstractions](https://www.nuget.org/packages/Minded.Extensions.Caching.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Caching.Abstractions.svg) | Caching interfaces and abstractions |
+| [Minded.Extensions.Caching.Memory](https://www.nuget.org/packages/Minded.Extensions.Caching.Memory/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Caching.Memory.svg) | In-memory caching decorator implementation |
+| [Minded.Extensions.Transaction](https://www.nuget.org/packages/Minded.Extensions.Transaction/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Transaction.svg) | Transaction decorator with nested transaction support |
+| [Minded.Extensions.DataProtection.Abstractions](https://www.nuget.org/packages/Minded.Extensions.DataProtection.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.DataProtection.Abstractions.svg) | Data protection and sanitization interfaces |
+| [Minded.Extensions.DataProtection](https://www.nuget.org/packages/Minded.Extensions.DataProtection/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.DataProtection.svg) | Data protection implementation for PII/sensitive data sanitization |
+| [Minded.Extensions.CQRS.EntityFrameworkCore](https://www.nuget.org/packages/Minded.Extensions.CQRS.EntityFrameworkCore/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.CQRS.EntityFrameworkCore.svg) | Entity Framework Core integration with base query classes |
+| [Minded.Extensions.CQRS.OData](https://www.nuget.org/packages/Minded.Extensions.CQRS.OData/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.CQRS.OData.svg) | OData integration for CQRS queries |
+| [Minded.Extensions.OData](https://www.nuget.org/packages/Minded.Extensions.OData/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.OData.svg) | Core OData utilities and query composition support |
 
 ---
 
@@ -1791,8 +1865,6 @@ All Minded packages are available on NuGet:
 
 - **[Changelog](Changelog.md)** - Version history and release notes
 - **[RestMediator Guide](Extensions/Minded.Extensions.WebApi/Readme.md)** - Comprehensive RestMediator documentation
-- **[Cancellation Handling](Extensions/Minded.Extensions.Exception/README_CancellationHandling.md)** - CancellationToken support and best practices
-- **[Database Seeding](Example/Data.Context/README_DatabaseSeeding.md)** - Automatic database seeding for development
 
 ### External Resources
 
@@ -1839,14 +1911,4 @@ SOFTWARE.
 
 ---
 
-## Support and Community
-
-- 🐛 **Found a bug?** [Open an issue](https://github.com/norcino/Minded/issues)
-- 💡 **Have an idea?** [Start a discussion](https://github.com/norcino/Minded/discussions)
-- 📖 **Need help?** Check the [example application](#example-application) or [open an issue](https://github.com/norcino/Minded/issues)
-- ⭐ **Like the project?** Give it a star on [GitHub](https://github.com/norcino/Minded)!
-
----
-
 **Made with ❤️ by [Manuel Salvatori](https://github.com/norcino)**
-

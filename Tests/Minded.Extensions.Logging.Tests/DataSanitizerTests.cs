@@ -5,6 +5,7 @@ using Minded.Extensions.DataProtection;
 using Minded.Extensions.DataProtection.Abstractions;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Minded.Extensions.Logging.Tests
 {
@@ -22,7 +23,7 @@ namespace Minded.Extensions.Logging.Tests
         public void Setup()
         {
             _options = new DataProtectionOptions();
-            var mockOptions = Options.Create(_options);
+            IOptions<DataProtectionOptions> mockOptions = Options.Create(_options);
             _sut = new DataSanitizer(mockOptions);
         }
 
@@ -76,7 +77,7 @@ namespace Minded.Extensions.Logging.Tests
             };
 
             // Act
-            var result = _sut.Sanitize(user);
+            IDictionary<string, object> result = _sut.Sanitize(user);
 
             // Assert
             result.Should().ContainKey("Id");
@@ -104,7 +105,7 @@ namespace Minded.Extensions.Logging.Tests
             };
 
             // Act
-            var result = _sut.Sanitize(user);
+            IDictionary<string, object> result = _sut.Sanitize(user);
 
             // Assert
             result.Should().NotContainKey("Email");
@@ -133,7 +134,7 @@ namespace Minded.Extensions.Logging.Tests
             };
 
             // Act
-            var result = _sut.Sanitize(user);
+            IDictionary<string, object> result = _sut.Sanitize(user);
 
             // Assert
             result.Should().ContainKey("Id");
@@ -167,7 +168,7 @@ namespace Minded.Extensions.Logging.Tests
             };
 
             // Act
-            var result = _sut.Sanitize(user);
+            IDictionary<string, object> result = _sut.Sanitize(user);
 
             // Assert
             result.Should().ContainKey("Email");
@@ -193,7 +194,7 @@ namespace Minded.Extensions.Logging.Tests
             };
 
             // Act - first call with provider returning false
-            var result1 = _sut.Sanitize(user);
+            IDictionary<string, object> result1 = _sut.Sanitize(user);
 
             // Assert - sensitive data hidden
             result1.Should().NotContainKey("Email");
@@ -202,7 +203,7 @@ namespace Minded.Extensions.Logging.Tests
             showSensitiveData = true;
 
             // Act - second call with provider returning true
-            var result2 = _sut.Sanitize(user);
+            IDictionary<string, object> result2 = _sut.Sanitize(user);
 
             // Assert - sensitive data shown
             result2.Should().ContainKey("Email");
@@ -235,7 +236,7 @@ namespace Minded.Extensions.Logging.Tests
             };
 
             // Act
-            var result = _sut.Sanitize(order);
+            IDictionary<string, object> result = _sut.Sanitize(order);
 
             // Assert
             result.Should().ContainKey("OrderId");
@@ -265,8 +266,8 @@ namespace Minded.Extensions.Logging.Tests
             _options.ShowSensitiveData = false;
             var users = new List<TestUser>
             {
-                new TestUser { Id = 1, Name = "John", Email = "john@example.com", Surname = "Doe" },
-                new TestUser { Id = 2, Name = "Jane", Email = "jane@example.com", Surname = "Smith" }
+                new() { Id = 1, Name = "John", Email = "john@example.com", Surname = "Doe" },
+                new() { Id = 2, Name = "Jane", Email = "jane@example.com", Surname = "Smith" }
             };
 
             // Act
@@ -313,7 +314,7 @@ namespace Minded.Extensions.Logging.Tests
         public void Sanitize_ReturnsEmptyDictionary_WhenObjectIsNull()
         {
             // Act
-            var result = _sut.Sanitize(null);
+            IDictionary<string, object> result = _sut.Sanitize(null);
 
             // Assert
             result.Should().NotBeNull();
@@ -346,7 +347,7 @@ namespace Minded.Extensions.Logging.Tests
         public void IsSensitiveProperty_ReturnsTrue_ForPropertiesWithSensitiveDataAttribute()
         {
             // Arrange
-            var emailProperty = typeof(TestUser).GetProperty("Email");
+            PropertyInfo emailProperty = typeof(TestUser).GetProperty("Email");
 
             // Act
             var result = _sut.IsSensitiveProperty(emailProperty);
@@ -362,7 +363,7 @@ namespace Minded.Extensions.Logging.Tests
         public void IsSensitiveProperty_ReturnsFalse_ForPropertiesWithoutSensitiveDataAttribute()
         {
             // Arrange
-            var nameProperty = typeof(TestUser).GetProperty("Name");
+            PropertyInfo nameProperty = typeof(TestUser).GetProperty("Name");
 
             // Act
             var result = _sut.IsSensitiveProperty(nameProperty);
