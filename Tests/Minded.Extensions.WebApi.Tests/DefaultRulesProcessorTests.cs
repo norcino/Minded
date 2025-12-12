@@ -725,7 +725,7 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessQueryRules_Generic_WithSuccessfulResult_ButNullResultProperty_ReturnsOkObjectResultWithNull()
         {
-            var queryResult = new QueryResponse<string>(null) { Successful = true };
+            var queryResult = new QueryResponse<string>((string)null) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
             IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, queryResult);
@@ -742,7 +742,7 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessQueryRules_NonGeneric_WithSuccessfulIQueryResponse_ButNullResultProperty_ReturnsOkObjectResultWithNull()
         {
-            var queryResult = new QueryResponse<string>(null) { Successful = true };
+            var queryResult = new QueryResponse<string>((string)null) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetQueryRules()).Returns(new List<IQueryRestRule>());
 
             IActionResult result = _sut.ProcessQueryRules(RestOperation.GetSingle, (object)queryResult);
@@ -759,7 +759,7 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void ProcessCommandRules_Generic_WithSuccessfulResult_ButNullResultProperty_ReturnsOkObjectResultWithResponse()
         {
-            var commandResult = new CommandResponse<string>(null) { Successful = true };
+            var commandResult = new CommandResponse<string>((string)null) { Successful = true };
             _ruleProviderMock.Setup(rp => rp.GetCommandRules()).Returns(new List<ICommandRestRule>());
 
             IActionResult result = _sut.ProcessCommandRules(RestOperation.Create, commandResult);

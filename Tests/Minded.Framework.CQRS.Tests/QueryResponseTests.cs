@@ -69,7 +69,7 @@ namespace Minded.Framework.CQRS.Tests
         [TestMethod]
         public void QueryResponse_WithNullResult_StoresNullCorrectly()
         {
-            var response = new QueryResponse<string>(null);
+            var response = new QueryResponse<string>((string)null);
 
             response.Result.Should().BeNull();
             response.Successful.Should().BeTrue();

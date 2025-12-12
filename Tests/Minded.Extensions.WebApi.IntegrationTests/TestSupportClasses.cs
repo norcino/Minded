@@ -47,17 +47,15 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             if (command.IsNotAuthorized)
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
-                var entry = new OutcomeEntry(string.Empty, "Not authorized") { ErrorCode = GenericErrorCodes.NotAuthorized };
-                response.OutcomeEntries.Add(entry);
+                var entry = new OutcomeEntry(string.Empty, "Not authorized", Severity.Error) { ErrorCode = GenericErrorCodes.NotAuthorized };
+                var response = new CommandResponse<Entity>(entry);
                 return Task.FromResult<ICommandResponse<Entity>>(response);
             }
 
             if (command.IsNotAuthenticated)
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
-                var entry = new OutcomeEntry(string.Empty, "Not authenticated") { ErrorCode = GenericErrorCodes.NotAuthenticated };
-                response.OutcomeEntries.Add(entry);
+                var entry = new OutcomeEntry(string.Empty, "Not authenticated", Severity.Error) { ErrorCode = GenericErrorCodes.NotAuthenticated };
+                var response = new CommandResponse<Entity>(entry);
                 return Task.FromResult<ICommandResponse<Entity>>(response);
             }
 
@@ -68,9 +66,8 @@ namespace Minded.Extensions.WebApi.IntegrationTests
             }
             else
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
-                var entry = new OutcomeEntry(string.Empty, "Validation failed") { ErrorCode = "VALIDATION_ERROR" };
-                response.OutcomeEntries.Add(entry);
+                var entry = new OutcomeEntry(string.Empty, "Validation failed", Severity.Error) { ErrorCode = "VALIDATION_ERROR" };
+                var response = new CommandResponse<Entity>(entry);
                 return Task.FromResult<ICommandResponse<Entity>>(response);
             }
         }
@@ -99,9 +96,8 @@ namespace Minded.Extensions.WebApi.IntegrationTests
             }
             else
             {
-                var response = new CommandResponse { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Validation failed") { ErrorCode = "VALIDATION_ERROR" };
-                response.OutcomeEntries.Add(entry);
+                var response = new CommandResponse(entry);
                 return Task.FromResult<ICommandResponse>(response);
             }
         }
@@ -132,9 +128,8 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             if (!command.EntityExists)
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Entity not found") { ErrorCode = GenericErrorCodes.SubjectNotFound };
-                response.OutcomeEntries.Add(entry);
+                var response = new CommandResponse<Entity>(entry);
                 return Task.FromResult<ICommandResponse<Entity>>(response);
             }
 
@@ -145,10 +140,8 @@ namespace Minded.Extensions.WebApi.IntegrationTests
             }
             else
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Validation failed") { ErrorCode = "VALIDATION_ERROR" };
-                response.OutcomeEntries.Add(entry);
-                return Task.FromResult<ICommandResponse<Entity>>(response);
+                return Task.FromResult<ICommandResponse<Entity>>(CommandResponse<Entity>.Error(entry));
             }
         }
     }
@@ -218,10 +211,8 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             if (!command.EntityExists)
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Entity not found") { ErrorCode = GenericErrorCodes.SubjectNotFound };
-                response.OutcomeEntries.Add(entry);
-                return Task.FromResult<ICommandResponse<Entity>>(response);
+                return Task.FromResult<ICommandResponse<Entity>>(CommandResponse<Entity>.Error(entry));
             }
 
             if (command.ShouldSucceed)
@@ -231,10 +222,8 @@ namespace Minded.Extensions.WebApi.IntegrationTests
             }
             else
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Validation failed") { ErrorCode = "VALIDATION_ERROR" };
-                response.OutcomeEntries.Add(entry);
-                return Task.FromResult<ICommandResponse<Entity>>(response);
+                return Task.FromResult<ICommandResponse<Entity>>(CommandResponse<Entity>.Error(entry));
             }
         }
     }
@@ -381,10 +370,8 @@ namespace Minded.Extensions.WebApi.IntegrationTests
             }
             else
             {
-                var response = new CommandResponse<Entity>(null) { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Action failed") { ErrorCode = "ACTION_ERROR" };
-                response.OutcomeEntries.Add(entry);
-                return Task.FromResult<ICommandResponse<Entity>>(response);
+                return Task.FromResult<ICommandResponse<Entity>>(CommandResponse<Entity>.Error(entry));
             }
         }
     }
@@ -449,17 +436,15 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         {
             if (query.IsNotAuthorized)
             {
-                var response = new QueryResponse<Entity>(null) { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Not authorized") { ErrorCode = GenericErrorCodes.NotAuthorized };
-                response.OutcomeEntries.Add(entry);
+                var response = new QueryResponse<Entity>(entry);
                 return Task.FromResult<IQueryResponse<Entity>>(response);
             }
 
             if (query.IsNotAuthenticated)
             {
-                var response = new QueryResponse<Entity>(null) { Successful = false };
                 var entry = new OutcomeEntry(string.Empty, "Not authenticated") { ErrorCode = GenericErrorCodes.NotAuthenticated };
-                response.OutcomeEntries.Add(entry);
+                var response = new QueryResponse<Entity>(entry);
                 return Task.FromResult<IQueryResponse<Entity>>(response);
             }
 

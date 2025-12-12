@@ -135,8 +135,7 @@ namespace Minded.Framework.CQRS.Tests
         [TestMethod]
         public void CommandResponseGeneric_WithNullResult_StoresNullCorrectly()
         {
-            var response = new CommandResponse<string>(null);
-
+            var response = new CommandResponse<string>((string)null);
             response.Result.Should().BeNull();
         }
 

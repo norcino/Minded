@@ -106,7 +106,7 @@ namespace Application.Api.OData
         }
 
         /// <summary>
-        /// Determines if a type is a collection type (e.g., ICollection<T>, IEnumerable<T>).
+        /// Determines if a type is a collection type (e.g., ICollection T, IEnumerable T).
         /// </summary>
         private bool IsCollectionType(Type type)
         {
