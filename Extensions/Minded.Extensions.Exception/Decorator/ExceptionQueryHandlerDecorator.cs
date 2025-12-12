@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Minded.Extensions.DataProtection.Abstractions;
+using Minded.Extensions.Exception.Configuration;
 using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Query;
 using System.Collections.Generic;
+using Minded.Framework.CQRS.Abstractions.Sanitization;
 
 namespace Minded.Extensions.Exception.Decorator
 {
@@ -15,13 +17,17 @@ namespace Minded.Extensions.Exception.Decorator
         where TQuery : IQuery<TResult>
     {
         private readonly ILogger<ExceptionQueryHandlerDecorator<TQuery, TResult>> _logger;
-        private readonly IDataSanitizer _dataSanitizer;
-        private readonly IOptions<DataProtectionOptions> _options;
+        private readonly ILoggingSanitizerPipeline _sanitizerPipeline;
+        private readonly IOptions<ExceptionOptions> _options;
 
-        public ExceptionQueryHandlerDecorator(IQueryHandler<TQuery, TResult> queryHandler, ILogger<ExceptionQueryHandlerDecorator<TQuery, TResult>> logger, IDataSanitizer dataSanitizer, IOptions<DataProtectionOptions> options) : base(queryHandler)
+        public ExceptionQueryHandlerDecorator(
+            IQueryHandler<TQuery, TResult> queryHandler,
+            ILogger<ExceptionQueryHandlerDecorator<TQuery, TResult>> logger,
+            ILoggingSanitizerPipeline sanitizerPipeline,
+            IOptions<ExceptionOptions> options) : base(queryHandler)
         {
             _logger = logger;
-            _dataSanitizer = dataSanitizer;
+            _sanitizerPipeline = sanitizerPipeline;
             _options = options;
         }
 
@@ -40,22 +46,31 @@ namespace Minded.Extensions.Exception.Decorator
             }
             catch (System.Exception ex)
             {
-                string queryJson = "Query serialization unavailable";
+                string queryInfo;
 
-                try
+                // Check if serialization is enabled
+                if (_options.Value.GetEffectiveSerialize())
                 {
-                    // First, sanitize query to remove non-serializable types and excluded properties
-                    IDictionary<string, object> diagnosticSanitized = DiagnosticDataSanitizer.Sanitize(query);
+                    queryInfo = "Query serialization unavailable";
 
-                    // Then apply data protection sanitization to protect sensitive data
-                    IDictionary<string, object> sanitizedQuery = _dataSanitizer.Sanitize(diagnosticSanitized);
-                    queryJson = JsonSerializer.Serialize(sanitizedQuery);
+                    try
+                    {
+                        // Use the centralized sanitization pipeline
+                        // This applies all registered sanitizers (diagnostic, data protection, property exclusions, etc.)
+                        IDictionary<string, object> sanitizedQuery = _sanitizerPipeline.Sanitize(query);
+                        queryInfo = JsonSerializer.Serialize(sanitizedQuery);
+                    }
+                    catch { }
                 }
-                catch { }
+                else
+                {
+                    // Serialization disabled - just include the query type name
+                    queryInfo = $"Type: {typeof(TQuery).Name} (serialization disabled)";
+                }
 
                 _logger.LogError(ex, ex.Message);
 
-                throw new QueryHandlerException<TQuery, TResult>(query, "QueryHandlerException: " + queryJson, ex);
+                throw new QueryHandlerException<TQuery, TResult>(query, "QueryHandlerException: " + queryInfo, ex);
             }
         }
     }

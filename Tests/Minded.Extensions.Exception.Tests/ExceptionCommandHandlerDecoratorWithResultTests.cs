@@ -3,10 +3,11 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Minded.Extensions.DataProtection.Abstractions;
+using Minded.Extensions.Exception.Configuration;
 using Minded.Extensions.Exception.Decorator;
 using Minded.Framework.CQRS;
 using Minded.Framework.CQRS.Abstractions;
+using Minded.Framework.CQRS.Abstractions.Sanitization;
 using Minded.Framework.CQRS.Command;
 using Moq;
 using System;
@@ -24,8 +25,8 @@ namespace Minded.Extensions.Exception.Tests
     {
         private Mock<ICommandHandler<TestCommandWithResult, string>> _mockInnerHandler;
         private Mock<ILogger<ExceptionCommandHandlerDecorator<TestCommandWithResult, string>>> _mockLogger;
-        private Mock<IDataSanitizer> _mockDataSanitizer;
-        private Mock<IOptions<DataProtectionOptions>> _mockOptions;
+        private Mock<ILoggingSanitizerPipeline> _mockSanitizerPipeline;
+        private IOptions<ExceptionOptions> _options;
         private ExceptionCommandHandlerDecorator<TestCommandWithResult, string> _sut;
 
         [TestInitialize]
@@ -33,14 +34,19 @@ namespace Minded.Extensions.Exception.Tests
         {
             _mockInnerHandler = new Mock<ICommandHandler<TestCommandWithResult, string>>();
             _mockLogger = new Mock<ILogger<ExceptionCommandHandlerDecorator<TestCommandWithResult, string>>>();
-            _mockDataSanitizer = new Mock<IDataSanitizer>();
-            _mockOptions = new Mock<IOptions<DataProtectionOptions>>();
-            _mockOptions.Setup(o => o.Value).Returns(new DataProtectionOptions());
+            _mockSanitizerPipeline = new Mock<ILoggingSanitizerPipeline>();
+            _options = Options.Create(new ExceptionOptions());
+
+            // Setup the pipeline to return a simple dictionary by default
+            _mockSanitizerPipeline
+                .Setup(p => p.Sanitize(It.IsAny<object>()))
+                .Returns(new System.Collections.Generic.Dictionary<string, object>());
+
             _sut = new ExceptionCommandHandlerDecorator<TestCommandWithResult, string>(
                 _mockInnerHandler.Object,
                 _mockLogger.Object,
-                _mockDataSanitizer.Object,
-                _mockOptions.Object);
+                _mockSanitizerPipeline.Object,
+                _options);
         }
 
         /// <summary>

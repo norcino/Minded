@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Minded.Extensions.Configuration;
 using Minded.Extensions.DataProtection.Abstractions;
+using Minded.Framework.CQRS.Abstractions.Sanitization;
 
 namespace Minded.Extensions.DataProtection
 {
@@ -58,6 +59,10 @@ namespace Minded.Extensions.DataProtection
             // Use TryAddSingleton to allow custom implementations to be registered first
             builder.ServiceCollection.TryAddSingleton<IDataSanitizer, DataSanitizer>();
 
+            // Register the DataProtectionLoggingSanitizer as a singleton
+            // It will be automatically registered with the pipeline when the pipeline is first resolved
+            builder.ServiceCollection.TryAddSingleton<ILoggingSanitizer, DataProtectionLoggingSanitizer>();
+
             return builder;
         }
 
@@ -86,7 +91,7 @@ namespace Minded.Extensions.DataProtection
         /// </code>
         /// </example>
         public static MindedBuilder AddDataProtection<TImplementation>(
-            this MindedBuilder builder, 
+            this MindedBuilder builder,
             Action<DataProtectionOptions> configureOptions = null)
             where TImplementation : class, IDataSanitizer
         {
@@ -102,6 +107,10 @@ namespace Minded.Extensions.DataProtection
 
             // Register the custom DataSanitizer implementation
             builder.ServiceCollection.AddSingleton<IDataSanitizer, TImplementation>();
+
+            // Register the DataProtectionLoggingSanitizer as a singleton
+            // It will be automatically registered with the pipeline when the pipeline is first resolved
+            builder.ServiceCollection.TryAddSingleton<ILoggingSanitizer, DataProtectionLoggingSanitizer>();
 
             return builder;
         }

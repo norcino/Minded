@@ -410,8 +410,10 @@ builder.AddQueryExceptionDecorator();
 - Logs exceptions with full context (command/query type, properties, exception details)
 - Distinguishes between `OperationCanceledException` (logged as Information) and real errors (logged as Error)
 - Wraps exceptions in `CommandHandlerException` or `QueryHandlerException`
+- **Centralized logging sanitization pipeline** - Automatically removes non-serializable types and sensitive data from logs
+- Extensible sanitization - Add custom sanitizers to control what gets logged
 
-**See**: [Exception Handling Documentation](Extensions/Minded.Extensions.Exception/README_CancellationHandling.md)
+**See**: [Exception Handling Documentation](Extensions/Minded.Extensions.Exception/README.md)
 
 #### Validation Decorator
 

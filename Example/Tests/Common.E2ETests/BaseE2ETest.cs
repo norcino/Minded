@@ -79,6 +79,11 @@ namespace Common.E2ETests
             return (await Seed<T>(id, 1, default)).First();
         }
 
+        protected async Task<T> SeedOne<T>(Expression<Func<T, int>> id, Action<T, int> buildAction = default) where T : class, new()
+        {
+            return (await Seed<T>(id, 1, buildAction)).First();
+        }
+
         protected async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id) where T : class, new()
         {
             return await Seed<T>(id, 100, default);
@@ -266,16 +271,6 @@ namespace Common.E2ETests
 
             if (s_currentTestingProfile == TestingProfile.E2ELive)
             {
-                _context.ChangeTracker.Clear();
-                await _context.Database.CloseConnectionAsync();
-                _context.Dispose();
-                _context = null;
-
-                ConfigureContext(_serviceCollection);
-                _serviceProvider = _serviceCollection.BuildServiceProvider();
-
-                _context = _serviceProvider.GetService<IMindedExampleContext>();
-
                 // For SQLite in-memory with cache=shared, we need to clear all data between tests
                 // while keeping the connection open to maintain the in-memory database
 
@@ -283,6 +278,8 @@ namespace Common.E2ETests
                 // 1. The DbContext is a singleton, so its internal caches persist
                 // 2. Dropping and recreating the schema can cause EF Core to cache stale metadata
                 // 3. Simply deleting data is faster and avoids cache invalidation issues
+                // 4. We must NOT dispose and recreate the context because it's a singleton that's
+                //    already injected into the application controllers
 
                 if (_context is MindedExampleContext concreteContext)
                 {

@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added - Centralized Logging Sanitization Pipeline
+
+* Added `ILoggingSanitizer` interface in `Minded.Framework.CQRS.Abstractions` for creating custom sanitizers
+* Added `ILoggingSanitizerPipeline` interface in `Minded.Framework.CQRS.Abstractions` for orchestrating sanitizers
+* Added `LoggingSanitizerPipeline` implementation in `Minded.Framework.CQRS` (internal)
+* Added `DataProtectionLoggingSanitizer` in `Minded.Extensions.DataProtection` to sanitize sensitive data
+* Added automatic sanitizer discovery via dependency injection
+* Added property/field exclusion mechanism for interface-based properties (e.g., `ILoggable`)
+* Added `RegisterPipelineConfiguration` method to `MindedBuilder` for configuring the pipeline
+* Added support for custom sanitizers - register any `ILoggingSanitizer` implementation as a singleton
+
+### Changed - Logging Sanitization
+
+* Updated `ExceptionCommandHandlerDecorator` and `ExceptionQueryHandlerDecorator` to use `ILoggingSanitizerPipeline`
+* Updated logging decorators to exclude `ILoggable` properties (`LoggingTemplate`, `LoggingParameters`) from logs
+* Replaced two-stage sanitization (DiagnosticDataSanitizer + DataProtection) with unified pipeline approach
+* Sanitization pipeline now handles both properties and fields using `BindingFlags.Public | BindingFlags.Instance`
+* Pipeline automatically excludes non-serializable types (CancellationToken, Task, Stream, Delegate, etc.)
+* Pipeline recursively processes nested objects (max depth: 3) and truncates collections (max 10 items)
+
+### Improved - Architecture
+
+* Eliminated direct dependencies between decorator packages
+* All decorators now depend only on framework interfaces (`ILoggingSanitizerPipeline`)
+* Sanitizers are automatically discovered and registered via DI
+* Property exclusion uses HashSet for O(1) lookup performance
+* Pipeline registration uses factory pattern to avoid `BuildServiceProvider()` anti-pattern
+
 ## 1.2.0 (2025-11-17)
 Added sensitive data protection feature to prevent PII and confidential data from appearing in logs.
 Created new `Minded.Extensions.DataProtection` packages for centralized data protection functionality.

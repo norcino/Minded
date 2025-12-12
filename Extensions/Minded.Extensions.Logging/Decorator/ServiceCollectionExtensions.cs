@@ -7,6 +7,7 @@ using Minded.Extensions.DataProtection;
 using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Logging.Configuration;
 using Minded.Framework.CQRS.Abstractions;
+using Minded.Framework.CQRS.Abstractions.Sanitization;
 
 namespace Minded.Extensions.Logging.Decorator
 {
@@ -22,6 +23,13 @@ namespace Minded.Extensions.Logging.Decorator
             // Register NullDataSanitizer as fallback if no IDataSanitizer is registered
             // This allows the decorator to work without requiring DataProtection to be configured
             builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
+
+            // Register a post-configuration action to exclude ILoggable properties from the pipeline
+            // This will be executed when the pipeline is first resolved
+            builder.RegisterPipelineConfiguration(pipeline =>
+            {
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+            });
 
             builder.QueueCommandDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<>)));
             builder.QueueCommandWithResultDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<,>)));
@@ -71,6 +79,13 @@ namespace Minded.Extensions.Logging.Decorator
             // This allows the decorator to work without requiring DataProtection to be configured
             builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
 
+            // Register a post-configuration action to exclude ILoggable properties from the pipeline
+            // This will be executed when the pipeline is first resolved
+            builder.RegisterPipelineConfiguration(pipeline =>
+            {
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+            });
+
             builder.QueueCommandDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<>)));
             builder.QueueCommandWithResultDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<,>)));
 
@@ -88,6 +103,13 @@ namespace Minded.Extensions.Logging.Decorator
             // Register NullDataSanitizer as fallback if no IDataSanitizer is registered
             // This allows the decorator to work without requiring DataProtection to be configured
             builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
+
+            // Register a post-configuration action to exclude ILoggable properties from the pipeline
+            // This will be executed when the pipeline is first resolved
+            builder.RegisterPipelineConfiguration(pipeline =>
+            {
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+            });
 
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingQueryHandlerDecorator<,>)));
 
@@ -135,6 +157,13 @@ namespace Minded.Extensions.Logging.Decorator
             // Register NullDataSanitizer as fallback if no IDataSanitizer is registered
             // This allows the decorator to work without requiring DataProtection to be configured
             builder.ServiceCollection.TryAddSingleton<IDataSanitizer, NullDataSanitizer>();
+
+            // Register a post-configuration action to exclude ILoggable properties from the pipeline
+            // This will be executed when the pipeline is first resolved
+            builder.RegisterPipelineConfiguration(pipeline =>
+            {
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+            });
 
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingQueryHandlerDecorator<,>)));
 

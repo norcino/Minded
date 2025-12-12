@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyModel;
 using Microsoft.Extensions.Logging;
 using Minded.Framework.Decorator;
+using Minded.Framework.CQRS.Abstractions.Sanitization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -25,6 +26,11 @@ namespace Minded.Extensions.Configuration
         public List<Action<MindedBuilder, Type>> QueuedCommandDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
         public List<Action<MindedBuilder, Type>> QueuedCommandWithResultDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
 
+        /// <summary>
+        /// List of actions to configure the logging sanitization pipeline after it's created
+        /// </summary>
+        internal List<Action<ILoggingSanitizerPipeline>> PipelineConfigurationActions { get; } = new List<Action<ILoggingSanitizerPipeline>>();
+
         public IServiceCollection ServiceCollection { get; }
         public IConfiguration Configuration { get; }
 
@@ -34,10 +40,70 @@ namespace Minded.Extensions.Configuration
             AssemblyFilter = assemblyNameFilter;
             Configuration = configuration;
 
+            // Register the logging sanitization pipeline as a singleton
+            // This allows all decorators to access and register their sanitizers
+            // We use reflection to avoid a circular dependency between Configuration and CQRS projects
+            RegisterLoggingSanitizerPipeline();
+
 #if DEBUG
             // Execute validation only in debug mode to avoid performance degradation
             InvokeAttributeValidators();
 #endif
+        }
+
+        /// <summary>
+        /// Registers the logging sanitization pipeline using reflection to avoid circular dependencies.
+        /// The pipeline is registered as a singleton and is available to all decorators.
+        /// </summary>
+        private void RegisterLoggingSanitizerPipeline()
+        {
+            try
+            {
+                // Try to load the CQRS assembly and register the pipeline
+                var cqrsAssembly = Assembly.Load("Minded.Framework.CQRS");
+                var pipelineType = cqrsAssembly.GetType("Minded.Framework.CQRS.Sanitization.LoggingSanitizerPipeline");
+
+                if (pipelineType != null)
+                {
+                    var interfaceType = typeof(ILoggingSanitizerPipeline);
+
+                    // Register the pipeline with a factory that applies all configuration actions
+                    ServiceCollection.TryAddSingleton(interfaceType, sp =>
+                    {
+                        // Get all registered sanitizers
+                        var sanitizers = sp.GetService(typeof(IEnumerable<ILoggingSanitizer>)) as IEnumerable<ILoggingSanitizer>;
+
+                        // Create the pipeline instance
+                        var pipeline = Activator.CreateInstance(pipelineType, sanitizers) as ILoggingSanitizerPipeline;
+
+                        // Apply all configuration actions
+                        foreach (var configAction in PipelineConfigurationActions)
+                        {
+                            configAction(pipeline);
+                        }
+
+                        return pipeline;
+                    });
+                }
+            }
+            catch
+            {
+                // If the CQRS assembly is not available, the pipeline won't be registered
+                // This is acceptable as the pipeline is optional
+            }
+        }
+
+        /// <summary>
+        /// Registers a configuration action to be applied to the logging sanitization pipeline when it's created.
+        /// This allows decorators to configure the pipeline without creating circular dependencies.
+        /// </summary>
+        /// <param name="configAction">Action to configure the pipeline</param>
+        public void RegisterPipelineConfiguration(Action<ILoggingSanitizerPipeline> configAction)
+        {
+            if (configAction != null)
+            {
+                PipelineConfigurationActions.Add(configAction);
+            }
         }
 
         private void InvokeAttributeValidators()

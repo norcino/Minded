@@ -127,6 +127,12 @@ namespace Application.Api
                     options.ShowSensitiveDataProvider = () => HostingEnvironment.IsDevelopment();
                 });
 
+                // Register custom logging sanitizer (optional)
+                // This demonstrates how to add custom sanitization logic to the logging pipeline
+                // The sanitizer will automatically be discovered and applied by the pipeline
+                b.ServiceCollection.AddSingleton<Minded.Framework.CQRS.Abstractions.Sanitization.ILoggingSanitizer,
+                    CustomLoggingSanitizer>();
+
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator()
                 .AddCommandRetryDecorator(options =>

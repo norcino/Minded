@@ -153,9 +153,8 @@ namespace Minded.Extensions.WebApi
                 }
             }
 
-            if (rule.ContentResponse == ContentResponse.Result)
+            if (rule.ContentResponse != ContentResponse.None)
             {
-                
                 return new ObjectResult(result)
                 {
                     StatusCode = (int)rule.ResultStatusCode

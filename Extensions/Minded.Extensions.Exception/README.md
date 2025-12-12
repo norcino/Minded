@@ -8,6 +8,8 @@ Exception handling decorator with automatic error logging, graceful failure hand
 - OperationCanceledException special handling
 - Configurable error responses
 - Integration with Microsoft.Extensions.Logging
+- **Centralized logging sanitization pipeline** - Automatically removes non-serializable types and sensitive data from exception logs
+- **Extensible sanitization** - Add custom sanitizers to control what gets logged
 - **Optional sensitive data protection** - Automatically hide PII and confidential data from exception logs (requires `Minded.Extensions.DataProtection`)
 
 ## Installation
@@ -147,6 +149,69 @@ services.AddMinded(builder =>
 });
 ```
 
+### Serialization Configuration
+
+By default, the exception decorator serializes commands and queries when an exception occurs. This can be expensive for large objects or unnecessary in production environments. You can configure serialization behavior:
+
+#### Disable Serialization
+
+```csharp
+services.AddMinded(builder =>
+{
+    // Disable serialization for commands
+    builder.AddCommandExceptionDecorator(options =>
+    {
+        options.Serialize = false;
+    });
+
+    // Disable serialization for queries
+    builder.AddQueryExceptionDecorator(options =>
+    {
+        options.Serialize = false;
+    });
+});
+```
+
+When serialization is disabled, only the command/query type name is included in the exception message:
+
+```text
+Type: CreateUserCommand (serialization disabled)
+```
+
+#### Dynamic Serialization (Environment-Based)
+
+Use a provider function for runtime configuration:
+
+```csharp
+services.AddMinded(builder =>
+{
+    // Serialize only in development
+    builder.AddCommandExceptionDecorator(options =>
+    {
+        options.SerializeProvider = () => _environment.IsDevelopment();
+    });
+
+    builder.AddQueryExceptionDecorator(options =>
+    {
+        options.SerializeProvider = () => _environment.IsDevelopment();
+    });
+});
+```
+
+#### Feature Flag-Based Serialization
+
+```csharp
+services.AddMinded(builder =>
+{
+    builder.AddCommandExceptionDecorator(options =>
+    {
+        options.SerializeProvider = () => _featureFlags.IsEnabled("DetailedExceptionLogging");
+    });
+});
+```
+
+**Note:** The `SerializeProvider` function takes precedence over the `Serialize` property when both are set.
+
 ### Decorator Order
 
 The exception decorator should typically be registered **early** in the pipeline to catch exceptions from other decorators:
@@ -212,6 +277,135 @@ The exception decorator logs exceptions with full context including:
 // Exception: SqlException: Cannot insert duplicate key
 // Command: { "User": { "Id": 123, "Name": "John" } }
 // Email and other [SensitiveData] properties are omitted
+```
+
+## Centralized Logging Sanitization Pipeline
+
+The exception decorator uses a **centralized logging sanitization pipeline** (`ILoggingSanitizerPipeline`) that processes commands and queries before logging them. This pipeline:
+
+1. **Converts objects to dictionaries** - Recursively inspects objects and converts them to key-value pairs
+2. **Removes non-serializable types** - Automatically excludes types that cannot be serialized (see [Automatically Excluded Types](#automatically-excluded-types))
+3. **Applies registered sanitizers** - Runs all registered `ILoggingSanitizer` implementations in order
+4. **Excludes interface properties** - Removes properties added by specific interfaces (e.g., `ILoggable`)
+
+### How the Pipeline Works
+
+```csharp
+// The exception decorator uses the pipeline to sanitize commands/queries before logging
+public class ExceptionCommandHandlerDecorator<TCommand> : ICommandHandler<TCommand>
+    where TCommand : ICommand
+{
+    private readonly ILoggingSanitizerPipeline _sanitizerPipeline;
+
+    public async Task<CommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _innerHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Sanitize the command before logging
+            var sanitizedCommand = _sanitizerPipeline.Sanitize(command);
+            var commandJson = JsonSerializer.Serialize(sanitizedCommand);
+
+            _logger.LogError(ex, "Error executing {CommandType}: {Command}",
+                typeof(TCommand).Name, commandJson);
+
+            throw new CommandHandlerException(ex.Message, ex);
+        }
+    }
+}
+```
+
+### Built-in Sanitizers
+
+The framework includes the following built-in sanitizers:
+
+#### 1. DataProtectionLoggingSanitizer
+
+Automatically registered when you call `AddDataProtection()`. This sanitizer:
+- Removes properties/fields marked with `[SensitiveData]` attribute
+- Respects `ShowSensitiveData` configuration option
+- Works with both properties and fields
+
+```csharp
+builder.AddDataProtection(options =>
+{
+    options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+});
+```
+
+### Creating Custom Sanitizers
+
+You can create custom sanitizers to control what gets logged. Implement the `ILoggingSanitizer` interface:
+
+```csharp
+using Minded.Framework.CQRS.Abstractions.Sanitization;
+
+public class MyCustomSanitizer : ILoggingSanitizer
+{
+    public IDictionary<string, object> Sanitize(IDictionary<string, object> data, Type sourceType)
+    {
+        // Example: Remove all properties containing "Internal" in the name
+        var sanitized = new Dictionary<string, object>();
+
+        foreach (var kvp in data)
+        {
+            if (!kvp.Key.Contains("Internal"))
+            {
+                sanitized[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return sanitized;
+    }
+}
+```
+
+Register your custom sanitizer as a singleton:
+
+```csharp
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+{
+    // Register your custom sanitizer
+    builder.ServiceCollection.AddSingleton<ILoggingSanitizer, MyCustomSanitizer>();
+
+    // The pipeline will automatically discover and use it
+    builder.AddCommandExceptionDecorator();
+    builder.AddQueryExceptionDecorator();
+});
+```
+
+### Excluding Interface Properties
+
+Some decorators automatically exclude properties added by specific interfaces. For example, the logging decorator excludes `LoggingTemplate` and `LoggingParameters` from `ILoggable`:
+
+```csharp
+// This is done automatically by the logging decorator
+builder.RegisterPipelineConfiguration(pipeline =>
+{
+    pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+});
+```
+
+You can exclude properties from your own interfaces in custom decorators:
+
+```csharp
+public static MindedBuilder AddMyCustomDecorator(this MindedBuilder builder)
+{
+    // Exclude properties from IMyInterface
+    builder.RegisterPipelineConfiguration(pipeline =>
+    {
+        pipeline.ExcludeProperties(typeof(IMyInterface), "InternalProperty1", "InternalProperty2");
+    });
+
+    // Register the decorator
+    builder.QueueCommandDecoratorRegistrationAction((b, i) =>
+        b.DecorateHandlerDescriptors(i, typeof(MyCustomDecorator<>)));
+
+    return builder;
+}
 ```
 
 ## Best Practices

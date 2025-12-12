@@ -70,7 +70,11 @@ namespace Minded.Extensions.CQRS.OData
 
             if (selectExpand?.RawExpand != null && query is ICanExpand)
             {
-                (query as ICanExpand).Expand = new[] { selectExpand.RawExpand.Replace("/",".") };
+                // Split comma-separated expand values and replace / with . for nested properties
+                (query as ICanExpand).Expand = selectExpand.RawExpand
+                    .Split(',')
+                    .Select(e => e.Trim().Replace("/", "."))
+                    .ToArray();
             }
 
             if (orderBy != null && query is ICanOrderBy)
@@ -138,7 +142,11 @@ namespace Minded.Extensions.CQRS.OData
 
             if (selectExpand?.RawExpand != null && query is ICanExpand)
             {
-                (query as ICanExpand).Expand = new[] { selectExpand.RawExpand.Replace("/", ".") };
+                // Split comma-separated expand values and replace / with . for nested properties
+                (query as ICanExpand).Expand = selectExpand.RawExpand
+                    .Split(',')
+                    .Select(e => e.Trim().Replace("/", "."))
+                    .ToArray();
             }
 
             if (orderBy != null && query is ICanOrderBy)

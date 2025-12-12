@@ -163,61 +163,6 @@ namespace Minded.Extensions.Exception.Tests
 
         #endregion
 
-        #region Attribute Exclusion Tests
-
-        [TestMethod]
-        public void Sanitize_PropertyWithExcludeAttribute_ExcludesProperty()
-        {
-            var obj = new CommandWithExcludeAttribute
-            {
-                Id = 1,
-                Name = "Test",
-                InternalData = "secret"
-            };
-
-            var result = DiagnosticDataSanitizer.Sanitize(obj);
-
-            result.Should().ContainKey("Id");
-            result.Should().ContainKey("Name");
-            result.Should().NotContainKey("InternalData");
-        }
-
-        [TestMethod]
-        public void Sanitize_PropertyWithJsonIgnore_ExcludesProperty()
-        {
-            var obj = new CommandWithJsonIgnore
-            {
-                Id = 1,
-                Name = "Test",
-                CachedValue = "cached"
-            };
-
-            var result = DiagnosticDataSanitizer.Sanitize(obj);
-
-            result.Should().ContainKey("Id");
-            result.Should().ContainKey("Name");
-            result.Should().NotContainKey("CachedValue");
-        }
-
-        [TestMethod]
-        public void Sanitize_PropertyWithBothAttributes_ExcludesProperty()
-        {
-            var obj = new CommandWithBothAttributes
-            {
-                Id = 1,
-                ExcludedByDiagnostic = "diagnostic",
-                ExcludedByJson = "json"
-            };
-
-            var result = DiagnosticDataSanitizer.Sanitize(obj);
-
-            result.Should().ContainKey("Id");
-            result.Should().NotContainKey("ExcludedByDiagnostic");
-            result.Should().NotContainKey("ExcludedByJson");
-        }
-
-        #endregion
-
         #region Type System Tests
 
         [TestMethod]
@@ -312,11 +257,11 @@ namespace Minded.Extensions.Exception.Tests
 
             result.Should().ContainKey("Id");
             result.Should().ContainKey("Name");
+            result.Should().ContainKey("InternalData"); // InternalData is a regular string property now
             result.Should().NotContainKey("Token");
             result.Should().NotContainKey("BackgroundTask");
             result.Should().NotContainKey("Callback");
             result.Should().NotContainKey("FileStream");
-            result.Should().NotContainKey("InternalData");
         }
 
         [TestMethod]
@@ -399,7 +344,8 @@ namespace Minded.Extensions.Exception.Tests
         public int Id { get; set; }
         public string Name { get; set; }
 
-        [ExcludeFromSerializedDiagnosticLogging]
+        // Note: ExcludeFromSerializedDiagnosticLogging attribute has been removed
+        // Property exclusion is now handled by the LoggingSanitizerPipeline.ExcludeProperties method
         public string InternalData { get; set; }
     }
 
@@ -416,7 +362,8 @@ namespace Minded.Extensions.Exception.Tests
     {
         public int Id { get; set; }
 
-        [ExcludeFromSerializedDiagnosticLogging]
+        // Note: ExcludeFromSerializedDiagnosticLogging attribute has been removed
+        // Property exclusion is now handled by the LoggingSanitizerPipeline.ExcludeProperties method
         public string ExcludedByDiagnostic { get; set; }
 
         [JsonIgnore]
@@ -455,7 +402,8 @@ namespace Minded.Extensions.Exception.Tests
         public Func<string> Callback { get; set; }
         public Stream FileStream { get; set; }
 
-        [ExcludeFromSerializedDiagnosticLogging]
+        // Note: ExcludeFromSerializedDiagnosticLogging attribute has been removed
+        // Property exclusion is now handled by the LoggingSanitizerPipeline.ExcludeProperties method
         public string InternalData { get; set; }
     }
 

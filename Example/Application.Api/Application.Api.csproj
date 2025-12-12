@@ -50,6 +50,7 @@
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
     <ProjectReference Include="..\Service.Category\Service.Category.csproj" />
     <ProjectReference Include="..\Service.Transaction\Service.Transaction.csproj" />
+    <ProjectReference Include="..\Service.User\Service.User.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="appsettings.Development.json">

@@ -3,9 +3,10 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Minded.Extensions.DataProtection.Abstractions;
+using Minded.Extensions.Exception.Configuration;
 using Minded.Extensions.Exception.Decorator;
 using Minded.Framework.CQRS.Abstractions;
+using Minded.Framework.CQRS.Abstractions.Sanitization;
 using Minded.Framework.CQRS.Query;
 using Moq;
 using System;
@@ -23,8 +24,8 @@ namespace Minded.Extensions.Exception.Tests
     {
         private Mock<IQueryHandler<TestQuery, int>> _mockInnerHandler;
         private Mock<ILogger<ExceptionQueryHandlerDecorator<TestQuery, int>>> _mockLogger;
-        private Mock<IDataSanitizer> _mockDataSanitizer;
-        private Mock<IOptions<DataProtectionOptions>> _mockOptions;
+        private Mock<ILoggingSanitizerPipeline> _mockSanitizerPipeline;
+        private IOptions<ExceptionOptions> _options;
         private ExceptionQueryHandlerDecorator<TestQuery, int> _sut;
 
         [TestInitialize]
@@ -32,14 +33,19 @@ namespace Minded.Extensions.Exception.Tests
         {
             _mockInnerHandler = new Mock<IQueryHandler<TestQuery, int>>();
             _mockLogger = new Mock<ILogger<ExceptionQueryHandlerDecorator<TestQuery, int>>>();
-            _mockDataSanitizer = new Mock<IDataSanitizer>();
-            _mockOptions = new Mock<IOptions<DataProtectionOptions>>();
-            _mockOptions.Setup(o => o.Value).Returns(new DataProtectionOptions());
+            _mockSanitizerPipeline = new Mock<ILoggingSanitizerPipeline>();
+            _options = Options.Create(new ExceptionOptions());
+
+            // Setup the pipeline to return a simple dictionary by default
+            _mockSanitizerPipeline
+                .Setup(p => p.Sanitize(It.IsAny<object>()))
+                .Returns(new System.Collections.Generic.Dictionary<string, object>());
+
             _sut = new ExceptionQueryHandlerDecorator<TestQuery, int>(
                 _mockInnerHandler.Object,
                 _mockLogger.Object,
-                _mockDataSanitizer.Object,
-                _mockOptions.Object);
+                _mockSanitizerPipeline.Object,
+                _options);
         }
 
         /// <summary>
@@ -151,6 +157,113 @@ namespace Minded.Extensions.Exception.Tests
                 ex.Query.Should().Be(query);
                 ex.InnerException.Should().Be(innerException);
             }
+        }
+
+        /// <summary>
+        /// Tests that query is serialized when Serialize option is true (default).
+        /// Verifies serialized JSON is included in exception message.
+        /// </summary>
+        [TestMethod]
+        public async Task HandleAsync_WhenSerializeIsTrue_IncludesSerializedQueryInException()
+        {
+            var query = new TestQuery();
+            var innerException = new InvalidOperationException(Any.String());
+            _mockInnerHandler.Setup(h => h.HandleAsync(query, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(innerException);
+
+            var sanitizedData = new System.Collections.Generic.Dictionary<string, object>
+            {
+                { "TraceId", query.TraceId.ToString() }
+            };
+            _mockSanitizerPipeline.Setup(p => p.Sanitize(query)).Returns(sanitizedData);
+
+            try
+            {
+                await _sut.HandleAsync(query);
+                Assert.Fail("Expected exception was not thrown");
+            }
+            catch (QueryHandlerException<TestQuery, int> ex)
+            {
+                ex.Message.Should().Contain("QueryHandlerException:");
+                ex.Message.Should().Contain(query.TraceId.ToString());
+                ex.Message.Should().NotContain("serialization disabled");
+            }
+
+            _mockSanitizerPipeline.Verify(p => p.Sanitize(query), Times.Once);
+        }
+
+        /// <summary>
+        /// Tests that query is NOT serialized when Serialize option is false.
+        /// Verifies only type name is included in exception message.
+        /// </summary>
+        [TestMethod]
+        public async Task HandleAsync_WhenSerializeIsFalse_IncludesOnlyTypeNameInException()
+        {
+            // Create decorator with serialization disabled
+            var options = Options.Create(new ExceptionOptions { Serialize = false });
+            var sut = new ExceptionQueryHandlerDecorator<TestQuery, int>(
+                _mockInnerHandler.Object,
+                _mockLogger.Object,
+                _mockSanitizerPipeline.Object,
+                options);
+
+            var query = new TestQuery();
+            var innerException = new InvalidOperationException(Any.String());
+            _mockInnerHandler.Setup(h => h.HandleAsync(query, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(innerException);
+
+            try
+            {
+                await sut.HandleAsync(query);
+                Assert.Fail("Expected exception was not thrown");
+            }
+            catch (QueryHandlerException<TestQuery, int> ex)
+            {
+                ex.Message.Should().Contain("QueryHandlerException:");
+                ex.Message.Should().Contain("Type: TestQuery");
+                ex.Message.Should().Contain("serialization disabled");
+            }
+
+            // Verify sanitizer was NOT called
+            _mockSanitizerPipeline.Verify(p => p.Sanitize(It.IsAny<object>()), Times.Never);
+        }
+
+        /// <summary>
+        /// Tests that SerializeProvider takes precedence over Serialize property.
+        /// Verifies dynamic provider is used when set.
+        /// </summary>
+        [TestMethod]
+        public async Task HandleAsync_WhenSerializeProviderIsSet_UsesProviderValue()
+        {
+            bool shouldSerialize = false;
+            var options = Options.Create(new ExceptionOptions
+            {
+                Serialize = true, // Static value is true
+                SerializeProvider = () => shouldSerialize // But provider returns false
+            });
+            var sut = new ExceptionQueryHandlerDecorator<TestQuery, int>(
+                _mockInnerHandler.Object,
+                _mockLogger.Object,
+                _mockSanitizerPipeline.Object,
+                options);
+
+            var query = new TestQuery();
+            var innerException = new InvalidOperationException(Any.String());
+            _mockInnerHandler.Setup(h => h.HandleAsync(query, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(innerException);
+
+            try
+            {
+                await sut.HandleAsync(query);
+                Assert.Fail("Expected exception was not thrown");
+            }
+            catch (QueryHandlerException<TestQuery, int> ex)
+            {
+                ex.Message.Should().Contain("serialization disabled");
+            }
+
+            // Verify sanitizer was NOT called (provider returned false)
+            _mockSanitizerPipeline.Verify(p => p.Sanitize(It.IsAny<object>()), Times.Never);
         }
     }
 

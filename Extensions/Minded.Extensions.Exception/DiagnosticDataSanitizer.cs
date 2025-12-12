@@ -2,9 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -85,10 +83,6 @@ namespace Minded.Extensions.Exception
                     if (!property.CanRead)
                         continue;
 
-                    // Check if property should be excluded
-                    if (ShouldExcludeProperty(property))
-                        continue;
-
                     // Check if property type is non-serializable
                     if (IsNonSerializableType(property.PropertyType))
                         continue;
@@ -104,22 +98,6 @@ namespace Minded.Extensions.Exception
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Determines if a property should be excluded based on attributes.
-        /// </summary>
-        private static bool ShouldExcludeProperty(PropertyInfo property)
-        {
-            // Check for ExcludeFromSerializedDiagnosticLogging attribute
-            if (property.GetCustomAttribute<ExcludeFromSerializedDiagnosticLoggingAttribute>() != null)
-                return true;
-
-            // Check for JsonIgnore attribute
-            if (property.GetCustomAttribute<JsonIgnoreAttribute>() != null)
-                return true;
-
-            return false;
         }
 
         /// <summary>
