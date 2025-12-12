@@ -267,7 +267,7 @@ namespace Application.Api.IntegrationTests
         {
             const int topValue = MaxPageItemNumber + 1;
 
-            await Seed<User>(u => u.Id, 200);
+            await Seed<User>(u => u.Id, 200, (u,i) => u.Id = i);
 
             var response = await _sutClient.GetAsync($"/api/users?$top={topValue}");
 

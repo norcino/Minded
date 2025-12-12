@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Exception.Configuration;
 using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Query;
@@ -13,6 +12,7 @@ using Minded.Framework.CQRS.Abstractions.Sanitization;
 
 namespace Minded.Extensions.Exception.Decorator
 {
+    // Note: LazyJsonValue is defined in ExceptionCommandHandlerDecorator.cs to avoid duplication
     public class ExceptionQueryHandlerDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>, IQueryHandler<TQuery, TResult>
         where TQuery : IQuery<TResult>
     {
@@ -46,21 +46,25 @@ namespace Minded.Extensions.Exception.Decorator
             }
             catch (System.Exception ex)
             {
-                string queryInfo;
+                object queryInfo;
 
                 // Check if serialization is enabled
                 if (_options.Value.GetEffectiveSerialize())
                 {
-                    queryInfo = "Query serialization unavailable";
-
                     try
                     {
                         // Use the centralized sanitization pipeline
                         // This applies all registered sanitizers (diagnostic, data protection, property exclusions, etc.)
                         IDictionary<string, object> sanitizedQuery = _sanitizerPipeline.Sanitize(query);
-                        queryInfo = JsonSerializer.Serialize(sanitizedQuery);
+
+                        // Use lazy serialization - only serializes when ToString() is called
+                        // This avoids serialization overhead if the exception message is not logged
+                        queryInfo = new LazyJsonValue(sanitizedQuery);
                     }
-                    catch { }
+                    catch
+                    {
+                        queryInfo = "Query serialization unavailable";
+                    }
                 }
                 else
                 {

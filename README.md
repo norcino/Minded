@@ -1102,23 +1102,16 @@ Decorators are the primary extension point in Minded. Here's how to create your 
 using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Command;
 
-public class MyCustomCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>,
-    ICommandHandler<TCommand>
-    where TCommand : ICommand
+public class MyCustomCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand> where TCommand : ICommand
 {
     private readonly ILogger _logger;
 
-    public MyCustomCommandDecorator(
-        ICommandHandler<TCommand> commandHandler,
-        ILogger<MyCustomCommandDecorator<TCommand>> logger)
-        : base(commandHandler)
+    public MyCustomCommandDecorator(ICommandHandler<TCommand> commandHandler, ILogger<MyCustomCommandDecorator<TCommand>> logger) : base(commandHandler)
     {
         _logger = logger;
     }
 
-    public async Task<ICommandResponse> HandleAsync(
-        TCommand command,
-        CancellationToken cancellationToken = default)
+    public async Task<ICommandResponse> HandleAsync( TCommand command, CancellationToken cancellationToken = default)
     {
         // Before handler execution
         _logger.LogInformation("Before executing {CommandType}", typeof(TCommand).Name);
@@ -1139,23 +1132,16 @@ public class MyCustomCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TC
 using Minded.Framework.Decorator;
 using Minded.Framework.CQRS.Query;
 
-public class MyCustomQueryDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>,
-    IQueryHandler<TQuery, TResult>
-    where TQuery : IQuery<TResult>
+public class MyCustomQueryDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>, IQueryHandler<TQuery, TResult> where TQuery : IQuery<TResult>
 {
     private readonly ILogger _logger;
 
-    public MyCustomQueryDecorator(
-        IQueryHandler<TQuery, TResult> queryHandler,
-        ILogger<MyCustomQueryDecorator<TQuery, TResult>> logger)
-        : base(queryHandler)
+    public MyCustomQueryDecorator(IQueryHandler<TQuery, TResult> queryHandler, ILogger<MyCustomQueryDecorator<TQuery, TResult>> logger) : base(queryHandler)
     {
         _logger = logger;
     }
 
-    public async Task<TResult> HandleAsync(
-        TQuery query,
-        CancellationToken cancellationToken = default)
+    public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
     {
         // Before handler execution
         _logger.LogInformation("Before executing {QueryType}", typeof(TQuery).Name);
@@ -1237,17 +1223,12 @@ public class MyCustomAttribute : Attribute
 ```csharp
 using System.ComponentModel;
 
-public class MyCustomCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>,
-    ICommandHandler<TCommand>
-    where TCommand : ICommand
+public class MyCustomCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand> where TCommand : ICommand
 {
-    public async Task<ICommandResponse> HandleAsync(
-        TCommand command,
-        CancellationToken cancellationToken = default)
+    public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
     {
         // Check if the command has the attribute
-        var attribute = (MyCustomAttribute)TypeDescriptor
-            .GetAttributes(command)[typeof(MyCustomAttribute)];
+        var attribute = (MyCustomAttribute)TypeDescriptor.GetAttributes(command)[typeof(MyCustomAttribute)];
 
         if (attribute != null)
         {
@@ -1272,7 +1253,7 @@ public class CreateCategoryCommand : ICommand<Category>
 
 ### Creating Decorator Attribute Validators
 
-You can enforce that certain attributes require specific interfaces to be implemented:
+You can enforce that certain attributes require specific interfaces to be implemented, for example the Minded.Extensions.Caching requires IGenerateCacheKey to be implemented when the attibrute is applied:
 
 ```csharp
 using Minded.Extensions.Configuration;
@@ -1303,9 +1284,71 @@ public class MyCustomAttributeValidator : IDecoratingAttributeValidator
 }
 ```
 
-Register the validator:
+The attribute validator classes should not be manually registered with the dependency injection container, they will be loaded automatically.
+
+### Logging Sanitizers
+The framework provides a centralized logging sanitization pipeline that processes commands and queries before logging them.
+If the framework is extended adding logging, auditing or telemetry capabilities, it is recommended to use the logging sanitization pipeline to sanitize the commands and queries before logging them. \
+This will guarantee that the sensitive data is protected and that the logging output is consistent across all the framework.
+
+#### 1. Add a custom sanitizer along with a decorator
+
+You can create custom sanitizers to control what gets logged. Implement the `ILoggingSanitizer` interface:
+
 ```csharp
-services.AddSingleton<IDecoratingAttributeValidator, MyCustomAttributeValidator>();
+using Minded.Framework.CQRS.Abstractions.Sanitization;
+
+public class MyCustomSanitizer : ILoggingSanitizer
+{
+    public IDictionary<string, object> Sanitize(IDictionary<string, object> data, Type sourceType)
+    {
+        // Your custom sanitization logic
+    }
+}
+```
+
+Register using ```RegisterLoggingSanitizerPipelineConfiguration``` in ```MindedBuilder``` it is possible to add a new sanitizer to the pipeline, which will be executed befure the logging output is generated, it is possible also to register specific properties to be excluded from the logging output:
+
+```csharp
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+{
+    builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
+    {
+        pipeline.RegisterSanitizer(new MyCustomSanitizer());
+    });
+
+    // Other configuration...
+});
+```
+
+Once the sanitizer is added to the pipeline, this will be used across all the framework where the pipeline is correctly used.
+
+#### 2. Usage of the framework logging pipeline
+In order to leverage the logging sanitization pipeline, when creating a new decorator you need to inject the ```LoggingSanitizerPipeline``` and use the ```Sanitize``` method to sanitize the command or query before logging it:
+
+```csharp
+using Minded.Framework.CQRS.Abstractions.Sanitization;
+
+public class MyCustomCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand> where TCommand : ICommand
+{
+    private readonly ILoggingSanitizerPipeline _sanitizerPipeline;
+
+    public MyCustomCommandDecorator(ILoggingSanitizerPipeline sanitizerPipeline, ICommandHandler<TCommand> decoratedCommmandHandler) : base(decoratedCommmandHandler)
+    {
+        _sanitizerPipeline = sanitizerPipeline;
+    }
+
+    public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
+    {
+        // Sanitize the command before logging
+        var sanitizedCommand = _sanitizerPipeline.Sanitize(command);
+
+        // Use the sanitized command for logging, auditing, streaming etc..
+
+        // Execute the next handler in the chain
+        return await InnerCommandHandler.HandleAsync(command, cancellationToken);
+    }
+}
 ```
 
 ### Creating Custom REST Rules

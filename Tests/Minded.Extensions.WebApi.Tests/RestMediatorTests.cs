@@ -65,8 +65,8 @@ namespace Minded.Extensions.WebApi.Tests
             RestOperation operation = Any.In<RestOperation>();
 
             _queryHandlerWithSimpleResultMock.Setup(h => h.HandleAsync(_queryWithSimpleResultMock.Object, CancellationToken.None)).Returns(Task.FromResult(expectedResult));
-            _serviceProviderMock.Setup(sp => sp.GetService(It.IsAny<Type>())).Returns(_queryHandlerWithSimpleResultMock.Object);
 
+            _serviceProviderMock.Setup(sp => sp.GetService(It.IsAny<Type>())).Returns(_queryHandlerWithSimpleResultMock.Object);
             _rulesProcessorMock.Setup(rp => rp.ProcessQueryRules(operation, expectedResult)).Returns(new OkObjectResult(expectedResult));
 
             IActionResult result = await _sut.ProcessRestQueryAsync(operation, _queryWithSimpleResultMock.Object);

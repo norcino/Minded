@@ -1,13 +1,10 @@
 ﻿using System;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Minded.Extensions.Configuration;
 using Minded.Extensions.DataProtection;
 using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Extensions.Logging.Configuration;
-using Minded.Framework.CQRS.Abstractions;
-using Minded.Framework.CQRS.Abstractions.Sanitization;
 
 namespace Minded.Extensions.Logging.Decorator
 {
@@ -26,7 +23,7 @@ namespace Minded.Extensions.Logging.Decorator
 
             // Register a post-configuration action to exclude ILoggable properties from the pipeline
             // This will be executed when the pipeline is first resolved
-            builder.RegisterPipelineConfiguration(pipeline =>
+            builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
                 pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
             });
@@ -81,7 +78,7 @@ namespace Minded.Extensions.Logging.Decorator
 
             // Register a post-configuration action to exclude ILoggable properties from the pipeline
             // This will be executed when the pipeline is first resolved
-            builder.RegisterPipelineConfiguration(pipeline =>
+            builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
                 pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
             });
@@ -106,7 +103,7 @@ namespace Minded.Extensions.Logging.Decorator
 
             // Register a post-configuration action to exclude ILoggable properties from the pipeline
             // This will be executed when the pipeline is first resolved
-            builder.RegisterPipelineConfiguration(pipeline =>
+            builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
                 pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
             });
@@ -160,7 +157,7 @@ namespace Minded.Extensions.Logging.Decorator
 
             // Register a post-configuration action to exclude ILoggable properties from the pipeline
             // This will be executed when the pipeline is first resolved
-            builder.RegisterPipelineConfiguration(pipeline =>
+            builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
                 pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
             });
