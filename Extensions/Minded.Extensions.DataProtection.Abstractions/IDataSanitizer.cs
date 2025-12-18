@@ -46,6 +46,28 @@ namespace Minded.Extensions.DataProtection.Abstractions
         /// <param name="propertyInfo">The property to check.</param>
         /// <returns>True if the property is marked as sensitive, false otherwise.</returns>
         bool IsSensitiveProperty(System.Reflection.PropertyInfo propertyInfo);
+
+        /// <summary>
+        /// Extracts specific properties from an object using property paths and sanitizes sensitive data.
+        /// Property paths support nested navigation (e.g., "User.Email", "Order.Customer.Name").
+        /// Properties marked with [SensitiveData] are masked unless ShowSensitiveData is true.
+        /// </summary>
+        /// <param name="source">The source object to extract properties from. Can be null.</param>
+        /// <param name="propertyPaths">
+        /// Array of property paths to extract. Supports dot notation for nested properties.
+        /// Examples: "Name", "User.Email", "Order.Customer.Address.City"
+        /// </param>
+        /// <returns>
+        /// An array of extracted values in the same order as propertyPaths:
+        /// - Original value (if not sensitive or ShowSensitiveData is true)
+        /// - "***MASKED***" (if sensitive and ShowSensitiveData is false)
+        /// - null (if property not found or source is null)
+        /// </returns>
+        /// <remarks>
+        /// This method is optimized with caching to minimize reflection overhead.
+        /// It supports both properties and fields, checking each segment of the path for [SensitiveData] attributes.
+        /// </remarks>
+        object[] ExtractProperties(object source, string[] propertyPaths);
     }
 }
 

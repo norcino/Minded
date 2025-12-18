@@ -125,48 +125,5 @@ namespace Minded.Extensions.Logging.Configuration
         {
             return MinimumOutcomeSeverityLevelProvider?.Invoke() ?? MinimumOutcomeSeverityLevel;
         }
-
-        /// <summary>
-        /// Gets or sets whether sensitive data (marked with [SensitiveData] attribute) should be shown in logs.
-        /// When false (default): Properties marked with [SensitiveData] are completely omitted from logs.
-        /// When true: All data including sensitive properties are included in logs.
-        /// This property is used as the default value when ShowSensitiveDataProvider is not set.
-        /// Default: false (hide sensitive data for security and compliance)
-        /// </summary>
-        /// <remarks>
-        /// Set to true only in development/debugging scenarios where you need to see actual values.
-        /// In production, this should always be false to comply with data protection regulations (GDPR, CCPA, etc.).
-        /// </remarks>
-        public bool ShowSensitiveData { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets a function that dynamically determines whether to show sensitive data at runtime.
-        /// This allows runtime configuration based on environment, user permissions, feature flags, etc.
-        /// When set, this takes precedence over ShowSensitiveData.
-        /// The function is called each time data needs to be sanitized.
-        /// Default: null (uses ShowSensitiveData instead)
-        /// </summary>
-        /// <example>
-        /// // Show sensitive data only in development environment
-        /// options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
-        ///
-        /// // Show sensitive data based on feature flag
-        /// options.ShowSensitiveDataProvider = () => _featureFlags.IsEnabled("ShowSensitiveDataInLogs");
-        ///
-        /// // Show sensitive data for admin users only
-        /// options.ShowSensitiveDataProvider = () => _currentUser.IsAdmin;
-        /// </example>
-        public Func<bool> ShowSensitiveDataProvider { get; set; }
-
-        /// <summary>
-        /// Gets the effective setting for showing sensitive data.
-        /// Uses ShowSensitiveDataProvider if set, otherwise falls back to ShowSensitiveData.
-        /// This method is called each time sensitive data needs to be sanitized.
-        /// </summary>
-        /// <returns>True if sensitive data should be shown in logs, false if it should be hidden.</returns>
-        public bool GetEffectiveShowSensitiveData()
-        {
-            return ShowSensitiveDataProvider?.Invoke() ?? ShowSensitiveData;
-        }
     }
 }

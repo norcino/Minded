@@ -37,14 +37,14 @@ namespace Service.Category.Validator
 
             if (command.Category == null)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory", null, Severity.Error, GenericErrorCodes.BadRequest));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory", null, Severity.Error, GenericErrorCodes.ValidationFailed));
                 return validationResult;
             }
 
             if(command.CategoryId != command.Category.Id)
             {
                 validationResult.OutcomeEntries.Add(new OutcomeEntry(
-                    nameof(command.CategoryId), "Category ID in command does not match Category entity ID", command.CategoryId, Severity.Error, GenericErrorCodes.BadRequest));
+                    nameof(command.CategoryId), "Category ID in command does not match Category entity ID", command.CategoryId, Severity.Error, GenericErrorCodes.ValidationFailed));
                 return validationResult;
             }
 

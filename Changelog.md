@@ -2,36 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
-
-### Added - Centralized Logging Sanitization Pipeline
-
-* Added `ILoggingSanitizer` interface in `Minded.Framework.CQRS.Abstractions` for creating custom sanitizers
-* Added `ILoggingSanitizerPipeline` interface in `Minded.Framework.CQRS.Abstractions` for orchestrating sanitizers
-* Added `LoggingSanitizerPipeline` implementation in `Minded.Framework.CQRS` (internal)
-* Added `DataProtectionLoggingSanitizer` in `Minded.Extensions.DataProtection` to sanitize sensitive data
-* Added automatic sanitizer discovery via dependency injection
-* Added property/field exclusion mechanism for interface-based properties (e.g., `ILoggable`)
-* Added `RegisterPipelineConfiguration` method to `MindedBuilder` for configuring the pipeline
-* Added support for custom sanitizers - register any `ILoggingSanitizer` implementation as a singleton
-
-### Changed - Logging Sanitization
-
-* Updated `ExceptionCommandHandlerDecorator` and `ExceptionQueryHandlerDecorator` to use `ILoggingSanitizerPipeline`
-* Updated logging decorators to exclude `ILoggable` properties (`LoggingTemplate`, `LoggingParameters`) from logs
-* Replaced two-stage sanitization (DiagnosticDataSanitizer + DataProtection) with unified pipeline approach
-* Sanitization pipeline now handles both properties and fields using `BindingFlags.Public | BindingFlags.Instance`
-* Pipeline automatically excludes non-serializable types (CancellationToken, Task, Stream, Delegate, etc.)
-* Pipeline recursively processes nested objects (max depth: 3) and truncates collections (max 10 items)
-
-### Improved - Architecture
-
-* Eliminated direct dependencies between decorator packages
-* All decorators now depend only on framework interfaces (`ILoggingSanitizerPipeline`)
-* Sanitizers are automatically discovered and registered via DI
-* Property exclusion uses HashSet for O(1) lookup performance
-* Pipeline registration uses factory pattern to avoid `BuildServiceProvider()` anti-pattern
-
 ## 1.2.0 (2025-11-17)
 Added sensitive data protection feature to prevent PII and confidential data from appearing in logs.
 Created new `Minded.Extensions.DataProtection` packages for centralized data protection functionality.
@@ -63,6 +33,7 @@ Added configuration options to control sensitive data visibility with provider p
 * Added automatic data sanitization in `ExceptionCommandHandlerDecorator` and `ExceptionQueryHandlerDecorator`
 * Added `DiagnosticDataSanitizer` to remove non-serializable types and excluded properties before applying IDataSanitizer
 * Added `[ExcludeFromSerializedDiagnosticLogging]` attribute to mark properties that should never appear in exception logs
+* Added `LoggingProperties` property to `ILoggable` interface for property path-based logging
 * Added protection against infinite recursion with max depth limit (3 levels)
 * Added collection truncation in logs (max 10 items) to prevent excessive log size
 
@@ -76,6 +47,55 @@ Added configuration options to control sensitive data visibility with provider p
 * Updated all exception decorators to sanitize commands/queries before JSON serialization (when DataProtection is configured)
 * Properties marked with `[SensitiveData]` are now omitted from logs by default
 * Both Logging and Exception packages now work without DataProtection installed (using `NullDataSanitizer`)
+
+### BREAKING CHANGE - Removed LoggingParameters from ILoggable
+
+* **BREAKING**: Removed `LoggingParameters` property from `ILoggable` interface
+* **BREAKING**: All logging must now use `LoggingProperties` with property path navigation
+* Removed fallback logic for `LoggingParameters` from logging decorators
+* Removed `SanitizeLoggingParameters` method from decorators (no longer needed)
+* Updated pipeline exclusion to use `LoggingProperties` instead of `LoggingParameters`
+* All logging data now goes through sanitization pipeline automatically
+
+### Migration Guide
+
+**Before:**
+```csharp
+public class CreateUserCommand : ICommand<User>, ILoggable
+{
+    public User User { get; set; }
+
+    public string LoggingTemplate => "Creating user: {Email}";
+    public string[] LoggingProperties => new[] { "User.Email" };
+    public object[] LoggingParameters => null; // No longer needed
+}
+```
+
+**After:**
+```csharp
+public class CreateUserCommand : ICommand<User>, ILoggable
+{
+    public User User { get; set; }
+    public string Language { get; set; }
+
+    public string LoggingTemplate => "Creating user: {Email} with Language {Language}";
+    public string[] LoggingProperties => new[] { "User.Email", nameof(Language) }; // Only property needed
+}
+```
+
+**For complex objects (like OData options):**
+```csharp
+public class GetTransactionsQuery : IQuery<List<Transaction>>, ILoggable
+{
+    public ODataQueryOptions<Transaction> Options { get; set; }
+
+    // Add a computed property for logging
+    public string ODataQueryOptionsString => Options?.ToString() ?? "None";
+
+    public string LoggingTemplate => "{ODataQueryOptions}";
+    public string[] LoggingProperties => new[] { nameof(ODataQueryOptionsString) };
+}
+```
 
 ### Security
 

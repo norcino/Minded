@@ -13,7 +13,7 @@ namespace Minded.Extensions.Transaction.Decorator
 {
     /// <summary>
     /// Decorator that wraps command execution in a database transaction.
-    /// Commands decorated with [TransactionCommand] attribute will execute within a TransactionScope.
+    /// Commands decorated with [TransactionalCommand] attribute will execute within a TransactionScope.
     /// All database operations, including nested commands/queries invoked via IMediator, will participate
     /// in the same transaction and can be rolled back on error.
     /// </summary>
@@ -41,14 +41,14 @@ namespace Minded.Extensions.Transaction.Decorator
         }
 
         /// <summary>
-        /// Handles the command execution within a transaction scope if the command has [TransactionCommand] attribute.
+        /// Handles the command execution within a transaction scope if the command has [TransactionalCommand] attribute.
         /// </summary>
         /// <param name="command">The command to execute</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The command response</returns>
         public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
-            var attribute = (TransactionCommandAttribute)TypeDescriptor.GetAttributes(command)[typeof(TransactionCommandAttribute)];
+            var attribute = (TransactionalCommandAttribute)TypeDescriptor.GetAttributes(command)[typeof(TransactionalCommandAttribute)];
 
             if (attribute == null)
             {
@@ -59,7 +59,7 @@ namespace Minded.Extensions.Transaction.Decorator
             // Determine timeout: use attribute value if specified, otherwise use default
             TimeSpan timeout = attribute.TimeoutSeconds > 0
                 ? TimeSpan.FromSeconds(attribute.TimeoutSeconds)
-                : _options.Value.DefaultTimeout;
+                : _options.Value.GetEffectiveDefaultTimeout();
 
             // Create transaction scope with async flow enabled
             using (TransactionScope scope = TransactionManager.CreateTransactionScope(
@@ -67,7 +67,7 @@ namespace Minded.Extensions.Transaction.Decorator
                 attribute.IsolationLevel,
                 timeout))
             {
-                if (_options.Value.EnableLogging)
+                if (_options.Value.GetEffectiveEnableLogging())
                 {
                     TransactionManager.LogTransactionStarting(_logger, typeof(TCommand), attribute.IsolationLevel);
                 }
@@ -77,13 +77,13 @@ namespace Minded.Extensions.Transaction.Decorator
                     ICommandResponse response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
 
                     // Determine if transaction should be committed
-                    var shouldCommit = response.Successful || !_options.Value.RollbackOnUnsuccessfulResponse;
+                    var shouldCommit = response.Successful || !_options.Value.GetEffectiveRollbackOnUnsuccessfulResponse();
 
                     if (shouldCommit)
                     {
                         scope.Complete();
 
-                        if (_options.Value.EnableLogging)
+                        if (_options.Value.GetEffectiveEnableLogging())
                         {
                             TransactionManager.LogTransactionComplete(_logger, typeof(TCommand));
                         }
@@ -91,7 +91,7 @@ namespace Minded.Extensions.Transaction.Decorator
                     else
                     {
                         // Don't call Complete() - transaction will roll back
-                        if (_options.Value.EnableLogging)
+                        if (_options.Value.GetEffectiveEnableLogging())
                         {
                             TransactionManager.LogTransactionRolledBackDueToUnsuccessfulResponse(_logger, typeof(TCommand));
                         }
@@ -102,7 +102,7 @@ namespace Minded.Extensions.Transaction.Decorator
                 catch (Exception ex)
                 {
                     // Transaction automatically rolls back when scope is disposed without Complete()
-                    if (_options.Value.EnableLogging)
+                    if (_options.Value.GetEffectiveEnableLogging())
                     {
                         TransactionManager.LogTransactionRolledBackDueToException(_logger, typeof(TCommand), ex);
                     }

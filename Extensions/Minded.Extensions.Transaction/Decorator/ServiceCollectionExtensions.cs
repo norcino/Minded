@@ -12,10 +12,10 @@ namespace Minded.Extensions.Transaction.Decorator
     {
         /// <summary>
         /// Adds the Transaction decorator for Commands using configuration from appsettings.json.
-        /// Commands decorated with [TransactionCommand] attribute will execute within a database transaction.
+        /// Commands decorated with [TransactionalCommand] attribute will execute within a database transaction.
         /// All database operations, including nested commands/queries invoked via IMediator, will participate
         /// in the same transaction and can be rolled back on error.
-        /// 
+        ///
         /// WARNING: This transaction does NOT cover:
         /// - Remote service calls (HTTP, gRPC, etc.)
         /// - Message queue operations (RabbitMQ, Azure Service Bus, etc.)

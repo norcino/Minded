@@ -17,7 +17,7 @@ namespace Minded.Extensions.Transaction.Decorator
     /// For distributed scenarios, use Saga pattern or Transactional Outbox pattern.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public class TransactionCommandAttribute : Attribute
+    public class TransactionalCommandAttribute : Attribute
     {
         /// <summary>
         /// Gets or sets the transaction scope option.
@@ -42,9 +42,9 @@ namespace Minded.Extensions.Transaction.Decorator
         public int TimeoutSeconds { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the TransactionCommandAttribute class with default values.
+        /// Initializes a new instance of the TransactionalCommandAttribute class with default values.
         /// </summary>
-        public TransactionCommandAttribute()
+        public TransactionalCommandAttribute()
         {
             TransactionScopeOption = TransactionScopeOption.Required;
             IsolationLevel = IsolationLevel.ReadCommitted;

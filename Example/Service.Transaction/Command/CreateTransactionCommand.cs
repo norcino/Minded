@@ -20,6 +20,6 @@ namespace Service.Transaction.Command
 
         public string LoggingTemplate => "Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}";
 
-        public object[] LoggingParameters => [Transaction.Credit, Transaction.Debit, Transaction.CategoryId];
+        public string[] LoggingProperties => new[] { "Transaction.Credit", "Transaction.Debit", "Transaction.CategoryId" };
     }
 }

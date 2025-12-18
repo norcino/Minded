@@ -17,7 +17,7 @@ namespace Minded.Extensions.Transaction.Decorator
     /// - Queries that perform temporary table operations
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public class TransactionQueryAttribute : Attribute
+    public class TransactionalQueryAttribute : Attribute
     {
         /// <summary>
         /// Gets or sets the transaction scope option.
@@ -42,9 +42,9 @@ namespace Minded.Extensions.Transaction.Decorator
         public int TimeoutSeconds { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the TransactionQueryAttribute class with default values.
+        /// Initializes a new instance of the TransactionalQueryAttribute class with default values.
         /// </summary>
-        public TransactionQueryAttribute()
+        public TransactionalQueryAttribute()
         {
             TransactionScopeOption = TransactionScopeOption.Required;
             IsolationLevel = IsolationLevel.ReadCommitted;

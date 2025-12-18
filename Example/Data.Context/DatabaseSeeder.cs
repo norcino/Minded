@@ -87,70 +87,80 @@ namespace Data.Context
                     Id = 1,
                     Name = "Groceries",
                     Description = "Food and household supplies",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 2,
                     Name = "Utilities",
                     Description = "Electric, water, gas, internet bills",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 3,
                     Name = "Transportation",
                     Description = "Gas, public transport, car maintenance",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 4,
                     Name = "Entertainment",
                     Description = "Movies, games, hobbies, dining out",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 5,
                     Name = "Healthcare",
                     Description = "Medical expenses, pharmacy, insurance",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 6,
                     Name = "Salary",
                     Description = "Monthly salary and bonuses",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 7,
                     Name = "Investments",
                     Description = "Stock dividends, interest income",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 8,
                     Name = "Shopping",
                     Description = "Clothing, electronics, general shopping",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 9,
                     Name = "Housing",
                     Description = "Rent or mortgage payments",
-                    Active = true
+                    Active = true,
+                    UserId = 1
                 },
                 new Category
                 {
                     Id = 10,
                     Name = "Archived Category",
                     Description = "This category is no longer active",
-                    Active = false
+                    Active = false,
+                    UserId = 1
                 }
             };
 

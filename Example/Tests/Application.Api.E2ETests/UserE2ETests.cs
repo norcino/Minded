@@ -43,7 +43,7 @@ namespace Application.Api.IntegrationTests
         public async Task GET_with_expand_Categories_should_include_Categories_navigation_property()
         {
             User user = await SeedOne<User>(u => u.Id);
-            await Seed<Category>(c => c.Id, 3, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, 3, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync("/api/users?$expand=Categories");
 
@@ -58,7 +58,7 @@ namespace Application.Api.IntegrationTests
         public async Task GET_byId_without_expand_should_not_include_navigation_properties()
         {
             User user = await SeedOne<User>(u => u.Id);
-            await Seed<Category>(c => c.Id, 2, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, 2, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync($"/api/users/{user.Id}");
 
@@ -74,7 +74,7 @@ namespace Application.Api.IntegrationTests
         public async Task GET_with_expand_multiple_navigation_properties_should_include_all_expanded_properties()
         {
             User user = await SeedOne<User>(u => u.Id);
-            Category category = await SeedOne<Category>(c => c.Id, (c, i) => c.UserId = user.Id);
+            Category category = await SeedOne<Category>(c => c.Id, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
             await Seed<Transaction>(t => t.Id, 2, (t, i) =>
             {
                 t.CategoryId = category.Id;

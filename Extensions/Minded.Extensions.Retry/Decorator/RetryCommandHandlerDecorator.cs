@@ -52,7 +52,7 @@ namespace Minded.Extensions.Retry.Decorator
                 return await InnerCommandHandler.HandleAsync(command, cancellationToken);
             }
 
-            var retryCount = attribute.RetryCount ?? _options.Value.DefaultRetryCount;
+            var retryCount = attribute.RetryCount ?? _options.Value.GetEffectiveDefaultRetryCount();
             var attempt = 0;
             Exception lastException = null;
 
@@ -168,7 +168,7 @@ namespace Minded.Extensions.Retry.Decorator
                 return await InnerCommandHandler.HandleAsync(command, cancellationToken);
             }
 
-            var retryCount = attribute.RetryCount ?? _options.Value.DefaultRetryCount;
+            var retryCount = attribute.RetryCount ?? _options.Value.GetEffectiveDefaultRetryCount();
             var attempt = 0;
             Exception lastException = null;
 

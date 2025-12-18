@@ -11,7 +11,7 @@ namespace Minded.Extensions.Transaction.Decorator
 {
     /// <summary>
     /// Decorator that wraps query execution in a database transaction.
-    /// Queries decorated with [TransactionQuery] attribute will execute within a TransactionScope.
+    /// Queries decorated with [TransactionalQuery] attribute will execute within a TransactionScope.
     ///
     /// NOTE: Most read-only queries do NOT need transactions. Use this decorator only for:
     /// - Queries requiring consistent snapshot across multiple tables
@@ -45,14 +45,14 @@ namespace Minded.Extensions.Transaction.Decorator
         }
 
         /// <summary>
-        /// Handles the query execution within a transaction scope if the query has [TransactionQuery] attribute.
+        /// Handles the query execution within a transaction scope if the query has [TransactionalQuery] attribute.
         /// </summary>
         /// <param name="query">The query to execute</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The query result</returns>
         public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
         {
-            var attribute = (TransactionQueryAttribute)TypeDescriptor.GetAttributes(query)[typeof(TransactionQueryAttribute)];
+            var attribute = (TransactionalQueryAttribute)TypeDescriptor.GetAttributes(query)[typeof(TransactionalQueryAttribute)];
 
             if (attribute == null)
             {
@@ -63,7 +63,7 @@ namespace Minded.Extensions.Transaction.Decorator
             // Determine timeout: use attribute value if specified, otherwise use default
             TimeSpan timeout = attribute.TimeoutSeconds > 0
                 ? TimeSpan.FromSeconds(attribute.TimeoutSeconds)
-                : _options.Value.DefaultTimeout;
+                : _options.Value.GetEffectiveDefaultTimeout();
 
             // Create transaction scope with async flow enabled
             using (System.Transactions.TransactionScope scope = TransactionManager.CreateTransactionScope(
@@ -71,7 +71,7 @@ namespace Minded.Extensions.Transaction.Decorator
                 attribute.IsolationLevel,
                 timeout))
             {
-                if (_options.Value.EnableLogging)
+                if (_options.Value.GetEffectiveEnableLogging())
                 {
                     TransactionManager.LogTransactionStarting(_logger, typeof(TQuery), attribute.IsolationLevel);
                 }
@@ -83,7 +83,7 @@ namespace Minded.Extensions.Transaction.Decorator
                     // Queries always complete successfully (no Successful property to check)
                     scope.Complete();
 
-                    if (_options.Value.EnableLogging)
+                    if (_options.Value.GetEffectiveEnableLogging())
                     {
                         TransactionManager.LogTransactionComplete(_logger, typeof(TQuery));
                     }
@@ -93,7 +93,7 @@ namespace Minded.Extensions.Transaction.Decorator
                 catch (Exception ex)
                 {
                     // Transaction automatically rolls back when scope is disposed without Complete()
-                    if (_options.Value.EnableLogging)
+                    if (_options.Value.GetEffectiveEnableLogging())
                     {
                         TransactionManager.LogTransactionRolledBackDueToException(_logger, typeof(TQuery), ex);
                     }

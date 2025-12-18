@@ -33,17 +33,17 @@ namespace Service.Transaction.Validator
 
             if (command.Transaction.Id != 0)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.Id), "{0} should not be specified on creation", GenericErrorCodes.BadRequest.ToString(), Severity.Error));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.Id), "{0} should not be specified on creation", GenericErrorCodes.ValidationFailed.ToString(), Severity.Error));
             }
 
             if(command.Transaction.CategoryId == 0)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.CategoryId), "{0} is mandatory", GenericErrorCodes.BadRequest.ToString(), Severity.Error));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.CategoryId), "{0} is mandatory", GenericErrorCodes.ValidationFailed.ToString(), Severity.Error));
             }
 
             if(!await _mediator.ProcessQueryAsync(new ExistsCategoryByIdQuery(command.Transaction.CategoryId)))
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.CategoryId), "{0} references a non-existing category", GenericErrorCodes.BadRequest.ToString(), Severity.Error));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction.CategoryId), "{0} references a non-existing category", GenericErrorCodes.ValidationFailed.ToString(), Severity.Error));
             }
 
             Task<IValidationResult> result = _categoryValidator.ValidateAsync(command.Transaction);

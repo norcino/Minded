@@ -139,15 +139,33 @@ public async Task<CommandResponse<Report>> HandleAsync(
 ```csharp
 services.AddMinded(builder =>
 {
-    // Add exception handling for commands
+    // Default registration (no configuration)
     builder.AddCommandExceptionDecorator();
-
-    // Add exception handling for queries
     builder.AddQueryExceptionDecorator();
 
-    // Typically, you want both
+    // With configuration
+    builder.AddCommandExceptionDecorator(options =>
+    {
+        options.Serialize = false;  // Disable serialization
+    });
+
+    builder.AddQueryExceptionDecorator(options =>
+    {
+        options.SerializeProvider = () => _environment.IsDevelopment();  // Dynamic
+    });
 });
 ```
+
+### ExceptionOptions Class
+
+Configure exception handling behavior:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `Serialize` | `bool` | `true` | If `true`, serializes command/query to JSON in exception message. If `false`, only includes type name |
+| `SerializeProvider` | `Func<bool>` | `null` | Dynamic provider for runtime configuration (takes precedence over `Serialize`). Useful for environment-based or feature flag control |
+
+**Note:** Serialization can be expensive for large commands/queries. Consider disabling in production if you don't need full details in exception logs.
 
 ### Serialization Configuration
 

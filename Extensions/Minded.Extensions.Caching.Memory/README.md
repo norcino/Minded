@@ -75,15 +75,62 @@ var result3 = await _mediator.ProcessQueryAsync(query3);
 // Handler executes, new result cached
 ```
 
-## MemoryCache Attribute
+## Configuration Options
 
-### Overview
+### Decorator Registration
+
+The caching decorator can be registered with or without a custom global cache key prefix provider:
+
+```csharp
+// Default registration (no global prefix)
+builder.AddQueryMemoryCacheDecorator();
+
+// With custom global cache key prefix provider
+builder.AddQueryMemoryCacheDecorator<MyCustomGlobalCacheKeyPrefixProvider>();
+```
+
+### IGlobalCacheKeyPrefixProvider
+
+Implement this interface to add a global prefix to all cache keys (useful for multi-tenant scenarios or versioning):
+
+```csharp
+public interface IGlobalCacheKeyPrefixProvider
+{
+    string GetGlobalCacheKeyPrefix();
+}
+```
+
+**Example:**
+
+```csharp
+public class TenantCacheKeyPrefixProvider : IGlobalCacheKeyPrefixProvider
+{
+    private readonly ITenantContext _tenantContext;
+
+    public TenantCacheKeyPrefixProvider(ITenantContext tenantContext)
+    {
+        _tenantContext = tenantContext;
+    }
+
+    public string GetGlobalCacheKeyPrefix()
+    {
+        return $"Tenant-{_tenantContext.TenantId}:";
+    }
+}
+
+// Registration
+builder.AddQueryMemoryCacheDecorator<TenantCacheKeyPrefixProvider>();
+```
+
+### MemoryCache Attribute Properties
 
 The `[MemoryCache]` attribute is **required** to enable caching for a query. Without this attribute, the query will not be cached, even if it implements `IGenerateCacheKey`.
 
 **Requirements:**
 1. Query must be decorated with `[MemoryCache]` attribute
 2. Query must implement `IGenerateCacheKey` interface
+
+**Attribute Definition:**
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
@@ -96,7 +143,16 @@ public class MemoryCacheAttribute : CacheAttribute
 }
 ```
 
-### Attribute Properties
+**Available Properties:**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ExpirationInSeconds` | `int` | `0` | Seconds from now when the cache entry will be evicted (absolute expiration) |
+| `SlidingExpiration` | `int` | `0` | Seconds from last access when the cache entry will be evicted. Does not extend beyond absolute expiration |
+| `AbsoluteExpiration` | `string` | `null` | Exact date/time when cache entry expires (ISO 8601 format: '2023-06-30T12:00:00Z') |
+| `FailOnError` | `bool` | `false` | If `true`, throws exception on caching errors. If `false` (default), suppresses errors and executes query normally |
+
+### Property Details
 
 #### ExpirationInSeconds
 
@@ -487,23 +543,6 @@ public class UpdateProductCommandHandler : ICommandHandler<UpdateProductCommand,
 }
 ```
 
-### 5. Monitor Cache Hit Rates
-
-```csharp
-public class CacheMonitoringService
-{
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<CacheMonitoringService> _logger;
-
-    public void LogCacheStatistics()
-    {
-        // Monitor cache size, hit rate, evictions
-        // Adjust cache durations based on metrics
-        _logger.LogInformation("Cache statistics: ...");
-    }
-}
-```
-
 ## Performance Considerations
 
 ### Memory Usage
@@ -638,6 +677,50 @@ services.AddMinded(builder =>
     // Handler executes last (if cache miss)
 });
 ```
+
+## Integration with Other Decorators
+
+### With Logging Decorator
+
+The Logging decorator logs cache hits and misses:
+
+```csharp
+builder.AddQueryMemoryCacheDecorator()
+       .AddQueryLoggingDecorator()    // Logs cache operations
+       .AddQueryExceptionDecorator()
+       .AddQueryHandlers();
+```
+
+See: [Logging Decorator Documentation](../Minded.Extensions.Logging/README.md)
+
+### With Exception Decorator
+
+The Exception decorator catches cache-related errors:
+
+```csharp
+builder.AddQueryMemoryCacheDecorator()
+       .AddQueryExceptionDecorator()  // Catches cache errors
+       .AddQueryHandlers();
+```
+
+See: [Exception Decorator Documentation](../Minded.Extensions.Exception/README.md)
+
+### With RestMediator
+
+RestMediator returns cached results with HTTP 200 OK:
+
+```csharp
+[HttpGet("{id}")]
+public async Task<IActionResult> GetUser(int id)
+{
+    // Cached results automatically returned with 200 OK
+    return await _restMediator.ProcessRestQueryAsync(
+        RestOperation.GetSingle,
+        new GetUserByIdQuery(id));
+}
+```
+
+See: [RestMediator Documentation](../Minded.Extensions.WebApi/README.md)
 
 ## License
 

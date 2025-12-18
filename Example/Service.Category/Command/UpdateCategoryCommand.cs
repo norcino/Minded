@@ -27,6 +27,6 @@ namespace Service.Category.Command
 
         public string LoggingTemplate => "CategoryId: {CategoryId} CategoryName: {CategoryName}";
 
-        public object[] LoggingParameters => new object[] { Category.Id, Category.Name };
+        public string[] LoggingProperties => new[] { "Category.Id", "Category.Name" };
     }
 }

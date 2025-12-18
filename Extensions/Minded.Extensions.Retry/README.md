@@ -23,18 +23,14 @@ dotnet add package Minded.Extensions.Retry
 
 ```csharp
 using Minded.Framework.CQRS.Abstractions;
-using Minded.Extensions.Retry;
+using Minded.Extensions.Retry.Decorator;
 
-public class SendEmailCommand : ICommand<bool>, IRetryConfiguration
+[RetryCommand(3, 1000, 2000, 4000)]  // 3 retries with exponential backoff
+public class SendEmailCommand : ICommand<bool>
 {
     public string To { get; set; }
     public string Subject { get; set; }
     public string Body { get; set; }
-
-    // Retry configuration
-    public int MaxRetries => 3;
-    public TimeSpan InitialDelay => TimeSpan.FromSeconds(1);
-    public bool UseExponentialBackoff => true;
 }
 ```
 
@@ -74,29 +70,174 @@ var result = await _mediator.ProcessCommandAsync(command);
 
 ## Configuration Options
 
-### IRetryConfiguration Interface
+### Decorator Registration
 
-Implement this interface on your command or query to configure retry behavior:
+The retry decorator supports optional configuration for default retry behavior:
 
 ```csharp
-public interface IRetryConfiguration
+// Default registration (uses defaults: 3 retries, no delays)
+builder.AddCommandRetryDecorator();
+builder.AddQueryRetryDecorator();
+
+// With default retry configuration
+builder.AddCommandRetryDecorator(options =>
 {
-    /// <summary>
-    /// Maximum number of retry attempts (default: 3)
-    /// </summary>
-    int MaxRetries { get; }
+    options.DefaultRetryCount = 3;
+    options.DefaultDelay1 = 100;  // First retry after 100ms
+    options.DefaultDelay2 = 200;  // Second retry after 200ms
+    options.DefaultDelay3 = 400;  // Third retry after 400ms
+});
 
-    /// <summary>
-    /// Initial delay before first retry (default: 1 second)
-    /// </summary>
-    TimeSpan InitialDelay { get; }
+// For queries - with ApplyToAllQueries option
+builder.AddQueryRetryDecorator(applyToAllQueries: false, configureOptions: options =>
+{
+    options.DefaultRetryCount = 2;
+    options.DefaultDelay1 = 50;
+    options.DefaultDelay2 = 100;
+});
+```
 
-    /// <summary>
-    /// Whether to use exponential backoff (default: true)
-    /// Delay doubles with each retry: 1s, 2s, 4s, 8s, etc.
-    /// </summary>
-    bool UseExponentialBackoff { get; }
+### RetryOptions Class
+
+Configure default retry behavior when attributes don't specify values:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DefaultRetryCount` | `int` | `3` | Default number of retry attempts when not specified in attribute |
+| `DefaultRetryCountProvider` | `Func<int>` | `null` | Dynamic provider for retry count (takes precedence over static value) |
+| `DefaultDelay1` | `int` | `0` | Default delay in milliseconds before first retry |
+| `DefaultDelay1Provider` | `Func<int>` | `null` | Dynamic provider for first retry delay (takes precedence over static value) |
+| `DefaultDelay2` | `int` | `0` | Default delay in milliseconds before second retry |
+| `DefaultDelay2Provider` | `Func<int>` | `null` | Dynamic provider for second retry delay (takes precedence over static value) |
+| `DefaultDelay3` | `int` | `0` | Default delay in milliseconds before third retry |
+| `DefaultDelay3Provider` | `Func<int>` | `null` | Dynamic provider for third retry delay (takes precedence over static value) |
+| `DefaultDelay4` | `int` | `0` | Default delay in milliseconds before fourth retry |
+| `DefaultDelay4Provider` | `Func<int>` | `null` | Dynamic provider for fourth retry delay (takes precedence over static value) |
+| `DefaultDelay5` | `int` | `0` | Default delay in milliseconds before fifth retry |
+| `DefaultDelay5Provider` | `Func<int>` | `null` | Dynamic provider for fifth retry delay (takes precedence over static value) |
+| `ApplyToAllQueries` | `bool` | `false` | If `true`, applies retry logic to ALL queries even without `[RetryQuery]` attribute |
+| `ApplyToAllQueriesProvider` | `Func<bool>` | `null` | Dynamic provider for apply to all queries (takes precedence over static value) |
+
+### Configuration via appsettings.json
+
+```json
+{
+  "Minded": {
+    "RetryOptions": {
+      "DefaultRetryCount": 3,
+      "DefaultDelay1": 100,
+      "DefaultDelay2": 200,
+      "DefaultDelay3": 400,
+      "ApplyToAllQueries": false
+    }
+  }
 }
+```
+
+### Runtime Configuration with Providers
+
+All `RetryOptions` properties support dynamic runtime configuration via provider functions. This allows you to change retry behavior at runtime based on feature flags, configuration services, or other runtime conditions.
+
+**Example: Runtime Configuration with Feature Flags**
+
+```csharp
+builder.AddCommandRetryDecorator(options =>
+{
+    // Static configuration (fallback values)
+    options.DefaultRetryCount = 3;
+    options.DefaultDelay1 = 100;
+
+    // Dynamic configuration via providers (takes precedence)
+    options.DefaultRetryCountProvider = () => _configService.GetValue("retry-count", 3);
+    options.DefaultDelay1Provider = () => _configService.GetValue("retry-delay1", 100);
+    options.DefaultDelay2Provider = () => _configService.GetValue("retry-delay2", 200);
+    options.ApplyToAllQueriesProvider = () => _featureFlags.IsEnabled("retry-all-queries");
+});
+```
+
+**Example: Environment-Based Configuration**
+
+```csharp
+builder.AddQueryRetryDecorator(applyToAllQueries: false, configureOptions: options =>
+{
+    // More aggressive retries in production
+    options.DefaultRetryCountProvider = () => _environment.IsProduction() ? 5 : 2;
+    options.DefaultDelay1Provider = () => _environment.IsProduction() ? 200 : 50;
+});
+```
+
+**How Providers Work:**
+
+- Providers are invoked **each time** a retry operation is initiated
+- If a provider is set, it takes precedence over the static property value
+- If a provider returns `null` or is not set, the static property value is used
+- This enables true runtime configuration without application restart
+
+**GetEffective Methods:**
+
+The `RetryOptions` class provides `GetEffective*()` methods that handle the provider logic:
+
+```csharp
+public int GetEffectiveDefaultRetryCount()
+{
+    return DefaultRetryCountProvider?.Invoke() ?? DefaultRetryCount;
+}
+
+public bool GetEffectiveApplyToAllQueries()
+{
+    return ApplyToAllQueriesProvider?.Invoke() ?? ApplyToAllQueries;
+}
+// ... similar methods for all delay properties
+```
+
+### Retry Attributes
+
+Retry behavior is configured per command/query using attributes:
+
+**[RetryCommand] Attribute:**
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+public class RetryCommandAttribute : Attribute
+{
+    public int? RetryCount { get; }
+    public int? Delay1 { get; }  // Delay in milliseconds
+    public int? Delay2 { get; }
+    public int? Delay3 { get; }
+    public int? Delay4 { get; }
+    public int? Delay5 { get; }
+}
+```
+
+**[RetryQuery] Attribute:**
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+public class RetryQueryAttribute : Attribute
+{
+    public int? RetryCount { get; }
+    public int? Delay1 { get; }  // Delay in milliseconds
+    public int? Delay2 { get; }
+    public int? Delay3 { get; }
+    public int? Delay4 { get; }
+    public int? Delay5 { get; }
+}
+```
+
+**Attribute Constructors:**
+
+```csharp
+// Default - uses RetryOptions defaults
+[RetryCommand]
+
+// Specify retry count only
+[RetryCommand(3)]
+
+// Specify retry count and single delay (used for all retries)
+[RetryCommand(3, 1000)]  // 3 retries, 1 second delay each
+
+// Specify retry count and multiple delays (exponential backoff)
+[RetryCommand(3, 100, 200, 400)]  // 3 retries: 100ms, 200ms, 400ms
 ```
 
 ### Example Configurations
@@ -104,13 +245,12 @@ public interface IRetryConfiguration
 #### Aggressive Retry (Fast, Many Attempts)
 
 ```csharp
-public class CheckInventoryQuery : IQuery<InventoryStatus>, IRetryConfiguration
+using Minded.Extensions.Retry.Decorator;
+
+[RetryQuery(5, 100, 200, 400, 800, 1600)]  // 5 retries with exponential backoff
+public class CheckInventoryQuery : IQuery<InventoryStatus>
 {
     public int ProductId { get; set; }
-
-    public int MaxRetries => 5;
-    public TimeSpan InitialDelay => TimeSpan.FromMilliseconds(100);
-    public bool UseExponentialBackoff => true;
 }
 
 // Retry schedule: 100ms, 200ms, 400ms, 800ms, 1600ms
@@ -119,29 +259,37 @@ public class CheckInventoryQuery : IQuery<InventoryStatus>, IRetryConfiguration
 #### Conservative Retry (Slow, Few Attempts)
 
 ```csharp
-public class ProcessPaymentCommand : ICommand<PaymentResult>, IRetryConfiguration
+using Minded.Extensions.Retry.Decorator;
+
+[RetryCommand(2, 5000)]  // 2 retries with 5 second delay each
+public class ProcessPaymentCommand : ICommand<PaymentResult>
 {
     public decimal Amount { get; set; }
     public string CardToken { get; set; }
-
-    public int MaxRetries => 2;
-    public TimeSpan InitialDelay => TimeSpan.FromSeconds(5);
-    public bool UseExponentialBackoff => false;
 }
 
 // Retry schedule: 5s, 5s (fixed delay)
 ```
 
-#### No Retry
+#### Default Retry Configuration
 
 ```csharp
-public class DeleteUserCommand : ICommand<bool>, IRetryConfiguration
+using Minded.Extensions.Retry.Decorator;
+
+[RetryCommand]  // Uses defaults from RetryOptions (typically 3 retries)
+public class SendNotificationCommand : ICommand<bool>
+{
+    public string Message { get; set; }
+}
+```
+
+#### No Attribute = No Retry
+
+```csharp
+// No [RetryCommand] attribute = no retry logic applied
+public class DeleteUserCommand : ICommand<bool>
 {
     public int UserId { get; set; }
-
-    public int MaxRetries => 0;  // No retries
-    public TimeSpan InitialDelay => TimeSpan.Zero;
-    public bool UseExponentialBackoff => false;
 }
 ```
 
@@ -345,31 +493,77 @@ The retry decorator logs each retry attempt. Monitor these logs to identify:
    builder.AddCommandRetryDecorator();
    ```
 
-2. Verify your command implements `IRetryConfiguration`:
+2. Verify your command has the `[RetryCommand]` attribute:
    ```csharp
-   public class MyCommand : ICommand<Result>, IRetryConfiguration
+   [RetryCommand(3, 100, 200, 400)]
+   public class MyCommand : ICommand<Result>
    ```
 
-3. Check that `MaxRetries > 0`:
+3. Check that retry count is > 0:
    ```csharp
-   public int MaxRetries => 3;  // Must be > 0
+   [RetryCommand(3)]  // Must be > 0
+   ```
+
+4. For queries, ensure `ApplyToAllQueries` is configured if you want retry without attribute:
+   ```csharp
+   builder.AddQueryRetryDecorator(applyToAllQueries: true);
    ```
 
 ### Too Many Retries
 
 If you're seeing excessive retries:
 
-1. Reduce `MaxRetries`:
+1. Reduce retry count in the attribute:
    ```csharp
-   public int MaxRetries => 2;  // Reduced from 5
+   [RetryCommand(2, 1000)]  // Reduced from 5 to 2
    ```
 
-2. Increase `InitialDelay`:
+2. Increase delays between retries:
    ```csharp
-   public TimeSpan InitialDelay => TimeSpan.FromSeconds(5);  // Increased from 1s
+   [RetryCommand(3, 5000)]  // 5 second delay between retries
    ```
 
 3. Ensure you're not retrying permanent failures - catch and handle them in your handler
+
+## Integration with Other Decorators
+
+### With Exception Decorator
+
+The Exception decorator should wrap the Retry decorator to catch final failures after all retries are exhausted:
+
+```csharp
+builder.AddCommandRetryDecorator()
+       .AddCommandExceptionDecorator()  // Catches exceptions after retries exhausted
+       .AddCommandHandlers();
+```
+
+See: [Exception Decorator Documentation](../Minded.Extensions.Exception/README.md)
+
+### With Logging Decorator
+
+The Logging decorator logs each retry attempt:
+
+```csharp
+builder.AddCommandRetryDecorator()
+       .AddCommandLoggingDecorator()    // Logs retry attempts
+       .AddCommandExceptionDecorator()
+       .AddCommandHandlers();
+```
+
+See: [Logging Decorator Documentation](../Minded.Extensions.Logging/README.md)
+
+### With Transaction Decorator
+
+Be careful when combining Retry with Transaction - each retry will create a new transaction:
+
+```csharp
+// Transaction wraps retry - each retry gets a new transaction
+builder.AddCommandRetryDecorator()
+       .AddCommandTransactionDecorator()  // New transaction per retry
+       .AddCommandHandlers();
+```
+
+See: [Transaction Decorator Documentation](../Minded.Extensions.Transaction/README.md)
 
 ## License
 

@@ -92,6 +92,74 @@ namespace Minded.Extensions.DataProtection
             return propertyInfo.GetCustomAttribute<SensitiveDataAttribute>() != null;
         }
 
+        /// <inheritdoc/>
+        /// <remarks>
+        /// This implementation extracts property values without any sanitization.
+        /// All values are returned as-is, even if marked with [SensitiveData].
+        /// </remarks>
+        public object[] ExtractProperties(object source, string[] propertyPaths)
+        {
+            if (source == null || propertyPaths == null || propertyPaths.Length == 0)
+                return Array.Empty<object>();
+
+            var result = new object[propertyPaths.Length];
+
+            for (int i = 0; i < propertyPaths.Length; i++)
+            {
+                var path = propertyPaths[i];
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    result[i] = null;
+                    continue;
+                }
+
+                result[i] = NavigatePropertyPath(source, path);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Navigates a property path without any sanitization.
+        /// </summary>
+        private object NavigatePropertyPath(object source, string path)
+        {
+            if (source == null || string.IsNullOrEmpty(path))
+                return null;
+
+            var parts = path.Split('.');
+            object current = source;
+
+            foreach (var part in parts)
+            {
+                if (current == null)
+                    return null;
+
+                var type = current.GetType();
+
+                // Try property first
+                var property = type.GetProperty(part, BindingFlags.Public | BindingFlags.Instance);
+                if (property != null && property.CanRead)
+                {
+                    current = property.GetValue(current);
+                    continue;
+                }
+
+                // Try field
+                var field = type.GetField(part, BindingFlags.Public | BindingFlags.Instance);
+                if (field != null)
+                {
+                    current = field.GetValue(current);
+                    continue;
+                }
+
+                // Property/field not found
+                return null;
+            }
+
+            return current;
+        }
+
         /// <summary>
         /// Formats a property value without any sanitization.
         /// </summary>

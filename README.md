@@ -393,6 +393,149 @@ builder.AddQueryValidationDecorator()        // Innermost
 
 ---
 
+### Decorator Configuration Options
+
+Many decorators accept configuration options when registered via extension methods (e.g., `AddCommandLoggingDecorator(options => ...)`, `AddDataProtection(options => ...)`, `AddCommandTransactionDecorator(options => ...)`). These options control the decorator's runtime behavior.
+
+#### Configuration Pattern Convention
+
+Minded follows a **consistent configuration pattern** across all decorators that support options:
+
+**1. Static Configuration Properties**
+
+Static properties define fixed configuration values:
+
+```csharp
+builder.AddCommandLoggingDecorator(options =>
+{
+    options.Enabled = true;                              // Static boolean
+    options.MinimumOutcomeSeverityLevel = Severity.Warning;  // Static enum
+});
+```
+
+**2. Provider Properties (Dynamic Configuration)**
+
+For every static configuration property, there is a corresponding **Provider property** that accepts a `Func<T>` delegate. This allows **dynamic runtime configuration** based on feature flags, external configuration, database values, environment variables, etc.
+
+**Naming Convention**: `{PropertyName}Provider`
+
+```csharp
+builder.AddCommandLoggingDecorator(options =>
+{
+    // Static value
+    options.MinimumOutcomeSeverityLevel = Severity.Warning;
+
+    // Dynamic provider (takes precedence over static value)
+    options.MinimumOutcomeSeverityLevelProvider = () =>
+    {
+        // Read from feature flag service
+        if (_featureFlags.IsEnabled("DetailedLogging"))
+            return Severity.Info;
+
+        // Read from external configuration
+        return _configService.GetValue<Severity>("Logging:MinSeverity", Severity.Warning);
+    };
+});
+```
+
+**3. Provider Precedence**
+
+When both a static property and its provider are configured, the **provider takes precedence**:
+
+```csharp
+options.Enabled = true;  // Static: always enabled
+options.EnabledProvider = () => !_environment.IsProduction();  // Provider wins: disabled in production
+```
+
+#### Common Configuration Scenarios
+
+**Environment-Based Configuration**:
+```csharp
+builder.AddCommandExceptionDecorator(options =>
+{
+    // Serialize command/query details only in development
+    options.SerializeProvider = () => _environment.IsDevelopment();
+});
+```
+
+**Feature Flag-Based Configuration**:
+```csharp
+builder.AddCommandLoggingDecorator(options =>
+{
+    // Enable detailed logging based on feature flag
+    options.LogOutcomeEntriesProvider = () => _featureFlags.IsEnabled("DetailedLogging");
+});
+```
+
+**Database/External Configuration**:
+```csharp
+builder.AddDataProtection(options =>
+{
+    // Read sensitive data visibility from database configuration
+    options.ShowSensitiveDataProvider = () => _configRepository.GetBoolAsync("ShowSensitiveData").Result;
+});
+```
+
+**Multi-Tenant Configuration**:
+```csharp
+builder.AddCommandLoggingDecorator(options =>
+{
+    // Different log levels per tenant
+    options.MinimumOutcomeSeverityLevelProvider = () =>
+    {
+        var tenantId = _tenantContext.TenantId;
+        return _tenantConfigService.GetLogLevel(tenantId);
+    };
+});
+```
+
+#### Configuration via appsettings.json
+
+Most decorators also support configuration via `appsettings.json` when using the parameterless registration method:
+
+```json
+{
+  "Minded": {
+    "LoggingOptions": {
+      "Enabled": true,
+      "LogMessageTemplateData": true,
+      "MinimumOutcomeSeverityLevel": "Warning"
+    },
+    "TransactionOptions": {
+      "DefaultIsolationLevel": "ReadCommitted",
+      "DefaultTimeout": "00:02:00",
+      "RollbackOnUnsuccessfulResponse": true
+    },
+    "DataProtectionOptions": {
+      "ShowSensitiveData": false
+    }
+  }
+}
+```
+
+**Note**: Provider properties cannot be configured via `appsettings.json` - they must be set programmatically during service registration.
+
+#### Decorators with Configuration Options
+
+The following decorators accept configuration options:
+
+| Decorator | Options Class | Supports Providers | appsettings.json Support |
+|-----------|---------------|-------------------|-------------------------|
+| **Logging** | `LoggingOptions` | ✅ Yes | ✅ Yes |
+| **Transaction** | `TransactionOptions` | ❌ No | ✅ Yes |
+| **Exception** | `ExceptionOptions` | ✅ Yes | ❌ No |
+| **Data Protection** | `DataProtectionOptions` | ✅ Yes | ✅ Yes |
+
+**Decorators without Configuration Options**:
+- **Validation** - Configured via `[ValidateCommand]`/`[ValidateQuery]` attributes and FluentValidation validators
+- **Retry** - Configured via `[RetryCommand]`/`[RetryQuery]` attributes on commands/queries
+- **Caching** - Configured via `[MemoryCache]` attribute and `IGlobalCacheKeyPrefixProvider`
+- **WebApi/RestMediator** - Configured via `IRestRulesProvider` implementation
+
+For detailed configuration options for each decorator, see the individual decorator documentation linked below.
+
+---
+
 ### Available Decorators
 
 #### Exception Decorator
@@ -456,6 +599,8 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
     }
 }
 ```
+
+**See**: [Validation Decorator Documentation](Extensions/Minded.Extensions.Validation/README.md)
 
 #### Retry Decorator
 
@@ -539,6 +684,8 @@ builder.AddCommandValidationDecorator()
     .AddCommandHandlers();
 ```
 
+**See**: [Retry Decorator Documentation](Extensions/Minded.Extensions.Retry/README.md)
+
 #### Logging Decorator
 
 **Purpose**: Log all command and query executions
@@ -561,9 +708,11 @@ public class CreateCategoryCommand : ICommand<Category>, ILoggable
     public Category Category { get; set; }
 
     public string LoggingTemplate => "Creating category: {CategoryName}";
-    public object[] LoggingParameters => new object[] { Category.Name };
+    public string[] LoggingProperties => new[] { "Category.Name" };
 }
 ```
+
+**See**: [Logging Decorator Documentation](Extensions/Minded.Extensions.Logging/README.md)
 
 #### Caching Decorator (Queries Only)
 
@@ -606,6 +755,8 @@ public class TenantCacheKeyPrefixProvider : IGlobalCacheKeyPrefixProvider
 }
 ```
 
+**See**: [Caching Decorator Documentation](Extensions/Minded.Extensions.Caching.Memory/README.md)
+
 #### Transaction Decorator
 
 **Purpose**: Wrap command execution in a database transaction with automatic rollback on failure
@@ -631,7 +782,7 @@ builder.AddQueryTransactionDecorator();
 ```
 
 **How it works**:
-1. Decorate your command with `[TransactionCommand]` or query with `[TransactionQuery]`
+1. Decorate your command with `[TransactionalCommand]` or query with `[TransactionalQuery]`
 2. The decorator wraps execution in a `System.Transactions.TransactionScope`
 3. Nested commands/queries automatically join the ambient transaction
 4. Transaction commits if handler succeeds and returns `Successful = true`
@@ -641,7 +792,7 @@ builder.AddQueryTransactionDecorator();
 
 **Basic Example**:
 ```csharp
-[TransactionCommand]
+[TransactionalCommand]
 public class CreateOrderCommand : ICommand<Order>
 {
     public Order Order { get; set; }
@@ -674,7 +825,7 @@ public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, Ord
 **Advanced Configuration**:
 ```csharp
 // Per-command configuration with custom isolation level and timeout
-[TransactionCommand(
+[TransactionalCommand(
     IsolationLevel = IsolationLevel.Serializable,  // Strongest isolation
     TimeoutSeconds = 300)]                          // 5 minutes
 public class ProcessPaymentCommand : ICommand<Payment>
@@ -683,7 +834,7 @@ public class ProcessPaymentCommand : ICommand<Payment>
 }
 
 // Nested transaction with different isolation level (creates new transaction)
-[TransactionCommand(
+[TransactionalCommand(
     TransactionScopeOption = TransactionScopeOption.RequiresNew,
     IsolationLevel = IsolationLevel.ReadUncommitted)]
 public class AuditLogCommand : ICommand
@@ -692,7 +843,7 @@ public class AuditLogCommand : ICommand
 }
 
 // Suppress transaction (execute outside any transaction)
-[TransactionCommand(TransactionScopeOption = TransactionScopeOption.Suppress)]
+[TransactionalCommand(TransactionScopeOption = TransactionScopeOption.Suppress)]
 public class SendEmailCommand : ICommand
 {
     // This executes outside any transaction
@@ -705,7 +856,7 @@ The decorator automatically handles nested transactions using `TransactionScopeO
 
 - **`Required` (default)**: Joins existing transaction or creates new one
   ```csharp
-  [TransactionCommand]  // Creates transaction
+  [TransactionalCommand]  // Creates transaction
   public class OuterCommand : ICommand
   {
       public async Task HandleAsync(...)
@@ -715,13 +866,13 @@ The decorator automatically handles nested transactions using `TransactionScopeO
       }
   }
 
-  [TransactionCommand]  // Joins outer transaction (doesn't create new)
+  [TransactionalCommand]  // Joins outer transaction (doesn't create new)
   public class InnerCommand : ICommand { }
   ```
 
 - **`RequiresNew`**: Always creates new transaction (suspends outer transaction)
   ```csharp
-  [TransactionCommand(TransactionScopeOption = TransactionScopeOption.RequiresNew)]
+  [TransactionalCommand(TransactionScopeOption = TransactionScopeOption.RequiresNew)]
   public class AuditCommand : ICommand
   {
       // Always creates new transaction
@@ -731,7 +882,7 @@ The decorator automatically handles nested transactions using `TransactionScopeO
 
 - **`Suppress`**: Executes outside any transaction
   ```csharp
-  [TransactionCommand(TransactionScopeOption = TransactionScopeOption.Suppress)]
+  [TransactionalCommand(TransactionScopeOption = TransactionScopeOption.Suppress)]
   public class NotificationCommand : ICommand
   {
       // Executes outside transaction
@@ -745,12 +896,12 @@ Control transaction isolation to prevent race conditions:
 
 ```csharp
 // ReadCommitted (default) - Prevents dirty reads
-[TransactionCommand(IsolationLevel = IsolationLevel.ReadCommitted)]
+[TransactionalCommand(IsolationLevel = IsolationLevel.ReadCommitted)]
 public class CreateOrderCommand : ICommand<Order> { }
 
 // RepeatableRead - Prevents dirty reads and non-repeatable reads
 // Use when validation reads DB state that must not change during execution
-[TransactionCommand(IsolationLevel = IsolationLevel.RepeatableRead)]
+[TransactionalCommand(IsolationLevel = IsolationLevel.RepeatableRead)]
 public class CancelOrderCommand : ICommand
 {
     // Validator reads Order.Status
@@ -759,7 +910,7 @@ public class CancelOrderCommand : ICommand
 }
 
 // Serializable - Strongest isolation (prevents all anomalies)
-[TransactionCommand(IsolationLevel = IsolationLevel.Serializable)]
+[TransactionalCommand(IsolationLevel = IsolationLevel.Serializable)]
 public class ProcessPaymentCommand : ICommand<Payment>
 {
     // Use for critical financial operations
@@ -810,7 +961,7 @@ The transaction decorator **ONLY** covers database operations. It **DOES NOT** r
 
 **Example of what gets rolled back vs what doesn't**:
 ```csharp
-[TransactionCommand]
+[TransactionalCommand]
 public class CreateOrderCommand : ICommand<Order>
 {
     public async Task HandleAsync(...)
@@ -875,7 +1026,7 @@ Queries can use transactions for consistent snapshots:
 ```csharp
 builder.AddQueryTransactionDecorator();
 
-[TransactionQuery(IsolationLevel = IsolationLevel.Snapshot)]
+[TransactionalQuery(IsolationLevel = IsolationLevel.Snapshot)]
 public class GetOrderWithItemsQuery : IQuery<OrderDto>
 {
     // Ensures consistent snapshot of Order and OrderItems
@@ -887,6 +1038,8 @@ public class GetOrderWithItemsQuery : IQuery<OrderDto>
 - Consistent snapshot across multiple tables
 - Specific isolation level to prevent read anomalies
 - Read locks to prevent updates during query execution
+
+**See**: [Transaction Decorator Documentation](Extensions/Minded.Extensions.Transaction/README.md)
 
 #### WebApi Decorator - Working with RestMediator
 
@@ -1090,6 +1243,62 @@ public async Task<Category> HandleAsync(
 ## For Engineers Extending Minded
 
 This section is for engineers who want to create custom decorators or extensions for the Minded framework.
+
+### Understanding Decorator Base Classes
+
+Minded provides base classes that simplify decorator creation:
+
+#### CommandHandlerDecoratorBase<TCommand>
+
+Base class for command decorators. Provides access to the next handler in the chain.
+
+**Key Properties:**
+- `DecoratedCommmandHandler` - The next command handler in the decorator chain (note: typo in property name is intentional for backward compatibility)
+
+**Usage:**
+```csharp
+public class MyCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
+    where TCommand : ICommand
+{
+    public MyCommandDecorator(ICommandHandler<TCommand> commandHandler) : base(commandHandler)
+    {
+    }
+
+    public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
+    {
+        // Your logic before
+        var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+        // Your logic after
+        return response;
+    }
+}
+```
+
+#### QueryHandlerDecoratorBase<TQuery, TResult>
+
+Base class for query decorators. Provides access to the next handler in the chain.
+
+**Key Properties:**
+- `InnerQueryHandler` - The next query handler in the decorator chain
+
+**Usage:**
+```csharp
+public class MyQueryDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>, IQueryHandler<TQuery, TResult>
+    where TQuery : IQuery<TResult>
+{
+    public MyQueryDecorator(IQueryHandler<TQuery, TResult> queryHandler) : base(queryHandler)
+    {
+    }
+
+    public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
+    {
+        // Your logic before
+        var result = await InnerQueryHandler.HandleAsync(query, cancellationToken);
+        // Your logic after
+        return result;
+    }
+}
+```
 
 ### Creating a Custom Decorator
 
@@ -1394,15 +1603,131 @@ Register your custom rules provider:
 services.AddScoped<IRestRulesProvider, MyCustomRestRulesProvider>();
 ```
 
+### Understanding Decorator Execution Order
+
+**CRITICAL**: Decorators are registered from **INNERMOST to OUTERMOST**, but execute in **REVERSE order**.
+
+#### Registration Order (Innermost → Outermost)
+
+```csharp
+services.AddMinded(builder =>
+{
+    builder.AddCommandValidationDecorator()    // 1. Registered FIRST (innermost)
+           .AddCommandRetryDecorator()          // 2. Registered SECOND
+           .AddCommandLoggingDecorator()        // 3. Registered THIRD
+           .AddCommandExceptionDecorator()      // 4. Registered LAST (outermost)
+           .AddCommandHandlers();               // 5. Actual handler (core)
+});
+```
+
+#### Execution Order (Outermost → Innermost → Handler → Innermost → Outermost)
+
+```
+Request Flow:
+1. Exception Decorator (outermost) - ENTERS
+2. Logging Decorator - ENTERS
+3. Retry Decorator - ENTERS
+4. Validation Decorator (innermost) - ENTERS
+5. Handler - EXECUTES
+6. Validation Decorator - EXITS
+7. Retry Decorator - EXITS
+8. Logging Decorator - EXITS
+9. Exception Decorator - EXITS
+```
+
+**Visual Representation:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Exception Decorator (catches all errors)                │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ Logging Decorator (logs execution)                │  │
+│  │  ┌─────────────────────────────────────────────┐  │  │
+│  │  │ Retry Decorator (retries on failure)       │  │  │
+│  │  │  ┌───────────────────────────────────────┐  │  │  │
+│  │  │  │ Validation Decorator (validates)     │  │  │  │
+│  │  │  │  ┌─────────────────────────────────┐  │  │  │  │
+│  │  │  │  │ Handler (business logic)        │  │  │  │  │
+│  │  │  │  └─────────────────────────────────┘  │  │  │  │
+│  │  │  └───────────────────────────────────────┘  │  │  │
+│  │  └─────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### Why This Matters
+
+1. **Exception Handling** - Should be outermost (registered last) to catch all errors
+2. **Validation** - Should be innermost (registered first) to fail fast
+3. **Logging** - Should wrap most operations to log everything
+4. **Retry** - Should be inside exception handling but outside validation
+
+**Example - Correct Order:**
+
+```csharp
+builder.AddCommandValidationDecorator()      // Validates first (fail fast)
+       .AddCommandRetryDecorator()           // Retries if handler fails
+       .AddCommandLoggingDecorator()         // Logs all attempts
+       .AddCommandExceptionDecorator()       // Catches all exceptions
+       .AddCommandHandlers();
+```
+
+**Example - Incorrect Order:**
+
+```csharp
+builder.AddCommandExceptionDecorator()       // ❌ Catches exceptions too early
+       .AddCommandValidationDecorator()      // ❌ Validation errors not caught
+       .AddCommandHandlers();
+```
+
+### Accessing Dependency Injection Services in Decorators
+
+Decorators can access any service registered in the DI container:
+
+```csharp
+public class MyCustomCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
+    where TCommand : ICommand
+{
+    private readonly ILogger<MyCustomCommandDecorator<TCommand>> _logger;
+    private readonly IMyCustomService _customService;
+    private readonly IConfiguration _configuration;
+
+    public MyCustomCommandDecorator(
+        ICommandHandler<TCommand> commandHandler,
+        ILogger<MyCustomCommandDecorator<TCommand>> logger,
+        IMyCustomService customService,
+        IConfiguration configuration) : base(commandHandler)
+    {
+        _logger = logger;
+        _customService = customService;
+        _configuration = configuration;
+    }
+
+    public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
+    {
+        // Use injected services
+        var setting = _configuration["MySetting"];
+        await _customService.DoSomethingAsync();
+
+        return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+    }
+}
+```
+
+**Important**: The first parameter MUST be the decorated handler (`ICommandHandler<TCommand>` or `IQueryHandler<TQuery, TResult>`). All other parameters are resolved from DI.
+
 ### Best Practices for Extensions
 
 1. **Single Responsibility** - Each decorator should do one thing well
-2. **Order Matters** - Consider where your decorator should sit in the pipeline
+2. **Order Matters** - Consider where your decorator should sit in the pipeline (see execution order above)
 3. **Cancellation Support** - Always pass `CancellationToken` through the chain
 4. **Error Handling** - Let exceptions bubble up unless you have a specific reason to catch them
 5. **Logging** - Use structured logging with meaningful context
 6. **Performance** - Avoid heavy operations in decorators; they run on every request
 7. **Testing** - Write unit tests for your decorators in isolation
+8. **DI Services** - Inject services via constructor, but decorated handler must be first parameter
+9. **Async/Await** - Always use async/await properly; don't block with `.Result` or `.Wait()`
+10. **Sanitization** - Use the logging sanitization pipeline for any logging/auditing to protect sensitive data
 
 ---
 
@@ -1909,7 +2234,17 @@ All Minded packages are available on NuGet:
 ### Framework Documentation
 
 - **[Changelog](Changelog.md)** - Version history and release notes
-- **[RestMediator Guide](Extensions/Minded.Extensions.WebApi/Readme.md)** - Comprehensive RestMediator documentation
+
+### Decorator Extensions Documentation
+
+- **[Exception Handling](Extensions/Minded.Extensions.Exception/README.md)** - Centralized exception handling with sanitization pipeline
+- **[Validation](Extensions/Minded.Extensions.Validation/README.md)** - FluentValidation integration for commands and queries
+- **[Retry](Extensions/Minded.Extensions.Retry/README.md)** - Automatic retry logic for transient failures
+- **[Logging](Extensions/Minded.Extensions.Logging/README.md)** - Comprehensive logging with sensitive data protection
+- **[Caching](Extensions/Minded.Extensions.Caching.Memory/README.md)** - In-memory caching for query results
+- **[Transaction](Extensions/Minded.Extensions.Transaction/README.md)** - Database transaction management with nested transaction support
+- **[WebApi/RestMediator](Extensions/Minded.Extensions.WebApi/README.md)** - REST API integration with automatic HTTP response mapping
+- **[Data Protection](Extensions/Minded.Extensions.DataProtection/README.md)** - Sensitive data protection for GDPR/CCPA compliance
 
 ### External Resources
 

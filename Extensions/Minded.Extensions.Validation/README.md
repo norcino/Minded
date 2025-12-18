@@ -253,20 +253,67 @@ services.AddMinded(builder =>
 
 ## Configuration Options
 
-### Validation Behavior
+### Decorator Registration
 
-Control when validation runs:
+The validation decorator has **no runtime configuration options**. Validation behavior is controlled entirely by:
+
+1. **Attributes** - `[ValidateCommand]` or `[ValidateQuery]` on commands/queries
+2. **Validators** - FluentValidation validator classes
 
 ```csharp
-// Validate all commands
+// Register validation decorator for commands
 builder.AddCommandValidationDecorator();
 
-// Validate all queries
+// Register validation decorator for queries
 builder.AddQueryValidationDecorator();
 
-// Validate both commands and queries
+// Register both
 builder.AddCommandValidationDecorator();
 builder.AddQueryValidationDecorator();
+```
+
+**Note:** Unlike other decorators (Logging, Exception, Transaction), the Validation decorator does not accept configuration options during registration. All validation logic is defined in your FluentValidation validator classes.
+
+### Controlling Validation Behavior
+
+Validation behavior is controlled through:
+
+#### 1. Attributes (Required)
+
+Commands/queries must be decorated with the appropriate attribute:
+
+```csharp
+[ValidateCommand]  // For commands
+public class CreateUserCommand : ICommand<User> { }
+
+[ValidateQuery]    // For queries
+public class GetUserQuery : IQuery<User> { }
+```
+
+#### 2. Validator Classes
+
+Define validation rules using FluentValidation:
+
+```csharp
+public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
+{
+    public CreateUserCommandValidator()
+    {
+        RuleFor(x => x.Username).NotEmpty().MinimumLength(3);
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.Age).GreaterThanOrEqualTo(18);
+    }
+}
+```
+
+#### 3. Validator Severity
+
+Control outcome severity in validators:
+
+```csharp
+RuleFor(x => x.Email)
+    .NotEmpty()
+    .WithSeverity(Severity.Error);  // Error, Warning, or Information
 ```
 
 ## Integration with RestMediator
@@ -318,6 +365,50 @@ services.AddMinded(builder =>
     builder.AddCommandExceptionDecorator();   // Last
 });
 ```
+
+## Integration with Other Decorators
+
+### With Exception Decorator
+
+The Exception decorator should wrap the Validation decorator to catch any validation errors:
+
+```csharp
+builder.AddCommandValidationDecorator()
+       .AddCommandExceptionDecorator()  // Catches validation exceptions
+       .AddCommandHandlers();
+```
+
+See: [Exception Decorator Documentation](../Minded.Extensions.Exception/README.md)
+
+### With Logging Decorator
+
+The Logging decorator logs validation failures:
+
+```csharp
+builder.AddCommandValidationDecorator()
+       .AddCommandLoggingDecorator()    // Logs validation results
+       .AddCommandExceptionDecorator()
+       .AddCommandHandlers();
+```
+
+See: [Logging Decorator Documentation](../Minded.Extensions.Logging/README.md)
+
+### With RestMediator
+
+RestMediator automatically maps validation errors to HTTP 400 Bad Request:
+
+```csharp
+[HttpPost]
+public async Task<IActionResult> Create([FromBody] CreateUserCommand command)
+{
+    // Validation errors automatically return 400 Bad Request
+    return await _restMediator.ProcessRestCommandAsync(
+        RestOperation.CreateWithContent,
+        command);
+}
+```
+
+See: [RestMediator Documentation](../Minded.Extensions.WebApi/README.md)
 
 ## License
 

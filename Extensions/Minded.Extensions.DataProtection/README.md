@@ -87,7 +87,33 @@ services.AddMinded(builder =>
 | `ShowSensitiveData` | `bool` | `false` | Static setting for showing/hiding sensitive data |
 | `ShowSensitiveDataProvider` | `Func<bool>` | `null` | Dynamic provider for runtime configuration (takes precedence) |
 
-### Configuration File
+### Programmatic Configuration
+
+```csharp
+services.AddMinded(builder =>
+{
+    // Static configuration
+    builder.AddDataProtection(options =>
+    {
+        options.ShowSensitiveData = false;  // Hide sensitive data
+    });
+
+    // Dynamic configuration with provider
+    builder.AddDataProtection(options =>
+    {
+        // Show sensitive data only in development
+        options.ShowSensitiveDataProvider = () => _environment.IsDevelopment();
+    });
+
+    // With custom sanitizer implementation
+    builder.AddDataProtection<MyCustomDataSanitizer>(options =>
+    {
+        options.ShowSensitiveData = false;
+    });
+});
+```
+
+### Configuration via appsettings.json
 
 ```json
 {
@@ -98,6 +124,75 @@ services.AddMinded(builder =>
   }
 }
 ```
+
+**Note:** Provider properties (`ShowSensitiveDataProvider`) cannot be configured via `appsettings.json` - they must be set programmatically.
+
+## IDataSanitizer Interface
+
+The `IDataSanitizer` interface provides two main methods:
+
+### Sanitize Method
+
+Sanitizes an entire object by converting it to a dictionary and omitting sensitive properties:
+
+```csharp
+public IDictionary<string, object> Sanitize(object obj)
+```
+
+**Example:**
+```csharp
+var user = new User { Id = 1, Email = "john@example.com", Name = "John" };
+var sanitized = dataSanitizer.Sanitize(user);
+// Result: { "Id": 1, "Name": "John" } (Email omitted if [SensitiveData])
+```
+
+### ExtractProperties Method
+
+Extracts specific properties from an object using property paths with automatic sanitization:
+
+```csharp
+public object[] ExtractProperties(object source, string[] propertyPaths)
+```
+
+**Example:**
+```csharp
+public class User
+{
+    [SensitiveData]
+    public string Email { get; set; }
+
+    [SensitiveData]
+    public string Name { get; set; }
+}
+
+public class CreateUserCommand
+{
+    public User User { get; set; }
+    public int CommandId { get; set; }
+}
+
+var command = new CreateUserCommand
+{
+    CommandId = 123,
+    User = new User { Email = "john@example.com", Name = "John" }
+};
+
+// Extract properties using paths
+var values = dataSanitizer.ExtractProperties(command, new[]
+{
+    nameof(CreateUserCommand.CommandId),  // "123"
+    "User.Email",                          // "***MASKED***" (if ShowSensitiveData = false)
+    "User.Name"                            // "***MASKED***" (if ShowSensitiveData = false)
+});
+```
+
+**Features:**
+- ✅ Supports nested navigation with dot notation: `"User.Email"`, `"Order.Customer.Name"`
+- ✅ Checks `[SensitiveData]` attributes at each level of navigation
+- ✅ Returns `"***MASKED***"` for sensitive properties when `ShowSensitiveData = false`
+- ✅ Null-safe: returns `null` if any part of the path is null
+- ✅ Supports both properties and fields
+- ✅ Performance optimized with reflection caching
 
 ## Custom Implementation
 
@@ -110,8 +205,11 @@ public class MyCustomSanitizer : IDataSanitizer
     {
         // Your custom logic (e.g., encryption instead of omission)
     }
-    
-    // Implement other interface members...
+
+    public object[] ExtractProperties(object source, string[] propertyPaths)
+    {
+        // Your custom property extraction logic
+    }
 }
 
 // Register custom implementation

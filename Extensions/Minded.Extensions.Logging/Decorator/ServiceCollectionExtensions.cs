@@ -25,7 +25,7 @@ namespace Minded.Extensions.Logging.Decorator
             // This will be executed when the pipeline is first resolved
             builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
-                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingProperties");
             });
 
             builder.QueueCommandDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<>)));
@@ -80,7 +80,7 @@ namespace Minded.Extensions.Logging.Decorator
             // This will be executed when the pipeline is first resolved
             builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
-                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingProperties");
             });
 
             builder.QueueCommandDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingCommandHandlerDecorator<>)));
@@ -105,7 +105,7 @@ namespace Minded.Extensions.Logging.Decorator
             // This will be executed when the pipeline is first resolved
             builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
-                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingProperties");
             });
 
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingQueryHandlerDecorator<,>)));
@@ -159,7 +159,7 @@ namespace Minded.Extensions.Logging.Decorator
             // This will be executed when the pipeline is first resolved
             builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
             {
-                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+                pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingProperties");
             });
 
             builder.QueueQueryDecoratorRegistrationAction((b, i) => b.DecorateHandlerDescriptors(i, typeof(LoggingQueryHandlerDecorator<,>)));

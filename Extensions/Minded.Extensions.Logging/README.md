@@ -175,35 +175,88 @@ public interface ILoggable
     string LoggingTemplate { get; }
 
     /// <summary>
-    /// List of parameters which will be substituted in the template
+    /// Property paths to extract from the command/query for logging.
+    /// Supports dot notation for nested properties (e.g., "User.Email", "Order.Customer.Name").
+    /// Properties marked with [SensitiveData] are automatically masked based on DataProtection configuration.
+    /// All logging data must go through this property to ensure proper sanitization.
     /// </summary>
-    object[] LoggingParameters { get; }
+    string[] LoggingProperties { get; }
 }
 ```
 
-### Example: Command with Custom Logging
+### Example: Command with Property Paths
 
 ```csharp
 using Minded.Extensions.Logging;
+using Minded.Extensions.DataProtection.Abstractions;
 using Minded.Framework.CQRS.Command;
 
-public class CreateTransactionCommand : ICommand<Transaction>, ILoggable
+public class User
 {
-    public Transaction Transaction { get; set; }
+    [SensitiveData]
+    public string Email { get; set; }
+
+    [SensitiveData]
+    public string Name { get; set; }
+
+    [SensitiveData]
+    public string Surname { get; set; }
+}
+
+public class CreateUserCommand : ICommand<User>, ILoggable
+{
+    public User User { get; set; }
     public Guid TraceId { get; } = Guid.NewGuid();
 
     // Custom logging template - uses Serilog-style placeholders
-    public string LoggingTemplate => "Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}";
+    public string LoggingTemplate => "Creating user with email: {Email} - name: {Name}, surname: {Surname}";
 
-    // Parameters matching the template placeholders
-    public object[] LoggingParameters => new object[]
+    // Property paths - framework navigates from "this" and checks [SensitiveData] attributes
+    public string[] LoggingProperties => new[] { "User.Email", "User.Name", "User.Surname" };
+}
+```
+
+**Log Output** (with `ShowSensitiveData = false`):
+```text
+[Tracking:a1b2c3d4-...] CreateUserCommand - Creating user with email: ***MASKED*** - name: ***MASKED***, surname: ***MASKED*** - Started
+```
+
+**Log Output** (with `ShowSensitiveData = true`):
+```text
+[Tracking:a1b2c3d4-...] CreateUserCommand - Creating user with email: john@example.com - name: John, surname: Doe - Started
+```
+
+### Property Path Navigation
+
+Property paths support dot notation to navigate nested objects:
+
+```csharp
+public class UpdateOrderCommand : ICommand, ILoggable
+{
+    public int OrderId { get; set; }
+    public Customer Customer { get; set; }
+    public Category Category { get; set; }
+
+    public string LoggingTemplate => "Order {OrderId} - Customer: {Email}/{Name} - Category: {CategoryName}";
+
+    // Mix root-level properties with nested navigation
+    public string[] LoggingProperties => new[]
     {
-        Transaction.Credit,
-        Transaction.Debit,
-        Transaction.CategoryId
+        nameof(OrderId),           // this.OrderId
+        "Customer.Email",          // this.Customer.Email (masked if [SensitiveData])
+        "Customer.Name",           // this.Customer.Name (masked if [SensitiveData])
+        "Category.Name"            // this.Category.Name
     };
 }
 ```
+
+**Features:**
+- ✅ Supports nested navigation: `"Order.Customer.Address.City"`
+- ✅ Supports both properties and fields
+- ✅ Automatic sanitization based on `[SensitiveData]` attributes at any level
+- ✅ `nameof()` support for root-level properties (compile-time safety)
+- ✅ Null-safe: returns `null` if any part of the path is null
+- ✅ Performance optimized with reflection caching
 
 ### Log Output with ILoggable
 
@@ -394,7 +447,7 @@ public class CreateOrderCommand : ICommand<Order>, ILoggable
     public Guid TraceId { get; } = Guid.NewGuid();
 
     public string LoggingTemplate => "CustomerId: {CustomerId} Total: {Total}";
-    public object[] LoggingParameters => new object[] { Order.CustomerId, Order.Total };
+    public string[] LoggingProperties => new[] { "Order.CustomerId", "Order.Total" };
 }
 ```
 

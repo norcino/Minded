@@ -26,7 +26,7 @@ namespace Application.Api.IntegrationTests
             const int numberOfResultsToSkip = 10;
 
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, entitiesToCreate, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, entitiesToCreate, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync($"/api/category?$skip={numberOfResultsToSkip}&$orderby=Id");
 
@@ -46,7 +46,7 @@ namespace Application.Api.IntegrationTests
             const int numberOfResultsToSkip = 10;
 
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, entitiesToCreate, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, entitiesToCreate, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync($"/api/category?$skip={numberOfResultsToSkip}&$orderby=Id");
 
@@ -63,7 +63,7 @@ namespace Application.Api.IntegrationTests
         {
             const int numberOfDesiredResults = MaxPageItemNumber * 2;
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, 50, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, 50, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync($"/api/category?$top={numberOfDesiredResults}");
 
@@ -77,7 +77,7 @@ namespace Application.Api.IntegrationTests
         {
             int desiredNumber = Any.Int(minValue: 1, maxValue: MaxPageItemNumber);
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, MaxPageItemNumber, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, MaxPageItemNumber, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync($"/api/category?$top={desiredNumber}");
 
@@ -112,6 +112,7 @@ namespace Application.Api.IntegrationTests
                 c.Name = (expectedCategories - i).ToString();
                 c.Description = i.ToString();
                 c.UserId = user.Id;
+                c.ParentId = null;
             });
 
             var response = await _sutClient.GetAsync("/api/category?$orderby=Name desc");
@@ -134,6 +135,7 @@ namespace Application.Api.IntegrationTests
                 c.Name = (expectedCategories - i).ToString();
                 c.Description = i.ToString();
                 c.UserId = user.Id;
+                c.ParentId = null;
             });
 
             var response = await _sutClient.GetAsync("/api/category?$orderby=Name");
@@ -152,7 +154,7 @@ namespace Application.Api.IntegrationTests
         {
             const int NumberOfTransactionsToCreate = 30;
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, NumberOfTransactionsToCreate, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, NumberOfTransactionsToCreate, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync("/api/category?$orderby=Id");
             List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
@@ -166,7 +168,7 @@ namespace Application.Api.IntegrationTests
         {
             const int NumberOfTransactionsToCreate = 30;
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, NumberOfTransactionsToCreate, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, NumberOfTransactionsToCreate, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync("/api/category?$orderby=Id desc");
             List<Category> categories = await response.Content.ReadAsAsync<List<Category>>();
@@ -193,7 +195,7 @@ namespace Application.Api.IntegrationTests
         public async Task GET_should_return_sole_existing_category_and_200Ok_when_only_one_exist()
         {
             User user = await SeedOne<User>(c => c.Id);
-            IEnumerable<Category> expectedCategories = await Seed<Category>(c => c.Id, 50, (c, i) => c.UserId = user.Id);
+            IEnumerable<Category> expectedCategories = await Seed<Category>(c => c.Id, 50, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync("/api/category");
 
@@ -211,7 +213,7 @@ namespace Application.Api.IntegrationTests
         {
             var numberOfExistingCategories = 10;
             User user = await SeedOne<User>(c => c.Id);
-            IEnumerable<Category> expectedCategories = await Seed<Category>(c => c.Id, numberOfExistingCategories, (c, i) => c.UserId = user.Id);
+            IEnumerable<Category> expectedCategories = await Seed<Category>(c => c.Id, numberOfExistingCategories, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync("/api/category");
 
@@ -230,7 +232,7 @@ namespace Application.Api.IntegrationTests
             const int NumberOfCatetoriesToCreate = 110;
 
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, NumberOfCatetoriesToCreate, (c, i) => c.UserId = user.Id);
+            await Seed<Category>(c => c.Id, NumberOfCatetoriesToCreate, (c, i) => { c.Id = i; c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync("/api/category");
 
@@ -252,7 +254,7 @@ namespace Application.Api.IntegrationTests
         public async Task GET_byId_should_return_200Ok_when_entity_when_specified_Id_exists()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category category = await SeedOne<Category>(c => c.Id, (c, i) => c.UserId = user.Id);
+            Category category = await SeedOne<Category>(c => c.Id, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync($"/api/category/{category.Id}");
 
@@ -263,7 +265,7 @@ namespace Application.Api.IntegrationTests
         public async Task GET_byId_should_return_correct_and_complete_entity_when_the_specified_Id_exists()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category expectedCategory = await SeedOne<Category>(c => c.Id, (c, i) => c.UserId = user.Id);
+            Category expectedCategory = await SeedOne<Category>(c => c.Id, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync($"/api/category/{expectedCategory.Id}");
             Category category = await response.Content.ReadAsAsync<Category>();
@@ -277,7 +279,7 @@ namespace Application.Api.IntegrationTests
         public async Task POST_should_return_201Created_passing_valid_entity()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category expectedCategory = Builder<Category>.New().Build(c => { c.Id = 0; c.UserId = user.Id; }); 
+            Category expectedCategory = Builder<Category>.New().Build(c => { c.Id = 0; c.UserId = user.Id; c.ParentId = null; });
             var response = await _sutClient.PostAsync("/api/category", expectedCategory);
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.Created);
@@ -287,7 +289,7 @@ namespace Application.Api.IntegrationTests
         public async Task POST_creates_valid_entity()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category expectedCategory = Builder<Category>.New().Build(c => { c.Id = 0; c.UserId = user.Id; });
+            Category expectedCategory = Builder<Category>.New().Build(c => { c.Id = 0; c.UserId = user.Id; c.ParentId = null; });
             var response = await _sutClient.PostAsync("/api/Category", expectedCategory);
 
             Category category = await response.Content.ReadAsAsync<Category>();
@@ -298,7 +300,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task POST_should_return_BadRequest_400BadRequest_when_entity_contains_Id()
         {
-            Category expectedCategory = Builder<Category>.New().Build(c => c.Id = Any.Int());
+            Category expectedCategory = Builder<Category>.New().Build(c => { c.Id = Any.Int(); c.ParentId = null; });
 
             var response = await _sutClient.PostAsync("/api/Category", expectedCategory);
 
@@ -312,7 +314,7 @@ namespace Application.Api.IntegrationTests
         public async Task DELETE_should_return_200Ok_when_category_deleted()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category expectedCategory = await SeedOne<Category>(c => c.Id, (c, i) => c.UserId = user.Id);
+            Category expectedCategory = await SeedOne<Category>(c => c.Id, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
             var response = await _sutClient.DeleteAsync($"/api/category/{expectedCategory.Id}");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
@@ -341,7 +343,7 @@ namespace Application.Api.IntegrationTests
         public async Task PUT_should_return_200Ok_when_updating_existing_category()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category category = await SeedOne<Category>(c => c.Id, (c, i) => c.UserId = user.Id);
+            Category category = await SeedOne<Category>(c => c.Id, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
             category.Name = Any.String();
             category.Description = Any.String();
 
@@ -354,7 +356,7 @@ namespace Application.Api.IntegrationTests
         public async Task PUT_should_update_category_with_new_values()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category category = await SeedOne<Category>(c => c.Id, (c, i) => c.UserId = user.Id);
+            Category category = await SeedOne<Category>(c => c.Id, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
             var newName = Any.String();
             var newDescription = Any.String();
 
@@ -373,7 +375,7 @@ namespace Application.Api.IntegrationTests
         [TestMethod]
         public async Task PUT_should_return_404NotFound_when_category_does_not_exist()
         {
-            Category category = Builder<Category>.New().Build(c => c.Id = Any.Int());
+            Category category = Builder<Category>.New().Build(c => { c.Id = Any.Int(); c.ParentId = null; });
 
             var response = await _sutClient.PutAsync($"/api/category/{category.Id}", category);
 
@@ -384,7 +386,7 @@ namespace Application.Api.IntegrationTests
         public async Task PUT_should_return_400BadRequest_when_Id_in_body_does_not_match_Id_in_url()
         {
             User user = await SeedOne<User>(c => c.Id);
-            Category category = await SeedOne<Category>(c => c.Id, (c, i) => c.UserId = user.Id);
+            Category category = await SeedOne<Category>(c => c.Id, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
             var differentId = category.Id + 1;
 
             var response = await _sutClient.PutAsync($"/api/category/{differentId}", category);
@@ -404,6 +406,7 @@ namespace Application.Api.IntegrationTests
             {
                 c.Name = i == 5 ? targetName : Any.String();
                 c.UserId = user.Id;
+                c.ParentId = null;
             });
 
             var response = await _sutClient.GetAsync($"/api/category?$filter=Name eq '{targetName}'");
@@ -424,6 +427,7 @@ namespace Application.Api.IntegrationTests
             {
                 c.Active = i % 2 == 0;
                 c.UserId = user.Id;
+                c.ParentId = null;
             });
 
             var response = await _sutClient.GetAsync("/api/category?$filter=Active eq true");

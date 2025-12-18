@@ -37,14 +37,14 @@ namespace Service.Transaction.Validator
 
             if (command.Transaction == null)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction), "{0} is mandatory", null, Severity.Error, GenericErrorCodes.BadRequest));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Transaction), "{0} is mandatory", null, Severity.Error, GenericErrorCodes.ValidationFailed));
                 return validationResult;
             }
 
             if (command.TransactionId != command.Transaction.Id)
             {
                 validationResult.OutcomeEntries.Add(new OutcomeEntry(
-                    nameof(command.TransactionId), "Transaction ID in command does not match Transaction entity ID", command.TransactionId, Severity.Error, GenericErrorCodes.BadRequest));
+                    nameof(command.TransactionId), "Transaction ID in command does not match Transaction entity ID", command.TransactionId, Severity.Error, GenericErrorCodes.ValidationFailed));
                 return validationResult;
             }
 

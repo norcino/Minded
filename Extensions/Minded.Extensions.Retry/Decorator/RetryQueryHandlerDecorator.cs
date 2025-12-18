@@ -50,7 +50,7 @@ namespace Minded.Extensions.Retry.Decorator
             var attribute = (RetryQueryAttribute)TypeDescriptor.GetAttributes(query)[typeof(RetryQueryAttribute)];
 
             // If the query doesn't have the RetryQueryAttribute and ApplyToAllQueries is false, just execute it normally
-            if (attribute == null && !_options.Value.ApplyToAllQueries)
+            if (attribute == null && !_options.Value.GetEffectiveApplyToAllQueries())
             {
                 return await InnerQueryHandler.HandleAsync(query, cancellationToken);
             }
@@ -63,7 +63,7 @@ namespace Minded.Extensions.Retry.Decorator
             }
             else
             {
-                retryCount = _options.Value.DefaultRetryCount;
+                retryCount = _options.Value.GetEffectiveDefaultRetryCount();
             }
 
             var attempt = 0;

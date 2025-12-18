@@ -197,54 +197,16 @@ namespace Minded.Extensions.Logging.Decorator
                 templateBuilder.Append(" - ");
                 templateBuilder.Append(loggable.LoggingTemplate);
 
-                // Sanitize logging parameters to protect sensitive data
-                var sanitizedParameters = SanitizeLoggingParameters(loggable.LoggingParameters, dataSanitizer);
-                defaults.AddRange(sanitizedParameters);
+                // Extract properties from command using property paths with automatic sanitization
+                var parameters = dataSanitizer.ExtractProperties(command, loggable.LoggingProperties);
+
+                if (parameters != null && parameters.Length > 0)
+                {
+                    defaults.AddRange(parameters);
+                }
             }
 
             logger.LogInformation(templateBuilder.ToString(), defaults.ToArray());
-        }
-
-        /// <summary>
-        /// Sanitizes logging parameters by checking if they contain sensitive properties.
-        /// Objects with [Confidential] or [PII] attributes are sanitized based on the configured DataProtectionMode.
-        /// Optimized with HashSet lookup for type checking (50% faster).
-        /// </summary>
-        /// <param name="parameters">Original logging parameters</param>
-        /// <param name="dataSanitizer">Data sanitizer for protecting sensitive information</param>
-        /// <returns>Sanitized parameters safe for logging</returns>
-        private static object[] SanitizeLoggingParameters(object[] parameters, IDataSanitizer dataSanitizer)
-        {
-            if (parameters == null || parameters.Length == 0)
-                return parameters;
-
-            var sanitized = new object[parameters.Length];
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                var param = parameters[i];
-                if (param == null)
-                {
-                    sanitized[i] = null;
-                    continue;
-                }
-
-                Type type = param.GetType();
-
-                // Use HashSet lookup for O(1) type checking (50% faster than multiple comparisons)
-                if (_primitiveTypes.Contains(type) || type.IsEnum)
-                {
-                    sanitized[i] = param;
-                }
-                else
-                {
-                    // For complex objects, sanitize and use lazy JSON serialization
-                    // Only serializes when ToString() is called (when log level is enabled)
-                    IDictionary<string, object> sanitizedDict = dataSanitizer.Sanitize(param);
-                    sanitized[i] = sanitizedDict != null ? new LazyJsonValue(sanitizedDict) : param;
-                }
-            }
-
-            return sanitized;
         }
 
         /// <summary>

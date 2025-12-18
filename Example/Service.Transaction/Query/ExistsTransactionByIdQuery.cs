@@ -21,6 +21,6 @@ namespace Service.Transaction.Query
 
  public string LoggingTemplate => "TransactionId: {TransactionId}";
 
- public object[] LoggingParameters => new object[] { TransactionId };
+ public string[] LoggingProperties => new[] { nameof(TransactionId) };
  }
 }

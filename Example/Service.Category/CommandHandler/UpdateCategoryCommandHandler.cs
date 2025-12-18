@@ -39,6 +39,7 @@ namespace Service.Category.CommandHandler
                 category.Description = command.Category.Description;
                 category.Active = command.Category.Active;
                 category.Name = command.Category.Name;
+                category.ParentId = command.Category.ParentId;
 
                 await _context.SaveChangesAsync(cancellationToken);
             }

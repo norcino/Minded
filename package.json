@@ -1,0 +1,20 @@
+{
+  "name": "minded",
+  "version": "1.0.0",
+  "description": "[![Build status](https://dev.azure.com/norcino/Minded/_apis/build/status/GitHub%20Minded)](https://dev.azure.com/norcino/Minded/_build/latest?definitionId=1)\r [![NuGet](https://img.shields.io/nuget/v/Minded.Framework.Mediator.svg)](https://www.nuget.org/packages/Minded.Framework.Mediator/)\r [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://norcino@github.com/norcino/Minded.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/norcino/Minded/issues"
+  },
+  "homepage": "https://github.com/norcino/Minded#readme"
+}

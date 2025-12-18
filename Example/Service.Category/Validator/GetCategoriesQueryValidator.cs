@@ -20,7 +20,7 @@ namespace Service.Category.Validator
             var validationResult = new ValidationResult();
             if(query.Top > 100)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(query.Top), "{0} is above teh maximum allowed 100", GenericErrorCodes.BadRequest, Severity.Error));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(query.Top), "{0} is above teh maximum allowed 100", GenericErrorCodes.ValidationFailed, Severity.Error));
                 return validationResult;
             }
             return validationResult;

@@ -14,13 +14,22 @@ using Minded.Extensions.WebApi;
 using Minded.Framework.Mediator;
 using Minded.Extensions.Configuration;
 using Minded.Extensions.Exception.Decorator;
+using Minded.Extensions.Exception.Configuration;
 using Minded.Extensions.Logging.Decorator;
+using Minded.Extensions.Logging.Configuration;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Extensions.Caching.Memory.Decorator;
 using Minded.Extensions.Retry.Decorator;
+using Minded.Extensions.Retry.Configuration;
 using Minded.Extensions.DataProtection;
+using Minded.Extensions.DataProtection.Abstractions;
+using Minded.Framework.CQRS.Abstractions;
 using Serilog;
+using Serilog.Core;
 using Application.Api.OData;
+using Application.Api.Services;
+using Application.Api.Hubs;
+using Application.Api.Logging;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.OData;
 
@@ -29,6 +38,7 @@ namespace Application.Api
     public class Startup
     {
         public static readonly ILoggerFactory AppLoggerFactory = LoggerFactory.Create(builder => { builder.AddConsole(); });
+        public static readonly LoggingLevelSwitch LoggingLevelSwitch = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Information);
         public IConfiguration Configuration { get; }
         public IWebHostEnvironment HostingEnvironment { get; }
 
@@ -46,6 +56,7 @@ namespace Application.Api
             Configuration = builder.Build();
 
             Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.ControlledBy(LoggingLevelSwitch)
                 .Enrich.FromLogContext()
                 .Enrich.WithThreadId()
                 .WriteTo.File("log-.log", rollingInterval: RollingInterval.Day)
@@ -56,6 +67,23 @@ namespace Application.Api
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
+            // Reconfigure Serilog to add SignalR sink now that services are available
+            var hubContext = app.ApplicationServices.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<LogHub>>();
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.ControlledBy(LoggingLevelSwitch) // Use the level switch for runtime control
+                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning) // Filter out Microsoft logs below Warning
+                .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning) // Filter out ASP.NET Core logs below Warning
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", Serilog.Events.LogEventLevel.Error) // Only show EF Core errors
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Error) // Disable SQL query logging
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Infrastructure", Serilog.Events.LogEventLevel.Error) // Disable EF infrastructure logs
+                .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning) // Filter out System logs below Warning
+                .Enrich.FromLogContext()
+                .Enrich.WithThreadId()
+                .WriteTo.File("log-.log", rollingInterval: RollingInterval.Day)
+                .WriteTo.Console()
+                .WriteTo.SignalR(hubContext) // Add SignalR sink for real-time log streaming
+                .CreateLogger();
+
             if (HostingEnvironment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -72,12 +100,17 @@ namespace Application.Api
                 SeedDatabaseForDevelopment(app);
             }
 
-            app.UseCors(builder => builder.AllowAnyOrigin());
+            app.UseCors(builder => builder
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .SetIsOriginAllowed(origin => true) // Allow any origin
+                .AllowCredentials()); // Required for SignalR
 
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHub<LogHub>("/hubs/logs"); // SignalR hub endpoint
             });
         }
 
@@ -115,16 +148,21 @@ namespace Application.Api
 
             services.AddMemoryCache();
 
+            // Register SignalR for real-time log streaming
+            services.AddSignalR();
+
+            // Register RuntimeConfigurationStore as singleton for runtime configuration management
+            services.AddSingleton<RuntimeConfigurationStore>();
+
             services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), b =>
             {
                 b.AddMediator();
                 b.AddRestMediator();
 
-                // Configure DataProtection to show sensitive data only in development
-                // This protects PII and confidential data in logs for GDPR/CCPA compliance
+                // Configure DataProtection with static defaults
                 b.AddDataProtection(options =>
                 {
-                    options.ShowSensitiveDataProvider = () => HostingEnvironment.IsDevelopment();
+                    options.ShowSensitiveData = false;
                 });
 
                 // Register custom logging sanitizer (optional)
@@ -134,28 +172,87 @@ namespace Application.Api
                     CustomLoggingSanitizer>();
 
                 b.AddCommandValidationDecorator()
-                .AddCommandExceptionDecorator()
+                .AddCommandExceptionDecorator(options =>
+                {
+                    options.Serialize = true;
+                })
                 .AddCommandRetryDecorator(options =>
                 {
                     options.DefaultRetryCount = 3;
                     options.DefaultDelay1 = 100;
                     options.DefaultDelay2 = 200;
                     options.DefaultDelay3 = 400;
+                    options.DefaultDelay2 = 700;
+                    options.DefaultDelay3 = 1000;
                 })
-                .AddCommandLoggingDecorator()
+                .AddCommandLoggingDecorator(options =>
+                {
+                    options.Enabled = false;
+                    options.LogMessageTemplateData = false;
+                    options.LogOutcomeEntries = false;
+                })
                 .AddCommandHandlers();
 
                 b.AddQueryValidationDecorator()
-                .AddQueryExceptionDecorator()
+                .AddQueryExceptionDecorator(options =>
+                {
+                    options.Serialize = true;
+                })
                 .AddQueryRetryDecorator(applyToAllQueries: false, configureOptions: options =>
                 {
                     options.DefaultRetryCount = 2;
                     options.DefaultDelay1 = 50;
+                    options.ApplyToAllQueries = false;
                 })
-                .AddQueryLoggingDecorator()
+                .AddQueryLoggingDecorator(options =>
+                {
+                    options.Enabled = false;
+                    options.LogMessageTemplateData = false;
+                    options.LogOutcomeEntries = false;
+                })
                 .AddQueryMemoryCacheDecorator()
                 .AddQueryHandlers();
             });
+
+            // Configure runtime configuration providers using PostConfigure with dependency injection
+            // This ensures we get the correct singleton instance of RuntimeConfigurationStore
+            // from the final service provider, not a separate instance from BuildServiceProvider()
+            services.AddOptions<DataProtectionOptions>()
+                .PostConfigure<RuntimeConfigurationStore>((options, configStore) =>
+                {
+                    options.ShowSensitiveDataProvider = () => configStore.GetValue<bool>("DataProtection.ShowSensitiveData", false);
+                });
+
+            services.AddOptions<ExceptionOptions>()
+                .PostConfigure<RuntimeConfigurationStore>((options, configStore) =>
+                {
+                    options.SerializeProvider = () => configStore.GetValue<bool>("Exception.Serialize", true);
+                });
+
+            services.AddOptions<RetryOptions>()
+                .PostConfigure<RuntimeConfigurationStore>((options, configStore) =>
+                {
+                    options.DefaultRetryCountProvider = () => configStore.GetValue<int>("Retry.DefaultRetryCount", 3);
+                    options.DefaultDelay1Provider = () => configStore.GetValue<int>("Retry.DefaultDelay1", 100);
+                    options.DefaultDelay2Provider = () => configStore.GetValue<int>("Retry.DefaultDelay2", 200);
+                    options.DefaultDelay3Provider = () => configStore.GetValue<int>("Retry.DefaultDelay3", 400);
+                    options.DefaultDelay4Provider = () => configStore.GetValue<int>("Retry.DefaultDelay4", 700);
+                    options.DefaultDelay5Provider = () => configStore.GetValue<int>("Retry.DefaultDelay5", 1000);
+                    options.ApplyToAllQueriesProvider = () => configStore.GetValue<bool>("Retry.ApplyToAllQueries", false);
+                });
+
+            services.AddOptions<LoggingOptions>()
+                .PostConfigure<RuntimeConfigurationStore>((options, configStore) =>
+                {
+                    options.EnabledProvider = () => configStore.GetValue<bool>("Logging.Enabled", false);
+                    options.LogMessageTemplateDataProvider = () => configStore.GetValue<bool>("Logging.LogMessageTemplateData", false);
+                    options.LogOutcomeEntriesProvider = () => configStore.GetValue<bool>("Logging.LogOutcomeEntries", false);
+                    options.MinimumOutcomeSeverityLevelProvider = () =>
+                    {
+                        var level = configStore.GetValue<string>("Logging.MinimumOutcomeSeverityLevel", "Info");
+                        return Enum.TryParse<Severity>(level, out var result) ? result : Severity.Info;
+                    };
+                });
 
             // Configure MVC with OData navigation property serialization
             // This ensures navigation properties are only serialized when explicitly requested via $expand
@@ -210,7 +307,7 @@ namespace Application.Api
 
             ServiceProvider serviceProvider = services.BuildServiceProvider();
             IConfiguration configuration = serviceProvider.GetService<IConfiguration>();
-            var connectionString = configuration.GetConnectionString(Constants.ConfigConnectionStringName);
+            var connectionString = configuration.GetConnectionString(Common.Configuration.Constants.ConfigConnectionStringName);
             DatabaseType databaseType = DatabaseType.SQLServer;
 
             try

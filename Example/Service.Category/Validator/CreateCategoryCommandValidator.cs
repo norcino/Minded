@@ -23,7 +23,7 @@ namespace Service.Category.Validator
 
             if (command.Category == null)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory", GenericErrorCodes.BadRequest, Severity.Error));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory", GenericErrorCodes.ValidationFailed, Severity.Error));
 
                 return validationResult;
             }
@@ -32,7 +32,7 @@ namespace Service.Category.Validator
 
             if (command.Category.Id != 0)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category.Id), "{0} should not be specified on creation", GenericErrorCodes.BadRequest, Severity.Error));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category.Id), "{0} should not be specified on creation", GenericErrorCodes.ValidationFailed, Severity.Error));
             }
 
             return (await result).Merge(validationResult);

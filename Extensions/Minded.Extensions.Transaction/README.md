@@ -23,17 +23,24 @@ dotnet add package Minded.Extensions.Transaction
 
 ```csharp
 using Minded.Framework.CQRS.Abstractions;
-using Minded.Extensions.Transaction;
+using Minded.Extensions.Transaction.Decorator;
 using System.Transactions;
 
-public class CreateOrderCommand : ICommand<Order>, ITransactionConfiguration
+// Use default settings from TransactionOptions
+[TransactionalCommand]
+public class CreateOrderCommand : ICommand<Order>
 {
     public int CustomerId { get; set; }
     public List<OrderItem> Items { get; set; }
+}
 
-    // Transaction configuration
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
-    public TimeSpan Timeout => TimeSpan.FromSeconds(30);
+// Or with custom configuration via attribute properties
+[TransactionalCommand(
+    IsolationLevel = IsolationLevel.Serializable,
+    TimeoutSeconds = 30)]
+public class CreatePaymentCommand : ICommand<Payment>
+{
+    public decimal Amount { get; set; }
 }
 ```
 
@@ -85,63 +92,241 @@ public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, Ord
 
 ## Configuration Options
 
-### ITransactionConfiguration Interface
+### Decorator Registration Options
 
-Implement this interface on your command to configure transaction behavior:
+The transaction decorator can be registered with or without configuration:
 
 ```csharp
-public interface ITransactionConfiguration
+// Default registration (uses appsettings.json configuration)
+builder.AddCommandTransactionDecorator();
+builder.AddQueryTransactionDecorator();
+
+// With programmatic configuration
+builder.AddCommandTransactionDecorator(options =>
 {
+    options.DefaultIsolationLevel = IsolationLevel.ReadCommitted;
+    options.DefaultTimeout = TimeSpan.FromMinutes(2);
+    options.RollbackOnUnsuccessfulResponse = true;
+    options.EnableLogging = true;
+});
+```
+
+### TransactionOptions Class
+
+Configure default transaction behavior for all commands/queries:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DefaultTransactionScopeOption` | `TransactionScopeOption` | `Required` | How the transaction scope participates in ambient transactions |
+| `DefaultTransactionScopeOptionProvider` | `Func<TransactionScopeOption>` | `null` | Dynamic provider for transaction scope option (takes precedence over static value) |
+| `DefaultIsolationLevel` | `IsolationLevel` | `ReadCommitted` | Default isolation level when not specified in attribute or interface |
+| `DefaultIsolationLevelProvider` | `Func<IsolationLevel>` | `null` | Dynamic provider for isolation level (takes precedence over static value) |
+| `DefaultTimeout` | `TimeSpan` | `1 minute` | Default transaction timeout. Transactions exceeding this will be rolled back |
+| `DefaultTimeoutProvider` | `Func<TimeSpan>` | `null` | Dynamic provider for transaction timeout (takes precedence over static value) |
+| `RollbackOnUnsuccessfulResponse` | `bool` | `true` | If `true`, rolls back when `ICommandResponse.Successful` is `false`. If `false`, only exceptions cause rollback |
+| `RollbackOnUnsuccessfulResponseProvider` | `Func<bool>` | `null` | Dynamic provider for rollback behavior (takes precedence over static value) |
+| `EnableLogging` | `bool` | `true` | If `true`, logs transaction start/complete/rollback events at Information level |
+| `EnableLoggingProvider` | `Func<bool>` | `null` | Dynamic provider for logging enablement (takes precedence over static value) |
+
+### Configuration via appsettings.json
+
+```json
+{
+  "Minded": {
+    "TransactionOptions": {
+      "DefaultIsolationLevel": "ReadCommitted",
+      "DefaultTimeout": "00:02:00",
+      "RollbackOnUnsuccessfulResponse": true,
+      "EnableLogging": true
+    }
+  }
+}
+```
+
+### Runtime Configuration with Providers
+
+All `TransactionOptions` properties support dynamic runtime configuration via provider functions. This allows you to change transaction behavior at runtime based on feature flags, configuration services, or other runtime conditions.
+
+**Example: Runtime Configuration with Feature Flags**
+
+```csharp
+builder.AddCommandTransactionDecorator(options =>
+{
+    // Static configuration (fallback values)
+    options.DefaultIsolationLevel = IsolationLevel.ReadCommitted;
+    options.DefaultTimeout = TimeSpan.FromMinutes(1);
+
+    // Dynamic configuration via providers (takes precedence)
+    options.DefaultIsolationLevelProvider = () =>
+        _configService.GetValue("transaction-isolation-level", IsolationLevel.ReadCommitted);
+
+    options.DefaultTimeoutProvider = () =>
+        TimeSpan.FromSeconds(_configService.GetValue("transaction-timeout-seconds", 60));
+
+    options.RollbackOnUnsuccessfulResponseProvider = () =>
+        _featureFlags.IsEnabled("transaction-rollback-on-unsuccessful");
+
+    options.EnableLoggingProvider = () =>
+        _featureFlags.IsEnabled("transaction-logging");
+});
+```
+
+**Example: Environment-Based Configuration**
+
+```csharp
+builder.AddCommandTransactionDecorator(options =>
+{
+    // Stricter isolation in production
+    options.DefaultIsolationLevelProvider = () =>
+        _environment.IsProduction() ? IsolationLevel.Serializable : IsolationLevel.ReadCommitted;
+
+    // Longer timeout in production
+    options.DefaultTimeoutProvider = () =>
+        _environment.IsProduction() ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(30);
+});
+```
+
+**How Providers Work:**
+
+- Providers are invoked **each time** a transaction is initiated
+- If a provider is set, it takes precedence over the static property value
+- If a provider returns `null` or is not set, the static property value is used
+- This enables true runtime configuration without application restart
+
+**GetEffective Methods:**
+
+The `TransactionOptions` class provides `GetEffective*()` methods that handle the provider logic:
+
+```csharp
+public IsolationLevel GetEffectiveDefaultIsolationLevel()
+{
+    return DefaultIsolationLevelProvider?.Invoke() ?? DefaultIsolationLevel;
+}
+
+public TimeSpan GetEffectiveDefaultTimeout()
+{
+    return DefaultTimeoutProvider?.Invoke() ?? DefaultTimeout;
+}
+
+public bool GetEffectiveRollbackOnUnsuccessfulResponse()
+{
+    return RollbackOnUnsuccessfulResponseProvider?.Invoke() ?? RollbackOnUnsuccessfulResponse;
+}
+
+public bool GetEffectiveEnableLogging()
+{
+    return EnableLoggingProvider?.Invoke() ?? EnableLogging;
+}
+```
+
+### Transaction Attributes
+
+Configure transaction behavior per command/query using attributes:
+
+**[TransactionalCommand] Attribute:**
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+public class TransactionCommandAttribute : Attribute
+{
+    /// <summary>
+    /// Transaction scope option (default: Required)
+    /// </summary>
+    public TransactionScopeOption TransactionScopeOption { get; set; }
+
     /// <summary>
     /// Transaction isolation level (default: ReadCommitted)
     /// </summary>
-    IsolationLevel IsolationLevel { get; }
+    public IsolationLevel IsolationLevel { get; set; }
 
     /// <summary>
-    /// Transaction timeout (default: 1 minute)
+    /// Transaction timeout in seconds (0 = use default from TransactionOptions)
     /// </summary>
-    TimeSpan Timeout { get; }
+    public int TimeoutSeconds { get; set; }
 }
 ```
+
+**[TransactionalQuery] Attribute:**
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+public class TransactionQueryAttribute : Attribute
+{
+    // Same properties as TransactionCommandAttribute
+    public TransactionScopeOption TransactionScopeOption { get; set; }
+    public IsolationLevel IsolationLevel { get; set; }
+    public int TimeoutSeconds { get; set; }
+}
+```
+
+**Attribute Usage Examples:**
+
+```csharp
+// Use defaults from TransactionOptions
+[TransactionalCommand]
+public class CreateUserCommand : ICommand<User> { }
+
+// Custom isolation level
+[TransactionalCommand(IsolationLevel = IsolationLevel.Serializable)]
+public class ProcessPaymentCommand : ICommand<Payment> { }
+
+// Custom timeout (30 seconds)
+[TransactionalCommand(TimeoutSeconds = 30)]
+public class QuickOperationCommand : ICommand<Result> { }
+
+// Full configuration
+[TransactionalCommand(
+    IsolationLevel = IsolationLevel.Serializable,
+    TimeoutSeconds = 60,
+    TransactionScopeOption = TransactionScopeOption.Required)]
+public class CriticalOperationCommand : ICommand<Result> { }
+```
+
+**Note:** Attribute properties override TransactionOptions defaults.
 
 ### Isolation Levels
 
 ```csharp
 using System.Transactions;
+using Minded.Extensions.Transaction.Decorator;
 
-public class MyCommand : ICommand<Result>, ITransactionConfiguration
-{
-    // ReadUncommitted - Lowest isolation, highest performance, dirty reads possible
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadUncommitted;
+// ReadUncommitted - Lowest isolation, highest performance, dirty reads possible
+[TransactionalCommand(IsolationLevel = IsolationLevel.ReadUncommitted)]
+public class ReportCommand : ICommand<Report> { }
 
-    // ReadCommitted - Default, prevents dirty reads
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
+// ReadCommitted - Default, prevents dirty reads
+[TransactionalCommand(IsolationLevel = IsolationLevel.ReadCommitted)]
+public class UpdateUserCommand : ICommand<User> { }
 
-    // RepeatableRead - Prevents dirty and non-repeatable reads
-    public IsolationLevel IsolationLevel => IsolationLevel.RepeatableRead;
+// RepeatableRead - Prevents dirty and non-repeatable reads
+[TransactionalCommand(IsolationLevel = IsolationLevel.RepeatableRead)]
+public class InventoryCommand : ICommand<Result> { }
 
-    // Serializable - Highest isolation, lowest performance, prevents all anomalies
-    public IsolationLevel IsolationLevel => IsolationLevel.Serializable;
+// Serializable - Highest isolation, lowest performance, prevents all anomalies
+[TransactionalCommand(IsolationLevel = IsolationLevel.Serializable)]
+public class FinancialCommand : ICommand<Payment> { }
 
-    // Snapshot - SQL Server specific, uses row versioning
-    public IsolationLevel IsolationLevel => IsolationLevel.Snapshot;
-}
+// Snapshot - SQL Server specific, uses row versioning
+[TransactionalCommand(IsolationLevel = IsolationLevel.Snapshot)]
+public class AuditCommand : ICommand<AuditLog> { }
 ```
 
 ### Timeout Configuration
 
 ```csharp
-public class QuickOperationCommand : ICommand<Result>, ITransactionConfiguration
-{
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
-    public TimeSpan Timeout => TimeSpan.FromSeconds(10);  // Short timeout
-}
+using Minded.Extensions.Transaction.Decorator;
 
-public class LongRunningCommand : ICommand<Result>, ITransactionConfiguration
-{
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
-    public TimeSpan Timeout => TimeSpan.FromMinutes(5);  // Longer timeout
-}
+// Short timeout (10 seconds)
+[TransactionalCommand(TimeoutSeconds = 10)]
+public class QuickOperationCommand : ICommand<Result> { }
+
+// Longer timeout (5 minutes = 300 seconds)
+[TransactionalCommand(TimeoutSeconds = 300)]
+public class LongRunningCommand : ICommand<Result> { }
+
+// Use default timeout from TransactionOptions (TimeoutSeconds = 0)
+[TransactionalCommand]
+public class StandardCommand : ICommand<Result> { }
 ```
 
 ## Advanced Usage
@@ -151,13 +336,15 @@ public class LongRunningCommand : ICommand<Result>, ITransactionConfiguration
 The transaction decorator handles nested transactions using `TransactionScopeOption.Required`:
 
 ```csharp
-public class CreateOrderWithPaymentCommand : ICommand<Order>, ITransactionConfiguration
+using Minded.Extensions.Transaction.Decorator;
+
+[TransactionalCommand(
+    IsolationLevel = IsolationLevel.ReadCommitted,
+    TimeoutSeconds = 60)]
+public class CreateOrderWithPaymentCommand : ICommand<Order>
 {
     public Order Order { get; set; }
     public Payment Payment { get; set; }
-
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
-    public TimeSpan Timeout => TimeSpan.FromSeconds(60);
 }
 
 public class CreateOrderWithPaymentCommandHandler : ICommandHandler<CreateOrderWithPaymentCommand, Order>
@@ -170,7 +357,7 @@ public class CreateOrderWithPaymentCommandHandler : ICommandHandler<CreateOrderW
     {
         // Outer transaction starts here
 
-        // This command also has ITransactionConfiguration
+        // This command also has [TransactionalCommand] attribute
         // It will join the outer transaction (nested)
         var orderResult = await _mediator.ProcessCommandAsync(
             new CreateOrderCommand { Order = command.Order },
@@ -202,15 +389,16 @@ public class CreateOrderWithPaymentCommandHandler : ICommandHandler<CreateOrderW
 For distributed transactions across multiple databases or services:
 
 ```csharp
-public class TransferFundsCommand : ICommand<bool>, ITransactionConfiguration
+using Minded.Extensions.Transaction.Decorator;
+
+[TransactionalCommand(
+    IsolationLevel = IsolationLevel.Serializable,  // Use Serializable for financial transactions
+    TimeoutSeconds = 30)]
+public class TransferFundsCommand : ICommand<bool>
 {
     public int FromAccountId { get; set; }
     public int ToAccountId { get; set; }
     public decimal Amount { get; set; }
-
-    // Use Serializable for financial transactions
-    public IsolationLevel IsolationLevel => IsolationLevel.Serializable;
-    public TimeSpan Timeout => TimeSpan.FromSeconds(30);
 }
 
 public class TransferFundsCommandHandler : ICommandHandler<TransferFundsCommand, bool>
@@ -252,49 +440,47 @@ public class TransferFundsCommandHandler : ICommandHandler<TransferFundsCommand,
 ### 1. Use Transactions for Commands, Not Queries
 
 ```csharp
+using Minded.Extensions.Transaction.Decorator;
+
 // Good - transaction for state-changing command
-public class CreateUserCommand : ICommand<User>, ITransactionConfiguration { }
+[TransactionalCommand]
+public class CreateUserCommand : ICommand<User> { }
 
 // Avoid - transaction for read-only query (unnecessary overhead)
-public class GetUserQuery : IQuery<User>, ITransactionConfiguration { }
+[TransactionalQuery]  // Generally not recommended
+public class GetUserQuery : IQuery<User> { }
 ```
 
 ### 2. Choose Appropriate Isolation Levels
 
 ```csharp
+using Minded.Extensions.Transaction.Decorator;
+
 // Financial transactions - use Serializable
-public class ProcessPaymentCommand : ICommand<Payment>, ITransactionConfiguration
-{
-    public IsolationLevel IsolationLevel => IsolationLevel.Serializable;
-}
+[TransactionalCommand(IsolationLevel = IsolationLevel.Serializable)]
+public class ProcessPaymentCommand : ICommand<Payment> { }
 
 // Regular CRUD - use ReadCommitted (default)
-public class UpdateUserCommand : ICommand<User>, ITransactionConfiguration
-{
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadCommitted;
-}
+[TransactionalCommand(IsolationLevel = IsolationLevel.ReadCommitted)]
+public class UpdateUserCommand : ICommand<User> { }
 
 // Reporting/analytics - use ReadUncommitted (if dirty reads acceptable)
-public class GenerateReportCommand : ICommand<Report>, ITransactionConfiguration
-{
-    public IsolationLevel IsolationLevel => IsolationLevel.ReadUncommitted;
-}
+[TransactionalCommand(IsolationLevel = IsolationLevel.ReadUncommitted)]
+public class GenerateReportCommand : ICommand<Report> { }
 ```
 
 ### 3. Set Realistic Timeouts
 
 ```csharp
-// Quick operations - short timeout
-public class UpdateStatusCommand : ICommand<bool>, ITransactionConfiguration
-{
-    public TimeSpan Timeout => TimeSpan.FromSeconds(5);
-}
+using Minded.Extensions.Transaction.Decorator;
 
-// Batch operations - longer timeout
-public class ImportDataCommand : ICommand<int>, ITransactionConfiguration
-{
-    public TimeSpan Timeout => TimeSpan.FromMinutes(10);
-}
+// Quick operations - short timeout (5 seconds)
+[TransactionalCommand(TimeoutSeconds = 5)]
+public class UpdateStatusCommand : ICommand<bool> { }
+
+// Batch operations - longer timeout (10 minutes = 600 seconds)
+[TransactionalCommand(TimeoutSeconds = 600)]
+public class ImportDataCommand : ICommand<int> { }
 ```
 
 ### 4. Handle Transaction Failures Gracefully
@@ -379,14 +565,23 @@ public async Task HandleAsync(TransferFundsCommand command, CancellationToken ct
 
 If you're seeing transaction timeout errors:
 
-1. Increase the timeout:
+1. Increase the timeout in the attribute:
    ```csharp
-   public TimeSpan Timeout => TimeSpan.FromMinutes(5);
+   [TransactionalCommand(TimeoutSeconds = 300)]  // 5 minutes
+   public class LongRunningCommand : ICommand<Result> { }
    ```
 
-2. Optimize your handler to reduce execution time
+2. Or increase the default timeout in TransactionOptions:
+   ```csharp
+   builder.AddCommandTransactionDecorator(options =>
+   {
+       options.DefaultTimeout = TimeSpan.FromMinutes(5);
+   });
+   ```
 
-3. Consider breaking the operation into smaller transactions
+3. Optimize your handler to reduce execution time
+
+4. Consider breaking the operation into smaller transactions
 
 ### Deadlocks
 
@@ -405,6 +600,66 @@ If distributed transactions fail:
 2. Check firewall settings
 3. Consider using Saga pattern instead of distributed transactions
 
+## Integration with Other Decorators
+
+### With Validation Decorator
+
+Validation can run inside or outside the transaction depending on your needs:
+
+```csharp
+// Validation INSIDE transaction (if validation reads from database)
+builder.AddCommandValidationDecorator()
+       .AddCommandTransactionDecorator()  // Wraps validation
+       .AddCommandHandlers();
+
+// Validation OUTSIDE transaction (fail fast, no DB reads)
+builder.AddCommandTransactionDecorator()
+       .AddCommandValidationDecorator()   // Validates before transaction
+       .AddCommandHandlers();
+```
+
+See: [Validation Decorator Documentation](../Minded.Extensions.Validation/README.md)
+
+### With Exception Decorator
+
+The Exception decorator should wrap the Transaction decorator to catch transaction errors:
+
+```csharp
+builder.AddCommandTransactionDecorator()
+       .AddCommandExceptionDecorator()  // Catches transaction exceptions
+       .AddCommandHandlers();
+```
+
+See: [Exception Decorator Documentation](../Minded.Extensions.Exception/README.md)
+
+### With Retry Decorator
+
+Be careful when combining Retry with Transaction - each retry creates a new transaction:
+
+```csharp
+// Each retry attempt gets a new transaction
+builder.AddCommandRetryDecorator()
+       .AddCommandTransactionDecorator()  // New transaction per retry
+       .AddCommandHandlers();
+```
+
+See: [Retry Decorator Documentation](../Minded.Extensions.Retry/README.md)
+
+### With Logging Decorator
+
+The Logging decorator logs transaction lifecycle events:
+
+```csharp
+builder.AddCommandTransactionDecorator(options =>
+{
+    options.EnableLogging = true;  // Logs transaction start/commit/rollback
+})
+.AddCommandLoggingDecorator()
+.AddCommandHandlers();
+```
+
+See: [Logging Decorator Documentation](../Minded.Extensions.Logging/README.md)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/norcino/Minded/blob/master/LICENSE) file for details.
@@ -415,3 +670,4 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 - [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.Transaction)
 - [Main Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)
+

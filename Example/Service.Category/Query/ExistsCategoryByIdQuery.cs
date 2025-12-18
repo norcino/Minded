@@ -22,6 +22,6 @@ namespace Service.Category.Query
 
  public string LoggingTemplate => "CategoryId: {CategoryId}";
 
- public object[] LoggingParameters => new object[] { CategoryId };
+ public string[] LoggingProperties => new[] { nameof(CategoryId) };
  }
 }

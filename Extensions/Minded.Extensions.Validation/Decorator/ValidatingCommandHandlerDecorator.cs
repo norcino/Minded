@@ -59,30 +59,30 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
 
-            IValidationResult valResult = await _commandValidator.ValidateAsync(command);
+            IValidationResult validatorResult = await _commandValidator.ValidateAsync(command);
 
-            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
+            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, validatorResult.IsValid, _commandValidator.GetType().Name);
 
-            if (!valResult.IsValid)
+            if (!validatorResult.IsValid)
             {
-                _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+                _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, validatorResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
                 return new CommandResponse
                 {
-                    OutcomeEntries = valResult.OutcomeEntries.ToList(),
-                    Successful = valResult.IsValid
+                    OutcomeEntries = validatorResult.OutcomeEntries.ToList(),
+                    Successful = validatorResult.IsValid
                 };
             }
 
-            ICommandResponse result = await InnerCommandHandler.HandleAsync(command, cancellationToken);
+            ICommandResponse handlerResult = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
-            if (result.OutcomeEntries == null)
+            if (handlerResult.OutcomeEntries == null)
             {
-                result.OutcomeEntries = new List<IOutcomeEntry>();
+                handlerResult.OutcomeEntries = new List<IOutcomeEntry>();
             }
 
-            result.OutcomeEntries.AddRange(valResult.OutcomeEntries);
-            return result;
+            handlerResult.OutcomeEntries.AddRange(validatorResult.OutcomeEntries);
+            return handlerResult;
         }
     }
 
@@ -113,22 +113,30 @@ namespace Minded.Extensions.Validation.Decorator
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
 
-            IValidationResult valResult = await _commandValidator.ValidateAsync(command);
+            IValidationResult validatorResult = await _commandValidator.ValidateAsync(command);
 
-            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
+            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, validatorResult.IsValid, _commandValidator.GetType().Name);
 
-            if (valResult.IsValid)
+            if (!validatorResult.IsValid)
             {
-                return await InnerCommandHandler.HandleAsync(command, cancellationToken);
+                return new CommandResponse<TResult>
+                {
+                    Successful = false,
+                    OutcomeEntries = validatorResult.OutcomeEntries.ToList()
+                };
             }
 
-            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, validatorResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
-            return new CommandResponse<TResult>
+            var handlerResult = await InnerCommandHandler.HandleAsync(command, cancellationToken);
+
+            if (handlerResult.OutcomeEntries == null)
             {
-                Successful = false,
-                OutcomeEntries = valResult.OutcomeEntries.ToList()
-            };
+                handlerResult.OutcomeEntries = new List<IOutcomeEntry>();
+            }
+
+            handlerResult.OutcomeEntries.AddRange(validatorResult.OutcomeEntries);
+            return handlerResult;
         }
     }
 }
