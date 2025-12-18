@@ -2240,11 +2240,11 @@ All Minded packages are available on NuGet:
 - **[Exception Handling](Extensions/Minded.Extensions.Exception/README.md)** - Centralized exception handling with sanitization pipeline
 - **[Validation](Extensions/Minded.Extensions.Validation/README.md)** - FluentValidation integration for commands and queries
 - **[Retry](Extensions/Minded.Extensions.Retry/README.md)** - Automatic retry logic for transient failures
-- **[Logging](Extensions/Minded.Extensions.Logging/README.md)** - Comprehensive logging with sensitive data protection
+- **[Logging](Extensions/Minded.Extensions.Logging/README.md)** - Comprehensive logging
 - **[Caching](Extensions/Minded.Extensions.Caching.Memory/README.md)** - In-memory caching for query results
 - **[Transaction](Extensions/Minded.Extensions.Transaction/README.md)** - Database transaction management with nested transaction support
 - **[WebApi/RestMediator](Extensions/Minded.Extensions.WebApi/README.md)** - REST API integration with automatic HTTP response mapping
-- **[Data Protection](Extensions/Minded.Extensions.DataProtection/README.md)** - Sensitive data protection for GDPR/CCPA compliance
+- **[Data Protection](Extensions/Minded.Extensions.DataProtection/README.md)** - Sensitive data protection and sanitization (PII, confidential business data)
 
 ### External Resources
 
