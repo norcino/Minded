@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Minded.Framework.CQRS.Abstractions;
+﻿using Minded.Framework.CQRS.Abstractions;
 
 namespace Minded.Framework.CQRS.Command
 {

@@ -49,6 +49,7 @@
     <ProjectReference Include="..\Common.Configuration\Common.Configuration.csproj" />
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
     <ProjectReference Include="..\Service.Category\Service.Category.csproj" />
+    <ProjectReference Include="..\Service.Configuration\Service.Configuration.csproj" />
     <ProjectReference Include="..\Service.Transaction\Service.Transaction.csproj" />
     <ProjectReference Include="..\Service.User\Service.User.csproj" />
   </ItemGroup>

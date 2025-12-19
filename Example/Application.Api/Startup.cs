@@ -27,7 +27,6 @@ using Minded.Framework.CQRS.Abstractions;
 using Serilog;
 using Serilog.Core;
 using Application.Api.OData;
-using Application.Api.Services;
 using Application.Api.Hubs;
 using Application.Api.Logging;
 using Microsoft.OpenApi.Models;
@@ -153,6 +152,12 @@ namespace Application.Api
 
             // Register RuntimeConfigurationStore as singleton for runtime configuration management
             services.AddSingleton<RuntimeConfigurationStore>();
+
+            // Register ConfigurationMetadataProvider as singleton for configuration metadata
+            services.AddSingleton<ConfigurationMetadataProvider>();
+
+            // Register LoggingLevelSwitch as singleton for runtime logging level control
+            services.AddSingleton(LoggingLevelSwitch);
 
             services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), b =>
             {

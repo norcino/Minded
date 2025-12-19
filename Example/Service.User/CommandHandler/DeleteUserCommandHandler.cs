@@ -39,10 +39,7 @@ namespace Service.User.CommandHandler
                 await _context.SaveChangesAsync(cancellationToken);
             }
 
-            return new CommandResponse
-            {
-                Successful = true
-            };
+            return CommandResponse.Success();
         }
     }
 }

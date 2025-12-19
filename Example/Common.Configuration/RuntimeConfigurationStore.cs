@@ -6,7 +6,7 @@ using System.Threading;
 using System.Transactions;
 using Microsoft.Extensions.Configuration;
 
-namespace Application.Api.Services
+namespace Common.Configuration
 {
     /// <summary>
     /// Thread-safe singleton service for storing and retrieving runtime configuration values.

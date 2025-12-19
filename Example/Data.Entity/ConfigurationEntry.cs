@@ -1,8 +1,8 @@
-namespace Application.Api.Models
+namespace Data.Entity
 {
     /// <summary>
     /// Represents a single configuration entry with metadata.
-    /// Used for exposing configuration options via the API.
+    /// Used for managing runtime configuration options for Minded decorators.
     /// </summary>
     public class ConfigurationEntry
     {
