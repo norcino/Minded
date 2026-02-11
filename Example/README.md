@@ -8,6 +8,7 @@ The example implements a simple transaction management system with:
 - **Categories** - Organize transactions into categories
 - **Transactions** - Financial transactions with amounts and descriptions
 - **Users** - User accounts associated with transactions
+- **Configuration** - Runtime configuration management for application settings
 
 ## Architecture
 
@@ -26,7 +27,10 @@ Example/
 │   ├── QueryHandler/        # Query handlers
 │   └── Validator/           # FluentValidation validators
 ├── Service.Transaction/      # Transaction business logic
+├── Service.Configuration/    # Runtime configuration management
+├── Service.User/            # User management business logic
 ├── Service.Common/          # Shared service utilities
+├── Common.Configuration/    # Configuration services and metadata
 ├── Data.Entity/             # Entity models
 ├── Data.Context/            # EF Core DbContext
 └── Tests/                   # Unit and integration tests
@@ -64,6 +68,13 @@ Example/
 - Database seeding
 - Navigation properties
 - Async operations
+
+### ✅ Runtime Configuration Management
+- Update application settings without restart
+- Type-safe configuration values
+- Dynamic Serilog logging level control
+- Configuration metadata with descriptions
+- Validation of configuration keys and values
 
 ## Getting Started
 
@@ -146,6 +157,26 @@ Content-Type: application/json
 ### Delete a Category
 ```bash
 DELETE /api/category/1
+```
+
+### Get All Configurations
+```bash
+GET /api/configurations
+```
+
+### Get Configuration by Key
+```bash
+GET /api/configurations/System.MinimumLogLevel
+```
+
+### Update Configuration (Change Log Level)
+```bash
+PUT /api/configurations/System.MinimumLogLevel
+Content-Type: application/json
+
+{
+  "value": "Debug"
+}
 ```
 
 ## OData Navigation Property Serialization
@@ -282,6 +313,7 @@ public class CreateCategoryCommandValidator : AbstractValidator<CreateCategoryCo
 - **Minded Framework Documentation**: [../README.md](../README.md)
 - **OData Implementation Details**: [Application.Api/OData/README.md](Application.Api/OData/README.md)
 - **Database Seeding**: [Data.Context/README_DatabaseSeeding.md](Data.Context/README_DatabaseSeeding.md)
+- **Configuration Management**: [Service.Configuration/README.md](Service.Configuration/README.md)
 
 ## License
 
