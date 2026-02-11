@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <!-- Use portable PDB format for better compatibility with symbol packages -->
+    <DebugType>portable</DebugType>
+    
+    <!-- Ensure deterministic builds for reproducibility -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>
+
