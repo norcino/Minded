@@ -62,14 +62,14 @@ namespace Minded.Extensions.WebApi.Tests
         public async Task ProcessRestQueryAsync_ShouldReturnExpectedResult()
         {
             var expectedResult = Any.String();
-            var operation = Any.In<RestOperation>();
+            RestOperation operation = Any.In<RestOperation>();
 
-            _queryHandlerWithSimpleResultMock.Setup(h => h.HandleAsync(_queryWithSimpleResultMock.Object)).Returns(Task.FromResult(expectedResult));
+            _queryHandlerWithSimpleResultMock.Setup(h => h.HandleAsync(_queryWithSimpleResultMock.Object, CancellationToken.None)).Returns(Task.FromResult(expectedResult));
+
             _serviceProviderMock.Setup(sp => sp.GetService(It.IsAny<Type>())).Returns(_queryHandlerWithSimpleResultMock.Object);
-
             _rulesProcessorMock.Setup(rp => rp.ProcessQueryRules(operation, expectedResult)).Returns(new OkObjectResult(expectedResult));
 
-            var result = await _sut.ProcessRestQueryAsync(operation, _queryWithSimpleResultMock.Object);
+            IActionResult result = await _sut.ProcessRestQueryAsync(operation, _queryWithSimpleResultMock.Object);
 
             Assert.IsInstanceOfType(result, typeof(OkObjectResult));
             var okResult = result as OkObjectResult;
@@ -80,31 +80,31 @@ namespace Minded.Extensions.WebApi.Tests
         public async Task ProcessRestCommandAsync_ShouldReturnExpectedResult()
         {
             var expectedResponse = new OkResult();
-            var operation = Any.In<RestOperation>();
+            RestOperation operation = Any.In<RestOperation>();
 
-            _commandHandlerWithoutResultMock.Setup(h => h.HandleAsync(_commandWithoutResultMock.Object)).Returns(Task.FromResult(_commandResponseMock.Object));
+            _commandHandlerWithoutResultMock.Setup(h => h.HandleAsync(_commandWithoutResultMock.Object, CancellationToken.None)).Returns(Task.FromResult(_commandResponseMock.Object));
             _serviceProviderMock.Setup(sp => sp.GetService(It.IsAny<Type>())).Returns(_commandHandlerWithoutResultMock.Object);
             _rulesProcessorMock.Setup(rp => rp.ProcessCommandRules(operation, _commandResponseMock.Object)).Returns(expectedResponse);
 
-            var result = await _sut.ProcessRestCommandAsync(operation, _commandWithoutResultMock.Object);
+            IActionResult result = await _sut.ProcessRestCommandAsync(operation, _commandWithoutResultMock.Object);
 
-            Assert.AreEqual(result, expectedResponse);
+            Assert.AreEqual(expectedResponse, result);
         }
 
         [TestMethod]
         public async Task ProcessRestCommandAsync_ShouldReturnExpectedResult_WhenUsingCommandResult()
         {
             var expectedResponse = new OkResult();
-            var operation = Any.In<RestOperation>();
+            RestOperation operation = Any.In<RestOperation>();
 
-            _commandHandlerWithResultMock.Setup(h => h.HandleAsync(_commandWithResultMock.Object)).Returns(Task.FromResult(_commandResponseWithResult));
+            _commandHandlerWithResultMock.Setup(h => h.HandleAsync(_commandWithResultMock.Object, CancellationToken.None)).Returns(Task.FromResult(_commandResponseWithResult));
             _serviceProviderMock.Setup(sp => sp.GetService(It.IsAny<Type>())).Returns(_commandHandlerWithResultMock.Object);
             //_rulesProcessorMock.Setup(rp => rp.ProcessCommandRules<string>(operation, It.Is<ICommandResponse<string>>(r => r.re))).Returns(expectedResponse);
             _rulesProcessorMock.Setup(rp => rp.ProcessCommandRules<string>(operation, _commandResponseWithResult)).Returns(expectedResponse);
 
-            var result = await _sut.ProcessRestCommandAsync(operation, _commandWithResultMock.Object);
+            IActionResult result = await _sut.ProcessRestCommandAsync(operation, _commandWithResultMock.Object);
 
-            Assert.AreEqual(result, expectedResponse);
+            Assert.AreEqual(expectedResponse, result);
         }
     }
 }

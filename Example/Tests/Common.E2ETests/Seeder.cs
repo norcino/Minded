@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using AnonymousData;
 using Builder;
 using Common.Tests;
@@ -26,7 +27,7 @@ namespace Common.E2ETests
             _mockIMindedExampleContext = mockIMindedExampleContext;
         }
 
-        public IEnumerable<T> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default) where T : class, new()
+        public async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default, CancellationToken cancellationToken = default) where T : class, new()
         {
             List<T> entities = null;
 
@@ -41,16 +42,17 @@ namespace Common.E2ETests
                     // Set the primary key
                     SetPrimaryKey(id, e);
                 });
-                var property = _context.GetType().GetProperties()
+
+                PropertyInfo property = _context.GetType().GetProperties()
                     .First(p =>
                         p.PropertyType.IsGenericType &&
                         p.PropertyType == typeof(DbSet<T>));
 
-                var parameter = Expression.Parameter(typeof(IMindedExampleContext));
-                var body = Expression.PropertyOrField(parameter, property.Name);
+                ParameterExpression parameter = Expression.Parameter(typeof(IMindedExampleContext));
+                MemberExpression body = Expression.PropertyOrField(parameter, property.Name);
                 var lambdaExpression = Expression.Lambda<Func<IMindedExampleContext, DbSet<T>>>(body, parameter);
 
-                var mockDbSet = entities.GetMockDbSet();
+                Mock<DbSet<T>> mockDbSet = entities.GetMockDbSet();
 
                 mockDbSet.Setup(s => s.AddAsync(It.IsAny<T>(), It.IsAny<CancellationToken>()))
                     .Callback((T added, CancellationToken ct) =>
@@ -68,6 +70,7 @@ namespace Common.E2ETests
             }
             else if (_currentTestingProfile == TestingProfile.E2ELive)
             {
+                _context.ChangeTracker.Clear();
                 entities = Builder<T>.New().BuildMany(quantity, (e, i) => {
                     // Execute custom action initialization if present
                     if (buildAction != default)
@@ -76,7 +79,7 @@ namespace Common.E2ETests
                     // Set the primary key
                     SetPrimaryKey(id, e);
                 });
-                var property = _context.GetType().GetProperties()
+                PropertyInfo property = _context.GetType().GetProperties()
                 .First(p =>
                         p.PropertyType.IsGenericType &&
                         p.PropertyType == typeof(DbSet<T>));
@@ -84,6 +87,8 @@ namespace Common.E2ETests
                 DbSet<T> dbSet = (DbSet<T>)property.GetValue(_context);
                 dbSet.AddRange(entities);
                 _context.SaveChanges();
+
+                _context.ChangeTracker.Clear();
             }
             else // E2E
             {
@@ -92,14 +97,15 @@ namespace Common.E2ETests
                     if(buildAction != null)
                         buildAction(e, i);
                 });
-                var property = _context.GetType().GetProperties()
+                PropertyInfo property = _context.GetType().GetProperties()
                 .First(p =>
                         p.PropertyType.IsGenericType &&
                         p.PropertyType == typeof(DbSet<T>));
 
                 DbSet<T> dbSet = (DbSet<T>)property.GetValue(_context);
                 dbSet.AddRange(entities);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync(cancellationToken);
+                _context.ChangeTracker.Clear();
             }
 
             return entities;
@@ -107,14 +113,14 @@ namespace Common.E2ETests
 
         private void SetPrimaryKey<T>(Expression<Func<T, int>> id, T e) where T : class, new()
         {
-            var parameter1 = Expression.Parameter(typeof(T));
-            var parameter2 = Expression.Parameter(typeof(int));
+            ParameterExpression parameter1 = Expression.Parameter(typeof(T));
+            ParameterExpression parameter2 = Expression.Parameter(typeof(int));
 
             var member = (MemberExpression)id.Body;
             var propertyInfo = (PropertyInfo)member.Member;
 
-            var property = Expression.Property(parameter1, propertyInfo);
-            var assignment = Expression.Assign(property, parameter2);
+            MemberExpression property = Expression.Property(parameter1, propertyInfo);
+            BinaryExpression assignment = Expression.Assign(property, parameter2);
 
             var setter = Expression.Lambda<Action<T, int>>(assignment, parameter1, parameter2);
 

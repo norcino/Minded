@@ -39,7 +39,7 @@ namespace Data.Context
         public override void Dispose()
         {
             Database?.CloseConnection();
-            //    base.Dispose();
+            base.Dispose();
         }
     }
 }

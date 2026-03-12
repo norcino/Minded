@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <PackageId>$(AssemblyName)</PackageId>
+    <Title>$(AssemblyName)</Title>
+    <IsPackable>True</IsPackable>
+    <Authors>Manuel Salvatori</Authors>
+    <Product>Minded Framework - Clean code made easy</Product>
+    <Description>Package which contains the base interfaces and attributes to support Data Protection and Sensitive Data handling. Minded helps to implement a clean architecture, offering the scaffolding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
+Encapsulate all your business logic in Commands and Queries, the rest will be dealt by the framework.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
+    <PackageOutputPath>$(OutputDirectory)</PackageOutputPath>
+    <PackageReleaseNotes>The changelog is available at https://github.com/norcino/Minded/blob/master/Changelog.md.</PackageReleaseNotes>
+    <Copyright>Copyright (c) 2023, Manuel Salvatori. All rights reserved.</Copyright>
+    <PackageIcon>Minded-128.png</PackageIcon>
+    <PackageReadme>README.md</PackageReadme>
+    <PackageTags>mediator;decorator;command query;rest;data protection;sensitive data;pii;gdpr;clean code;clean architecture</PackageTags>
+    <LicenseUrl>https://github.com/norcino/Minded/blob/master/LICENSE</LicenseUrl>
+		<PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <AssemblyVersion>1.2.0</AssemblyVersion>
+    <FileVersion>1.2.0</FileVersion>
+    <VersionPrefix>1.2.0</VersionPrefix>
+    <VersionSuffix></VersionSuffix>
+    <RepositoryType>git</RepositoryType>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+    <SourceLinkUrl>https://github.com/norcino/Minded/tree/master/Extensions/Minded.Extensions.DataProtection.Abstractions</SourceLinkUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Minded-128.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
+

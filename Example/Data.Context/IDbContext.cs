@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -15,7 +17,11 @@ namespace Data.Context
 
         DatabaseFacade Database { get; }
 
+        ChangeTracker ChangeTracker { get; }
+
         Task<int> SaveChangesAsync();
+
+        Task<int> SaveChangesAsync(CancellationToken ct);
 
         IModel Model { get; }
     }

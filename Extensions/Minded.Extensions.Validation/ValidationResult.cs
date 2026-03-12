@@ -47,7 +47,7 @@ namespace Minded.Extensions.Validation
         /// <returns>Validation result containing al the entries</returns>
         public IValidationResult Merge(IValidationResult validationResult)
         {
-            foreach (var OutcomeEntry in validationResult.OutcomeEntries)
+            foreach (IOutcomeEntry OutcomeEntry in validationResult.OutcomeEntries)
             {
                 OutcomeEntries.Add(OutcomeEntry);
             }

@@ -7,15 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OData" Version="7.6.4" />
+    <PackageReference Include="Microsoft.AspNetCore.OData" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.OData\Minded.Extensions.CQRS.OData.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation\Minded.Extensions.Validation.csproj" />
+    <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator.Abstractions\Minded.Framework.Mediator.Abstractions.csproj" />
     <ProjectReference Include="..\Data.Context\Data.Context.csproj" />
     <ProjectReference Include="..\Data.Entity\Data.Entity.csproj" />
+    <ProjectReference Include="..\Service.Category\Service.Category.csproj" />
   </ItemGroup>
 
 </Project>

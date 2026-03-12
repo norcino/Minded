@@ -29,6 +29,6 @@ namespace Service.Category.Query
 
         public string LoggingTemplate => "Count: {Count} - Top: {Top} - Skip: {Skip} - Expand: {Expand} - Order: {Order}";
 
-        public object[] LoggingParameters => new object[] { Count, Top, Skip, Expand, OrderBy };
+        public string[] LoggingProperties => new[] { nameof(Count), nameof(Top), nameof(Skip), nameof(Expand), nameof(OrderBy) };
     }
 }

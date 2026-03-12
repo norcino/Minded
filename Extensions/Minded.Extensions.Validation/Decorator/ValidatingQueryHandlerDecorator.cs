@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Extensions.Configuration;
@@ -53,23 +54,24 @@ namespace Minded.Extensions.Validation.Decorator
         /// Execute the Query asynchronously returning an instance of IQueryResponse
         /// </summary>
         /// <param name="Query">Subject Query</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         /// <returns>An instance of <see cref="IQueryResponse"/> representing the output of the Query</returns>
-        public async Task<TResult> HandleAsync(TQuery Query)
+        public async Task<TResult> HandleAsync(TQuery Query, CancellationToken cancellationToken = default)
         {
             if (!QueryStaticHelper.IsValidatingQuery<TQuery,TResult>(Query))
             {
-                return await InnerQueryHandler.HandleAsync(Query);
+                return await InnerQueryHandler.HandleAsync(Query, cancellationToken);
             }
 
             _logger.LogDebug(QueryStaticHelper.LogTemplate, _queryValidator.GetType().Name);
 
-            var valResult = await _queryValidator.ValidateAsync(Query);
+            IValidationResult valResult = await _queryValidator.ValidateAsync(Query);
 
             TResult result = default;
 
             if (valResult.IsValid)
             {
-                result = await InnerQueryHandler.HandleAsync(Query);
+                result = await InnerQueryHandler.HandleAsync(Query, cancellationToken);
                 _logger.LogDebug(QueryStaticHelper.DebugOutcomeLogTemplate, valResult.IsValid, _queryValidator.GetType().Name);
             }
             else
@@ -77,7 +79,7 @@ namespace Minded.Extensions.Validation.Decorator
                 _logger.LogInformation(QueryStaticHelper.ValidationFailureTemplate, _queryValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
                 Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
-                var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
+                Type queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
                 result = (TResult)Activator.CreateInstance(queryResponseType);
                 ((IMessageResponse)result).Successful = valResult.IsValid;
                 ((IMessageResponse)result).OutcomeEntries = valResult.OutcomeEntries.ToList();
@@ -88,7 +90,7 @@ namespace Minded.Extensions.Validation.Decorator
             {
                 // If here it means that result is of type IQueryResult, if null it means this has not been correctly handled in the inner decorator
                 Type resultType = typeof(TResult).GetGenericArguments().FirstOrDefault();
-                var queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
+                Type queryResponseType = typeof(QueryResponse<>).MakeGenericType(resultType);
                 result = (TResult) Activator.CreateInstance(queryResponseType);
                 ((IMessageResponse)result).Successful = false;
             }

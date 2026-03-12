@@ -1,7 +1,9 @@
 ﻿using System.Threading.Tasks;
+using Minded.Extensions.Exception;
 using Minded.Extensions.Validation;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Abstractions;
+using Minded.Framework.Mediator;
 using Service.Category.Command;
 
 namespace Service.Category.Validator
@@ -21,16 +23,16 @@ namespace Service.Category.Validator
 
             if (command.Category == null)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory"));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category), "{0} is mandatory", GenericErrorCodes.ValidationFailed, Severity.Error));
 
                 return validationResult;
             }
 
-            var result = _categoryValidator.ValidateAsync(command.Category);
+            Task<IValidationResult> result = _categoryValidator.ValidateAsync(command.Category);
 
             if (command.Category.Id != 0)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category.Id), "{0} should not be specified on creation"));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Category.Id), "{0} should not be specified on creation", GenericErrorCodes.ValidationFailed, Severity.Error));
             }
 
             return (await result).Merge(validationResult);

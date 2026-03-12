@@ -1,0 +1,73 @@
+using System.Collections.Generic;
+
+namespace Minded.Extensions.DataProtection.Abstractions
+{
+    /// <summary>
+    /// Service responsible for sanitizing sensitive data in objects before logging or exception handling.
+    /// Inspects objects for properties marked with [SensitiveData] attribute
+    /// and omits them unless explicitly configured to show them.
+    /// </summary>
+    /// <remarks>
+    /// This interface is part of the Data Protection abstractions and can be implemented
+    /// by different packages (e.g., Minded.Extensions.DataProtection) or custom implementations.
+    /// When no implementation is registered, decorators will use a no-op implementation that
+    /// passes data through unchanged.
+    /// </remarks>
+    public interface IDataSanitizer
+    {
+        /// <summary>
+        /// Sanitizes an object by creating a dictionary representation with sensitive data protected.
+        /// Properties marked with [SensitiveData] are omitted unless ShowSensitiveData is true.
+        /// </summary>
+        /// <param name="obj">The object to sanitize. Can be null.</param>
+        /// <returns>
+        /// A dictionary where keys are property names and values are either:
+        /// - Original values (if not sensitive or ShowSensitiveData is true)
+        /// - Omitted entirely (if sensitive and ShowSensitiveData is false)
+        /// Returns null if the input object is null.
+        /// </returns>
+        IDictionary<string, object> Sanitize(object obj);
+
+        /// <summary>
+        /// Sanitizes a collection of objects.
+        /// Each object in the collection is sanitized individually.
+        /// </summary>
+        /// <param name="collection">The collection to sanitize. Can be null.</param>
+        /// <returns>
+        /// A collection of sanitized dictionaries.
+        /// Returns null if the input collection is null.
+        /// </returns>
+        IEnumerable<IDictionary<string, object>> SanitizeCollection(IEnumerable<object> collection);
+
+        /// <summary>
+        /// Checks if a property should be considered sensitive based on its attributes.
+        /// A property is sensitive if it has the [SensitiveData] attribute.
+        /// </summary>
+        /// <param name="propertyInfo">The property to check.</param>
+        /// <returns>True if the property is marked as sensitive, false otherwise.</returns>
+        bool IsSensitiveProperty(System.Reflection.PropertyInfo propertyInfo);
+
+        /// <summary>
+        /// Extracts specific properties from an object using property paths and sanitizes sensitive data.
+        /// Property paths support nested navigation (e.g., "User.Email", "Order.Customer.Name").
+        /// Properties marked with [SensitiveData] are masked unless ShowSensitiveData is true.
+        /// </summary>
+        /// <param name="source">The source object to extract properties from. Can be null.</param>
+        /// <param name="propertyPaths">
+        /// Array of property paths to extract. Supports dot notation for nested properties.
+        /// Examples: "Name", "User.Email", "Order.Customer.Address.City"
+        /// </param>
+        /// <returns>
+        /// An array of extracted values in the same order as propertyPaths:
+        /// - Original value (if not sensitive or ShowSensitiveData is true)
+        /// - "***MASKED***" (if sensitive and ShowSensitiveData is false)
+        /// - null (if property not found or source is null)
+        /// </returns>
+        /// <remarks>
+        /// This method is optimized with caching to minimize reflection overhead.
+        /// It supports both properties and fields, checking each segment of the path for [SensitiveData] attributes.
+        /// </remarks>
+        object[] ExtractProperties(object source, string[] propertyPaths);
+    }
+}
+

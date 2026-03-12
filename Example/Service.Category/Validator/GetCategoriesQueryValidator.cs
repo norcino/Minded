@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Minded.Extensions.Exception;
 using Minded.Extensions.Validation;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Abstractions;
@@ -10,11 +11,8 @@ namespace Service.Category.Validator
 {
     public class GetCategoriesQueryValidator : IQueryValidator<GetCategoriesQuery, IQueryResponse<IEnumerable<Data.Entity.Category>>>
     {
-        private readonly IValidator<Data.Entity.Category> _categoryValidator;
-
-        public GetCategoriesQueryValidator(IValidator<Data.Entity.Category> categoryValidator)
+        public GetCategoriesQueryValidator()
         {
-            _categoryValidator = categoryValidator;
         }
 
         public async Task<IValidationResult> ValidateAsync(GetCategoriesQuery query)
@@ -22,7 +20,7 @@ namespace Service.Category.Validator
             var validationResult = new ValidationResult();
             if(query.Top > 100)
             {
-                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(query.Top), "{0} is above teh maximum allowed 100"));
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(nameof(query.Top), "{0} is above teh maximum allowed 100", GenericErrorCodes.ValidationFailed, Severity.Error));
                 return validationResult;
             }
             return validationResult;

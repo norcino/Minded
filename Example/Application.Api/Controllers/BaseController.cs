@@ -1,25 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNet.OData.Query;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OData.Edm;
 using Microsoft.OData.UriParser;
-//using Minded.Framework.CQRS.Query.Trait;
 
 namespace Application.Api.Controllers
 {
     public abstract class BaseController : Controller
     {
-        /// <summary>
-        /// Apply to the Query object, the query conditions gathered from the ODataQueryOption
-        /// NOTE: Check http://odata.github.io/odata.net/ for Odata Parser
-        /// </summary>
-        /// <typeparam name="TEntity">Type of the result of the query</typeparam>
-        /// <typeparam name="TQuery">Type of the query object</typeparam>
-        /// <param name="queryOptions">ODataQueryOptions containing the filtering information</param>
-        /// <param name="query">Query object to be decorated</param>
-        /// <returns>Query decorated with Expansion, Filter, Ordering and Pagination information</returns>
+        ///// <summary>
+        ///// Apply to the Query object, the query conditions gathered from the ODataQueryOption
+        ///// NOTE: Check http://odata.github.io/odata.net/ for Odata Parser
+        ///// </summary>
+        ///// <typeparam name = "TEntity" > Type of the result of the query</typeparam>
+        ///// <typeparam name = "TQuery" > Type of the query object</typeparam>
+        ///// <param name = "queryOptions" > ODataQueryOptions containing the filtering information</param>
+        ///// <param name = "query" > Query object to be decorated</param>
+        ///// <returns>Query decorated with Expansion, Filter, Ordering and Pagination information</returns>
         //public TQuery ApplyODataQueryConditions<TEntity, TQuery>(ODataQueryOptions queryOptions, TQuery query)
         //{            
         //    if (queryOptions == null) return query;

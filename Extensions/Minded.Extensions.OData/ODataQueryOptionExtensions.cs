@@ -3,7 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using Microsoft.AspNet.OData.Query;
+using System.Reflection;
+using Microsoft.AspNetCore.OData.Query;
 
 namespace Minded.Extensions.OData
 {
@@ -17,8 +18,8 @@ namespace Minded.Extensions.OData
         /// <returns>Expression which can be uset to filter an IQueryable of TEntity</returns>
         public static Expression<Func<TEntity, bool>> GetFilterExpression<TEntity>(this FilterQueryOption filter)
         {
-            var enumerable = Enumerable.Empty<TEntity>().AsQueryable();
-            var param = Expression.Parameter(typeof(TEntity));
+            IQueryable<TEntity> enumerable = Enumerable.Empty<TEntity>().AsQueryable();
+            ParameterExpression param = Expression.Parameter(typeof(TEntity));
             if (filter != null)
             {
                 enumerable = (IQueryable<TEntity>)filter.ApplyTo(enumerable, new ODataQuerySettings());
@@ -50,7 +51,7 @@ namespace Minded.Extensions.OData
                 return query;
             }
 
-            var queryable = options.ApplyTo(query);
+            IQueryable queryable = options.ApplyTo(query);
 
             if (queryable is IQueryable<T> queriableEntity)
             {
@@ -70,7 +71,7 @@ namespace Minded.Extensions.OData
 
         private static T Unwrap<T>(object item) where T : class, new()
         {
-            var instanceProp = item.GetType().GetProperty("Instance");
+            PropertyInfo instanceProp = item.GetType().GetProperty("Instance");
             var value = (T)instanceProp.GetValue(item);
 
             if (value != null)
@@ -79,7 +80,7 @@ namespace Minded.Extensions.OData
             }
 
             value = new T();
-            var containerProp = item.GetType().GetProperty("Container");
+            PropertyInfo containerProp = item.GetType().GetProperty("Container");
             var container = containerProp.GetValue(item);
 
             if (container == null)
@@ -87,13 +88,13 @@ namespace Minded.Extensions.OData
                 return (T)null;
             }
 
-            var containerType = container.GetType();
+            Type containerType = container.GetType();
             var containerItem = container;
             var allNull = true;
 
             for (var i = 0; containerItem != null; i++)
             {
-                var containerItemType = containerItem.GetType();
+                Type containerItemType = containerItem.GetType();
                 var containerItemValue = containerItemType.GetProperty("Value").GetValue(containerItem);
 
                 if (containerItemValue == null)
@@ -103,7 +104,7 @@ namespace Minded.Extensions.OData
                 }
 
                 var containerItemName = containerItemType.GetProperty("Name").GetValue(containerItem) as string;
-                var expandedProp = typeof(T).GetProperty(containerItemName);
+                PropertyInfo expandedProp = typeof(T).GetProperty(containerItemName);
 
                 if (expandedProp.SetMethod == null)
                 {
@@ -113,12 +114,12 @@ namespace Minded.Extensions.OData
 
                 if (containerItemValue.GetType() != typeof(string) && containerItemValue is IEnumerable containerValues)
                 {
-                    var listType = typeof(List<>).MakeGenericType(expandedProp.PropertyType.GenericTypeArguments[0]);
+                    Type listType = typeof(List<>).MakeGenericType(expandedProp.PropertyType.GenericTypeArguments[0]);
                     var expandedList = (IList)Activator.CreateInstance(listType);
 
                     foreach (var expandedItem in containerValues)
                     {
-                        var expandedInstanceProp = expandedItem.GetType().GetProperty("Instance");
+                        PropertyInfo expandedInstanceProp = expandedItem.GetType().GetProperty("Instance");
                         var expandedValue = expandedInstanceProp.GetValue(expandedItem);
                         expandedList.Add(expandedValue);
                     }
@@ -128,7 +129,7 @@ namespace Minded.Extensions.OData
                 }
                 else
                 {
-                    var expandedInstanceProp = containerItemValue.GetType().GetProperty("Instance");
+                    PropertyInfo expandedInstanceProp = containerItemValue.GetType().GetProperty("Instance");
 
                     if (expandedInstanceProp == null)
                     {
@@ -145,9 +146,9 @@ namespace Minded.Extensions.OData
                         }
                         else
                         {
-                            var t = containerItemValue.GetType().GenericTypeArguments[0];
-                            var wrapInfo = typeof(ODataQueryOptionExtensions).GetMethod(nameof(Unwrap));
-                            var wrapT = wrapInfo.MakeGenericMethod(t);
+                            Type t = containerItemValue.GetType().GenericTypeArguments[0];
+                            MethodInfo wrapInfo = typeof(ODataQueryOptionExtensions).GetMethod(nameof(Unwrap));
+                            MethodInfo wrapT = wrapInfo.MakeGenericMethod(t);
                             expandedValue = wrapT.Invoke(null, new[] { containerItemValue });
                             if (expandedValue != null)
                             {

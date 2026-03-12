@@ -18,6 +18,51 @@ namespace Minded.Extensions.WebApi
             _ruleProvider = ruleProvider;
         }
 
+
+        public IActionResult ProcessQueryRules<T>(RestOperation operation, IQueryResponse<T> result)
+        {
+            IQueryRestRule rule = GetQueryRule(operation, result);
+
+            if (rule == null)
+            {
+                // When no rule matches and result is null, return OkResult as default fallback
+                if (result == null)
+                {
+                    return new OkResult();
+                }
+
+                // When no rule matches, return based on success status
+                if (result.Successful)
+                {
+                    return new OkObjectResult(result.Result);
+                }
+                else
+                {
+                    return new BadRequestObjectResult(result.Result);
+                }
+            }
+
+            if (rule.ContentResponse != ContentResponse.None)
+            {
+                object resultObject;
+                if (rule.ContentResponse == ContentResponse.Full)
+                {
+                    resultObject = result;
+                }
+                else
+                {
+                    resultObject = result.Result;
+                }
+
+                return new ObjectResult(resultObject)
+                {
+                    StatusCode = (int)rule.ResultStatusCode
+                };
+            }
+
+            return new StatusCodeResult((int)rule.ResultStatusCode);
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -26,37 +71,53 @@ namespace Minded.Extensions.WebApi
         /// <returns></returns>
         public virtual IActionResult ProcessQueryRules(RestOperation operation, object result)
         {
-            var rule = GetQueryRule(operation, result);
+            IQueryRestRule rule = GetQueryRule(operation, result);
 
             if (rule == null)
             {
+                // When no rule matches and result is null, return OkResult as default fallback
                 if(result == null)
                 {
                     return new OkResult();
                 }
                 else
                 {
+                    // Handle IQueryResponse objects specially to extract the Result property
                     if (TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), result.GetType()))
                     {
-                        if ((result as IQueryResponse<object>).Successful)
-                            return new OkObjectResult((result as IQueryResponse<object>).Result);
+                        var queryResponse = result as IQueryResponse<object>;
+                        if (queryResponse.Successful)
+                            return new OkObjectResult(queryResponse.Result);
                         else
-                            return new StatusCodeResult((int)rule.ResultStatusCode);
+                            return new BadRequestObjectResult(queryResponse.Result);
                     }
+                    // For plain objects, return as-is
                     return new OkObjectResult(result);
                 }
             }
 
             if (rule.ContentResponse != ContentResponse.None)
             {
+                object resultObject;
                 if (result != null && TypeHelper.IsInterfaceOrImplementation(typeof(IQueryResponse<>), result.GetType()))
                 {
-                    return new ObjectResult((result as IQueryResponse<object>).Result)
+                    // For IQueryResponse objects, extract the Result property if ContentResponse.Result is specified
+                    // Otherwise return the full IQueryResponse object
+                    if (rule.ContentResponse == ContentResponse.Result)
                     {
-                        StatusCode = (int)rule.ResultStatusCode
-                    };
+                        resultObject = (result as IQueryResponse<object>).Result;
+                    }
+                    else
+                    {
+                        resultObject = result;
+                    }
                 }
-                return new ObjectResult(result)
+                else
+                {
+                    resultObject = result;
+                }
+
+                return new ObjectResult(resultObject)
                 {
                     StatusCode = (int)rule.ResultStatusCode
                 };
@@ -73,7 +134,7 @@ namespace Minded.Extensions.WebApi
         /// <returns>ActionResult to be returned to the API</returns>
         public virtual IActionResult ProcessCommandRules(RestOperation operation, ICommandResponse result)
         {
-            var rule = GetCommandRule(operation, result);
+            ICommandRestRule rule = GetCommandRule(operation, result);
 
             if (rule == null)
             {
@@ -92,9 +153,8 @@ namespace Minded.Extensions.WebApi
                 }
             }
 
-            if (rule.ContentResponse == ContentResponse.Result)
+            if (rule.ContentResponse != ContentResponse.None)
             {
-                
                 return new ObjectResult(result)
                 {
                     StatusCode = (int)rule.ResultStatusCode
@@ -113,7 +173,7 @@ namespace Minded.Extensions.WebApi
         /// <returns>ActionResult to be returned to the API</returns>
         public virtual IActionResult ProcessCommandRules<T>(RestOperation operation, ICommandResponse<T> result)
         {
-            var rule = GetCommandRule(operation, result);
+            ICommandRestRule rule = GetCommandRule(operation, result);
 
             if (rule == null)
             {

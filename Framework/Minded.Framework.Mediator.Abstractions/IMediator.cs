@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Minded.Framework.CQRS.Command;
 using Minded.Framework.CQRS.Query;
 
@@ -15,22 +16,25 @@ namespace Minded.Framework.Mediator
         /// </summary>
         /// <typeparam name="TResult">Result returned by the query</typeparam>
         /// <param name="query">Query to be executed</param>
+        /// <param name="cancellationToken">Optional cancellation token. If not provided, a new CancellationToken will be used.</param>
         /// <returns>Object or list of objects returned by the query</returns>
-        Task<TResult> ProcessQueryAsync<TResult>(IQuery<TResult> query);
+        Task<TResult> ProcessQueryAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Instantiates the ICommandHandler for the given command and executes it's Handle method
         /// </summary>
         /// <param name="command">Command to be executed</param>
+        /// <param name="cancellationToken">Optional cancellation token. If not provided, a new CancellationToken will be used.</param>
         /// <returns>ICommandResponse containing the information about the execution</returns>
-        Task<ICommandResponse> ProcessCommandAsync(ICommand command);
+        Task<ICommandResponse> ProcessCommandAsync(ICommand command, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Instantiates the ICommandHandler for the given command and executes it's Handle method
         /// </summary>
         /// <typeparam name="TResult">Type of the expected command result</typeparam>
         /// <param name="command">Command to be executed</param>
+        /// <param name="cancellationToken">Optional cancellation token. If not provided, a new CancellationToken will be used.</param>
         /// <returns>ICommandResponse containing the result and information about the execution</returns>
-        Task<ICommandResponse<TResult>> ProcessCommandAsync<TResult>(ICommand<TResult> command);
+        Task<ICommandResponse<TResult>> ProcessCommandAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
     }
 }

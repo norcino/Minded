@@ -22,7 +22,7 @@ namespace Minded.Extensions.Caching.Abstractions.Tests
 
             try
             {
-                _sut.Validate((a) => a.Name == "Minded.Testing.Common");
+                _sut.Validate((a) => this.GetType().Assembly.FullName.StartsWith(a.Name));
             }
             catch (InvalidOperationException ex)
             {
@@ -36,7 +36,9 @@ namespace Minded.Extensions.Caching.Abstractions.Tests
         [TestMethod]
         public void Validate_WhenAllTypesWithCacheAttributeImplementIGenerateCacheKey_DoesNotThrowException()
         {
-            _sut.Validate((a) => a.Name == "Minded.Extensions.Caching.Abstractions.Tests");
+            // Validate all Minded assemblies except test assemblies
+            // Test assemblies contain intentionally invalid test classes
+            _sut.Validate((a) => a.Name != null && a.Name.StartsWith("Minded.") && !a.Name.Contains(".Tests"));
         }
     }
 }

@@ -23,6 +23,22 @@ namespace Minded.Framework.CQRS.Abstractions
             AttemptedValue = attemptedValue;
         }
 
+        /// <summary>
+        /// Creates a new OutcomeEntry.
+        /// </summary>
+        /// <param name="propertyName"></param>
+        /// <param name="message"></param>
+        /// <param name="attemptedValue"></param>
+        /// <param name="severity"></param>
+        public OutcomeEntry(string propertyName, string message, object attemptedValue, Severity severity = Severity.Info, string errorCode = default) : this(propertyName, message, null)
+        {
+            PropertyName = propertyName;
+            Message = message;
+            AttemptedValue = attemptedValue;
+            Severity = severity;
+            ErrorCode = errorCode?.ToString();
+        }
+
         /// <inheritdoc cref="IOutcomeEntry.PropertyName"/>
         public string PropertyName { get; private set; }
 

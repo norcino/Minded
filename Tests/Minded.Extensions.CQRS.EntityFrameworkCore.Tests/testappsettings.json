@@ -1,0 +1,50 @@
+{
+  "Logging": {
+    "IncludeScopes": false,
+    "LogLevel": {
+      "Default": "Debug",
+      "System": "Debug",
+      "Microsoft": "Debug"
+    }
+  },
+
+  // ************************************
+  // Default: SQLite In-Memory Database
+  // ************************************
+  // This is the default configuration for running tests without external dependencies.
+  // SQLite in-memory database is fast and requires no setup.
+  "DatabaseProvider": "SQLiteInMemory",
+  "ConnectionStrings": {
+    "TestDb": ""
+  }
+
+  // ************************************
+  // Alternative: SQLite File-Based Database
+  // ************************************
+  // Uncomment to use a file-based SQLite database instead of in-memory.
+  // This is useful for debugging and inspecting test data.
+  // "DatabaseProvider": "SQLiteFile",
+  // "ConnectionStrings": {
+  //   "TestDb": "DataSource=test.db"
+  // }
+
+  // ************************************
+  // Alternative: SQL Server LocalDB
+  // ************************************
+  // Uncomment to use SQL Server LocalDB for integration testing.
+  // Requires SQL Server LocalDB to be installed on the machine.
+  // "DatabaseProvider": "LocalDb",
+  // "ConnectionStrings": {
+  //   "TestDb": "Server=(localdb)\\mssqllocaldb;Database=TestDB;Trusted_Connection=True"
+  // }
+
+  // ************************************
+  // Alternative: SQL Server
+  // ************************************
+  // Uncomment to use a remote or local SQL Server instance.
+  // "DatabaseProvider": "SQLServer",
+  // "ConnectionStrings": {
+  //   "TestDb": "Server=.;Database=TestDB;Integrated Security=SSPI;Trust Server Certificate=true"
+  // }
+}
+

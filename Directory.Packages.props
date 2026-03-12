@@ -1,0 +1,64 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Microsoft Core Packages -->
+    <PackageVersion Include="FluentAssertions.Web" Version="1.9.5" />
+    <PackageVersion Include="FluentAssertions.Web.v8" Version="1.9.5" />
+    <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <!-- Microsoft Extensions - Configuration -->
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+    <!-- Microsoft Extensions - Dependency Injection -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0" />
+    <!-- Microsoft Extensions - Logging -->
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+    <!-- Microsoft Extensions - Caching -->
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <!-- Entity Framework Core -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.Data.SQLite" Version="8.0.22" />
+    <!-- ASP.NET Core -->
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.AspNetCore.OData" Version="9.4.1" />
+    <!-- Testing -->
+    <PackageVersion Include="Microsoft.TestPlatform.TestHost" Version="18.0.1" />
+    <PackageVersion Include="MSTest.TestAdapter" Version="4.0.2" />
+    <PackageVersion Include="MSTest.TestFramework" Version="4.0.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <!-- Testing Utilities -->
+    <PackageVersion Include="AnonymousData" Version="1.3.1" />
+    <PackageVersion Include="FluentAssertions" Version="8.8.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="MockQueryable.Moq" Version="8.0.1" />
+    <PackageVersion Include="Object.Builder" Version="1.2.0" />
+    <!-- Serialization -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- Logging -->
+    <PackageVersion Include="Serilog" Version="4.3.0" />
+    <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.2" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <!-- Other -->
+    <PackageVersion Include="Remotion.Linq" Version="2.2.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <PackageVersion Include="System.Linq.Dynamic.Core" Version="1.7.0" />
+  </ItemGroup>
+</Project>

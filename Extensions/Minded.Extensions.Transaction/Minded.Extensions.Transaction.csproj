@@ -1,50 +1,51 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>$(AssemblyName)</PackageId>
     <Title>$(AssemblyName)</Title>
-    <IsPackable>False</IsPackable>
+    <IsPackable>True</IsPackable>
     <Authors>Manuel Salvatori</Authors>
-    <Product>Minded Framework - Clan code made easy</Product>
-    <Description>Package which allows to add the Transaction Decorator and contains the base classes necessary for it's customization. Minded helps to implement a clean architecture, offering the scaffholding necessary to implement patterns like Mediator, Decorator, Command and Query and more.
-Encapsuplate all your business logic in Commands and Queries, the rest will be dealth by the framework.</Description>
+    <Product>Minded Framework - Clean code made easy</Product>
+    <Description>Transaction decorator for Minded Framework. Provides automatic transaction management for commands and queries with support for nested transactions, configurable isolation levels, and automatic rollback on failure. Wraps operations in System.Transactions.TransactionScope with full async/await support. Includes comprehensive logging and configurable rollback strategies.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageOutputPath>$(OutputDirectory)</PackageOutputPath>
     <PackageReleaseNotes>The changelog is available at https://github.com/norcino/Minded/blob/master/Changelog.md.</PackageReleaseNotes>
-    <Copyright>Copyright (c) 2023, Manuel Salvatori. All rights reserved.</Copyright>
+    <Copyright>Copyright (c) 2025, Manuel Salvatori. All rights reserved.</Copyright>
     <PackageIcon>Minded-128.png</PackageIcon>
-    <PackageTags>mediator;decorator;command query;rest;validator;clean code;clean architecture</PackageTags>
+    <PackageReadme>README.md</PackageReadme>
+    <PackageTags>mediator;decorator;command query;transaction;transactionscope;database;clean code;clean architecture;cqrs</PackageTags>
     <LicenseUrl>https://github.com/norcino/Minded/blob/master/LICENSE</LicenseUrl>
 		<PackageProjectUrl>https://github.com/norcino/Minded</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>1.0.7</AssemblyVersion>
-    <FileVersion>1.0.7</FileVersion>
-    <VersionPrefix>1.0.7</VersionPrefix>
-    <VersionSuffix>alpha</VersionSuffix>
+    <AssemblyVersion>1.1.0</AssemblyVersion>
+    <FileVersion>1.1.0</FileVersion>
+    <VersionPrefix>1.1.0</VersionPrefix>
+    <VersionSuffix></VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+    <SourceLinkUrl>https://github.com/norcino/Minded/tree/master/Extensions/Minded.Extensions.Transaction</SourceLinkUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />
+    <ProjectReference Include="..\Minded.Extensions.Configuration\Minded.Extensions.Configuration.csproj" />
   </ItemGroup>
 
 </Project>

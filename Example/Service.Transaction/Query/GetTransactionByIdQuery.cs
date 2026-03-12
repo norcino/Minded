@@ -17,6 +17,6 @@ namespace Service.Transaction.Query
 
         public Guid TraceId { get; } = Guid.NewGuid();
         public string LoggingTemplate => "TransactionId: {TransactionId}";
-        public object[] LoggingParameters => new object[] { TransactionId };
+        public string[] LoggingProperties => new[] { nameof(TransactionId) };
     }
 }

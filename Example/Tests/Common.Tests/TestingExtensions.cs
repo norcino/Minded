@@ -5,12 +5,12 @@ using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using MockQueryable.Moq;
 using Moq;
-using FluentAssertions.Primitives;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using FluentAssertions;
 using Minded.Framework.CQRS.Abstractions;
+using FluentAssertions.Web;
 
 namespace QM.Common.Testing
 {
@@ -23,27 +23,28 @@ namespace QM.Common.Testing
 
         public static Mock<DbSet<T>> GetMockDbSet<T>(this IQueryable<T> queryable) where T : class, new()
         {
-            var dbSet = queryable.AsQueryable<T>().BuildMockDbSet();
+            var list = queryable.ToList();
+            var dbSet = list.BuildMockDbSet();
 
             dbSet.Setup(d => d.Add(It.IsAny<T>())).Callback<T>((s) => {
-                queryable = queryable.Append(s);
+                list.Add(s);
             });
 
             dbSet.Setup(d => d.AddRange(It.IsAny<IEnumerable<T>>())).Callback<IEnumerable<T>>((l) => {
                 foreach (var e in l)
                 {
-                    queryable = queryable.Append(e);
+                    list.Add(e);
                 }
             });
 
             dbSet.Setup(d => d.AddAsync(It.IsAny<T>(), It.IsAny<CancellationToken>())).Callback<T, CancellationToken>((s, c) => {
-                queryable = queryable.Append(s);
+                list.Add(s);
             });
 
             dbSet.Setup(d => d.AddRangeAsync(It.IsAny<IEnumerable<T>>(), It.IsAny<CancellationToken>())).Callback<IEnumerable<T>, CancellationToken>((l, c) => {
                 foreach (var e in l)
                 {
-                    queryable = queryable.Append(e);
+                    list.Add(e);
                 }
             });
 
@@ -72,7 +73,7 @@ namespace QM.Common.Testing
         /// <returns>Testable DbSet</returns>
         public static Mock<DbSet<T>> GetMockDbSet<T>(this List<T> enumerable) where T : class
         {
-            var dbSet = enumerable.AsQueryable<T>().BuildMockDbSet();
+            var dbSet = enumerable.BuildMockDbSet();
 
             dbSet.Setup(d => d.Add(It.IsAny<T>())).Callback<T>((e) => {
                 enumerable.Add(e);
@@ -136,7 +137,7 @@ namespace QM.Common.Testing
         {
             var content = assertion.Subject.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-            var outcomeEntriesJson = JObject.Parse(content)["outcomeEntries"].ToString();
+            var outcomeEntriesJson = JObject.Parse(content)["OutcomeEntries"].ToString();
             var outcomeEntries = JsonSerializer.Deserialize<List<OutcomeEntry>>(outcomeEntriesJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             foreach (var entry in outcomeEntries.Where(o => o.Message == expactedMessage && o.PropertyName == expectedProperty))

@@ -1,49 +1,105 @@
-﻿//using System.ComponentModel;
-//using System.Threading.Tasks;
-//using System.Transactions;
-//using Microsoft.Extensions.Logging;
-//using Minded.Extensions.Decorator;
-//using Minded.Framework.CQRS.Query;
+﻿using System;
+using System.ComponentModel;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Minded.Framework.Decorator;
+using Minded.Framework.CQRS.Query;
 
-//namespace Minded.Extensions.Transaction.Decorator
-//{
-//    public class TransactionalQueryHandlerDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>,
-//        IQueryHandler<TQuery, TResult> where TQuery : IQuery<TResult>
-//    {
-//        private readonly ILogger<TransactionalQueryHandlerDecorator<TQuery, TResult>> _logger;
+namespace Minded.Extensions.Transaction.Decorator
+{
+    /// <summary>
+    /// Decorator that wraps query execution in a database transaction.
+    /// Queries decorated with [TransactionalQuery] attribute will execute within a TransactionScope.
+    ///
+    /// NOTE: Most read-only queries do NOT need transactions. Use this decorator only for:
+    /// - Queries requiring consistent snapshot across multiple tables
+    /// - Queries with specific isolation level requirements (Snapshot, Serializable)
+    /// - Queries that perform temporary table operations
+    ///
+    /// For better performance, consider using database-level snapshot isolation instead.
+    /// </summary>
+    /// <typeparam name="TQuery">The type of query being handled</typeparam>
+    /// <typeparam name="TResult">The type of result returned by the query</typeparam>
+    public class TransactionalQueryHandlerDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>,
+        IQueryHandler<TQuery, TResult> where TQuery : IQuery<TResult>
+    {
+        private readonly ILogger<TransactionalQueryHandlerDecorator<TQuery, TResult>> _logger;
+        private readonly IOptions<Configuration.TransactionOptions> _options;
 
-//        public TransactionalQueryHandlerDecorator(IQueryHandler<TQuery, TResult> decoratedQueryHandler, ILogger<TransactionalQueryHandlerDecorator<TQuery, TResult>> logger)
-//            : base(decoratedQueryHandler)
-//        {
-//            _logger = logger;
-//        }
+        /// <summary>
+        /// Initializes a new instance of the TransactionalQueryHandlerDecorator class.
+        /// </summary>
+        /// <param name="queryHandler">The decorated query handler</param>
+        /// <param name="logger">Logger for transaction lifecycle events</param>
+        /// <param name="options">Transaction configuration options</param>
+        public TransactionalQueryHandlerDecorator(
+            IQueryHandler<TQuery, TResult> queryHandler,
+            ILogger<TransactionalQueryHandlerDecorator<TQuery, TResult>> logger,
+            IOptions<Configuration.TransactionOptions> options)
+            : base(queryHandler)
+        {
+            _logger = logger;
+            _options = options;
+        }
 
-//        public async Task<TResult> HandleAsync(TQuery query)
-//        {
-//            TResult retVal;
-//            var attribute = (TransactionQueryAttribute)TypeDescriptor.GetAttributes(query)[typeof(TransactionQueryAttribute)];
+        /// <summary>
+        /// Handles the query execution within a transaction scope if the query has [TransactionalQuery] attribute.
+        /// </summary>
+        /// <param name="query">The query to execute</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The query result</returns>
+        public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
+        {
+            var attribute = (TransactionalQueryAttribute)TypeDescriptor.GetAttributes(query)[typeof(TransactionalQueryAttribute)];
 
-//            if (attribute != null)
-//            {
-//                TransactionScopeOption? transactionScopeOption = TransactionManager.GetTransactionScopeFromObject<IQueryWithTransactionScopeOptionOverride<TResult>>(query) ?? attribute.TransactionScopeOption;
-//                IsolationLevel? isolationLevel = TransactionManager.GetIsolationLevelFromObject<IQueryWithTransactionIsolationLevelOverride<TResult>>(query) ?? attribute.IsolationLevel;
+            if (attribute == null)
+            {
+                // No transaction required, execute normally
+                return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+            }
 
-//                using (var transactionScope = TransactionManager.CreateTransactionScope(transactionScopeOption, isolationLevel))
-//                {
-//                    TransactionManager.LogTransactionStarting(_logger, query);
+            // Determine timeout: use attribute value if specified, otherwise use default
+            TimeSpan timeout = attribute.TimeoutSeconds > 0
+                ? TimeSpan.FromSeconds(attribute.TimeoutSeconds)
+                : _options.Value.GetEffectiveDefaultTimeout();
 
-//                    retVal = await DecoratedQueryHandler.HandleAsync(query);
-//                    transactionScope.Complete();
+            // Create transaction scope with async flow enabled
+            using (System.Transactions.TransactionScope scope = TransactionManager.CreateTransactionScope(
+                attribute.TransactionScopeOption,
+                attribute.IsolationLevel,
+                timeout))
+            {
+                if (_options.Value.GetEffectiveEnableLogging())
+                {
+                    TransactionManager.LogTransactionStarting(_logger, typeof(TQuery), attribute.IsolationLevel);
+                }
 
-//                    TransactionManager.LogTransactionComplete(_logger, query);
-//                }
-//            }
-//            else
-//            {
-//                retVal = await DecoratedQueryHandler.HandleAsync(query);
-//            }
+                try
+                {
+                    TResult result = await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
 
-//            return retVal;
-//        }
-//    }
-//}
+                    // Queries always complete successfully (no Successful property to check)
+                    scope.Complete();
+
+                    if (_options.Value.GetEffectiveEnableLogging())
+                    {
+                        TransactionManager.LogTransactionComplete(_logger, typeof(TQuery));
+                    }
+
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    // Transaction automatically rolls back when scope is disposed without Complete()
+                    if (_options.Value.GetEffectiveEnableLogging())
+                    {
+                        TransactionManager.LogTransactionRolledBackDueToException(_logger, typeof(TQuery), ex);
+                    }
+                    throw;
+                }
+            }
+        }
+    }
+}

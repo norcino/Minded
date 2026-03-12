@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace Minded.Framework.CQRS.Command
 {
@@ -14,8 +15,9 @@ namespace Minded.Framework.CQRS.Command
         /// Execute the given command returning the <see cref="ICommandResponse"/>
         /// </summary>
         /// <param name="command">Command to be executed</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation. Defaults to CancellationToken.None if not provided.</param>
         /// <returns><see cref="ICommandResponse"/> containing the command output</returns>
-        Task<ICommandResponse> HandleAsync(TCommand command);
+        Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -31,7 +33,8 @@ namespace Minded.Framework.CQRS.Command
         /// Execute the given command returning the <see cref="ICommandResponse"/>
         /// </summary>
         /// <param name="command">Command to be executed</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation. Defaults to CancellationToken.None if not provided.</param>
         /// <returns><see cref="ICommandResponse"/> containing the command output</returns>
-        Task<ICommandResponse<TResult>> HandleAsync(TCommand command);
+        Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default);
     }
 }

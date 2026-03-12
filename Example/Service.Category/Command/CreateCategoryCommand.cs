@@ -1,11 +1,19 @@
 ﻿using System;
 using Minded.Extensions.Logging;
 using Minded.Extensions.Validation.Decorator;
+using Minded.Extensions.Retry.Decorator;
 using Minded.Framework.CQRS.Command;
 
 namespace Service.Category.Command
 {
+    /// <summary>
+    /// Command to create a new category.
+    /// This command is validated before execution and includes retry logic.
+    /// The retry decorator can be configured to retry up to 3 times with increasing delays (100ms, 200ms, 400ms).
+    /// Using [RetryCommand(3, 100, 200, 400)], but this command will be configured to use default settings
+    /// </summary>
     [ValidateCommand]
+    [RetryCommand]
     public class CreateCategoryCommand : ICommand<Data.Entity.Category>, ILoggable
     {
         public Data.Entity.Category Category { get; set; }
@@ -19,6 +27,6 @@ namespace Service.Category.Command
 
         public string LoggingTemplate => "CategoryName {CategoryName}";
 
-        public object[] LoggingParameters => new object[] { Category.Name };
+        public string[] LoggingProperties => new[] { "Category.Name" };
     }
 }

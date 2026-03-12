@@ -210,14 +210,14 @@ namespace Minded.Extensions.WebApi
         {
             CreateSuccessfully,
             CreateWithContentSuccessfully,
-            CreateInvalid,
             CreateWithContentInvalid,
+            CreateInvalid,
             UpdateWithContentSuccessfully,
             UpdateSuccessfully,
-            UpdateNotfound,
             UpdateWithContentNotfound,
-            UpdateInvalid,
+            UpdateNotfound,
             UpdateWithContentInvalid,
+            UpdateInvalid,
             PatchWithContentSuccessfully,
             PatchSuccessfully,
             PatchWithContentNotfound,
@@ -229,8 +229,8 @@ namespace Minded.Extensions.WebApi
             PostWithContentSuccessfully,
             PostWithResultContentSuccessfully,
             PostSuccessfully,
-            PostInvalid,
             PostWithContentInvalid,
+            PostInvalid,
             NotAuthorizedCommand,
             NotAuthenticatedCommand
         };

@@ -15,34 +15,112 @@ steps:
     projects: '**/*.csproj'
     arguments: '--configuration $(BuildConfiguration)'
 
-- powershell: 'dotnet pack Minded.sln --version-suffix "rc.$(Build.BuildNumber)" --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-  displayName: 'Pack non master version'
-  condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
+- pwsh: |
+    $branch = "$(Build.SourceBranch)"
+    $buildNumber = "$(Build.BuildNumber)"
 
-- powershell: 'dotnet pack Minded.sln --include-symbols --include-source --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-  displayName: 'Pack master version'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+    Write-Host "Branch: $branch"
+    Write-Host "Build Number: $buildNumber"
 
-- task: NuGetCommand@2
-  displayName: 'NuGet Push Minded Feed'
+    # Determine version suffix and whether to push to NuGet.org based on branch
+    $versionSuffix = ""
+    $pushToNuGet = "false"
+
+    if ($branch -eq "refs/heads/master") {
+      # Stable release - no suffix
+      $versionSuffix = ""
+      $pushToNuGet = "true"
+      Write-Host "Branch type: MASTER (stable release)"
+    }
+    elseif ($branch -eq "refs/heads/dev" -or $branch -eq "refs/heads/develop") {
+      # Development branch - preview
+      $versionSuffix = "preview.$buildNumber"
+      $pushToNuGet = "true"
+      Write-Host "Branch type: DEVELOPMENT (preview release)"
+    }
+    elseif ($branch -like "refs/heads/release/*") {
+      # Release branch - release candidate
+      $versionSuffix = "rc.$buildNumber"
+      $pushToNuGet = "true"
+      Write-Host "Branch type: RELEASE (release candidate)"
+    }
+    elseif ($branch -like "refs/heads/feature/*" -or $branch -like "refs/heads/features/*") {
+      # Feature branch - alpha
+      $versionSuffix = "alpha.$buildNumber"
+      $pushToNuGet = "true"
+      Write-Host "Branch type: FEATURE (alpha release)"
+    }
+    else {
+      # Non-standard branch - alpha but don't push to NuGet.org
+      $versionSuffix = "alpha.$buildNumber"
+      $pushToNuGet = "false"
+      Write-Host "Branch type: NON-STANDARD (alpha, internal only)"
+      Write-Host "##vso[task.logissue type=warning]Branch does not follow naming convention. Package will NOT be pushed to NuGet.org"
+    }
+
+    Write-Host "Version Suffix: $versionSuffix"
+    Write-Host "Push to NuGet.org: $pushToNuGet"
+
+    # Set pipeline variables
+    Write-Host "##vso[task.setvariable variable=VersionSuffix]$versionSuffix"
+    Write-Host "##vso[task.setvariable variable=PushToNuGet]$pushToNuGet"
+  displayName: 'Determine Version Suffix and Push Strategy'
+
+- pwsh: |
+    $ErrorActionPreference = "Continue"
+    $versionSuffix = "$(VersionSuffix)"
+
+    # Build pack command with or without version suffix
+    $packArgs = @(
+      "Minded.sln",
+      "--include-symbols",
+      "-p:SymbolPackageFormat=snupkg",
+      "--configuration", "$(BuildConfiguration)",
+      "--output", "$(Build.ArtifactStagingDirectory)"
+    )
+
+    if ($versionSuffix) {
+      $packArgs += "--version-suffix"
+      $packArgs += $versionSuffix
+      Write-Host "Packing with version suffix: $versionSuffix"
+    } else {
+      Write-Host "Packing stable release (no version suffix)"
+    }
+
+    & dotnet pack @packArgs 2>&1 | Tee-Object -Variable packOutput
+
+    $exitCode = $LASTEXITCODE
+    Write-Host "Pack exit code: $exitCode"
+
+    if ($exitCode -ne 0) {
+      Write-Host "##[error]Pack failed with exit code $exitCode"
+      Write-Host "Full output:"
+      Write-Host $packOutput
+      exit $exitCode
+    }
+
+    Write-Host "Pack completed successfully"
+  displayName: 'Pack NuGet Packages'
+
+- task: DotNetCoreCLI@2
+  displayName: 'NuGet Push to Internal Feed (All Branches)'
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
     nuGetFeedType: 'internal'
     publishVstsFeed: '781d4237-b045-4959-bd79-25174518b8d8/b371f2d0-81c8-46d0-b653-f90e65088279'
-    allowPackageConflicts: true
 
 - task: DotNetCoreCLI@2
-  displayName: 'NuGet Push Packages - Master only'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  displayName: 'NuGet Push Packages to NuGet.org'
+  condition: eq(variables['PushToNuGet'], 'true')
   inputs:
     command: custom
     custom: nuget
     arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --skip-duplicate'
 
 - task: DotNetCoreCLI@2
-  displayName: 'NuGet Push Symbols - Master only'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  displayName: 'NuGet Push Symbols to NuGet.org'
+  condition: eq(variables['PushToNuGet'], 'true')
   inputs:
     command: custom
     custom: nuget

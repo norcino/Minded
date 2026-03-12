@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Minded.Framework.CQRS.Abstractions;
@@ -47,40 +48,41 @@ namespace Minded.Extensions.Validation.Decorator
         /// Execute the command asynchronously returning an instance of ICommandResponse
         /// </summary>
         /// <param name="command">Subject Command</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         /// <returns>An instance of <see cref="ICommandResponse"/> representing the output of the command</returns>
-        public async Task<ICommandResponse> HandleAsync(TCommand command)
+        public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             if (!Shared.IsValidatingCommand(command))
             {
-                return await InnerCommandHandler.HandleAsync(command);
+                return await InnerCommandHandler.HandleAsync(command, cancellationToken);
             }
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
 
-            var valResult = await _commandValidator.ValidateAsync(command);
+            IValidationResult validatorResult = await _commandValidator.ValidateAsync(command);
 
-            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
+            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, validatorResult.IsValid, _commandValidator.GetType().Name);
 
-            if (!valResult.IsValid)
+            if (!validatorResult.IsValid)
             {
-                _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+                _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, validatorResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
                 return new CommandResponse
                 {
-                    OutcomeEntries = valResult.OutcomeEntries.ToList(),
-                    Successful = valResult.IsValid
+                    OutcomeEntries = validatorResult.OutcomeEntries.ToList(),
+                    Successful = validatorResult.IsValid
                 };
             }
 
-            var result = await InnerCommandHandler.HandleAsync(command);
+            ICommandResponse handlerResult = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
-            if (result.OutcomeEntries == null)
+            if (handlerResult.OutcomeEntries == null)
             {
-                result.OutcomeEntries = new List<IOutcomeEntry>();
+                handlerResult.OutcomeEntries = new List<IOutcomeEntry>();
             }
 
-            result.OutcomeEntries.AddRange(valResult.OutcomeEntries);
-            return result;
+            handlerResult.OutcomeEntries.AddRange(validatorResult.OutcomeEntries);
+            return handlerResult;
         }
     }
 
@@ -100,32 +102,41 @@ namespace Minded.Extensions.Validation.Decorator
         /// Execute the command asynchronously returning an instance of ICommandResponse
         /// </summary>
         /// <param name="command">Subject Command</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         /// <returns>An instance of <see cref="ICommandResponse{TResult}"/> representing the output of the command</returns>
-        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command)
+        public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
             if (!Shared.IsValidatingCommand(command))
             {
-                return await InnerCommandHandler.HandleAsync(command);
+                return await InnerCommandHandler.HandleAsync(command, cancellationToken);
             }
 
             _logger.LogDebug(Shared.LogTemplate, _commandValidator.GetType().Name);
 
-            var valResult = await _commandValidator.ValidateAsync(command);
+            IValidationResult validatorResult = await _commandValidator.ValidateAsync(command);
 
-            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, valResult.IsValid, _commandValidator.GetType().Name);
+            _logger.LogDebug(Shared.DebugOutcomeLogTemplate, validatorResult.IsValid, _commandValidator.GetType().Name);
 
-            if (valResult.IsValid)
+            if (!validatorResult.IsValid)
             {
-                return await InnerCommandHandler.HandleAsync(command);
+                return new CommandResponse<TResult>
+                {
+                    Successful = false,
+                    OutcomeEntries = validatorResult.OutcomeEntries.ToList()
+                };
             }
 
-            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, valResult.OutcomeEntries.Select(e => e.Message).ToArray());
+            _logger.LogInformation(Shared.ValidationFailureTemplate, _commandValidator.GetType().Name, validatorResult.OutcomeEntries.Select(e => e.Message).ToArray());
 
-            return new CommandResponse<TResult>
+            var handlerResult = await InnerCommandHandler.HandleAsync(command, cancellationToken);
+
+            if (handlerResult.OutcomeEntries == null)
             {
-                Successful = false,
-                OutcomeEntries = valResult.OutcomeEntries.ToList()
-            };
+                handlerResult.OutcomeEntries = new List<IOutcomeEntry>();
+            }
+
+            handlerResult.OutcomeEntries.AddRange(validatorResult.OutcomeEntries);
+            return handlerResult;
         }
     }
 }

@@ -6,7 +6,7 @@ using Minded.Framework.CQRS.Command;
 namespace Service.Transaction.Command
 {
     [ValidateCommand]
-    public class CreateTransactionCommand : ICommand<int>, ILoggable
+    public class CreateTransactionCommand : ICommand<Data.Entity.Transaction>, ILoggable
     {
         public Data.Entity.Transaction Transaction { get; set; }
 
@@ -20,6 +20,6 @@ namespace Service.Transaction.Command
 
         public string LoggingTemplate => "Credit: {Credit} Debit: {Debit} CategoryId: {CategoryId}";
 
-        public object[] LoggingParameters => new object[] { Transaction.Credit, Transaction.Debit, Transaction.CategoryId };
+        public string[] LoggingProperties => new[] { "Transaction.Credit", "Transaction.Debit", "Transaction.CategoryId" };
     }
 }

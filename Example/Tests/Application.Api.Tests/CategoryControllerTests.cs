@@ -1,80 +1,156 @@
-using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Application.Api.Controllers;
 using Data.Entity;
-using Microsoft.AspNet.OData;
-using Microsoft.AspNet.OData.Query;
-using Microsoft.AspNet.OData.Routing;
-using Microsoft.AspNetCore.Http;
-using Microsoft.OData.Edm;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Service.Category.Command;
 using Service.Category.Query;
-using Builder;
 using AnonymousData;
-using Minded.Framework.Mediator;
 using Minded.Extensions.WebApi;
 
 namespace Application.Api.Tests
 {
+    /// <summary>
+    /// Unit tests for CategoryController.
+    /// Tests verify that controller methods correctly construct commands/queries and pass them to RestMediator.
+    /// </summary>
     [TestClass]
     public class CategoryControllerTests
     {
         private CategoryController _controller;
         private Mock<IRestMediator> _mediatorMock;
-        private Builder<Category> _builder;
 
         [TestInitialize]
         public void TestInitialize()
         {
-            _builder = Builder<Category>.New();
             _mediatorMock = new Mock<IRestMediator>();
             _controller = new CategoryController(_mediatorMock.Object);
         }
 
-        // TODO in generic test base for the controller, make sure Ordering, Filtering, Expansion and pagination is all supported
+        // Note: Testing CategoryController.Get(ODataQueryOptions) is complex because:
+        // 1. The controller calls query.ApplyODataQueryOptions(queryOptions) which requires a real ODataQueryOptions object
+        // 2. ODataQueryOptions requires ODataQueryContext which requires EdmModel setup
+        // 3. This is better tested through integration tests where real OData requests are made
+        //
+        // The controller's responsibility is to:
+        // - Create GetCategoriesQuery
+        // - Apply OData options to the query
+        // - Call RestMediator with RestOperation.GetMany
+        //
+        // This is tested indirectly through integration tests.
 
-        //        public Task<List<Category>> Get(ODataQueryOptions<Category> queryOptions)
-        //        {
-        //            var query = ApplyODataQueryConditions<Category, GetCategoriesQuery>(queryOptions, new GetCategoriesQuery());
-        //            return _mediator.ProcessQueryAsync(query);
-        //        }
+        [TestMethod]
+        public async Task Get_by_id_invokes_ProcessRestQueryAsync_with_GetSingle_operation_and_GetCategoryByIdQuery_with_correct_id()
+        {
+            // Arrange
+            var categoryId = Any.Int();
+            var cancellationToken = new CancellationToken();
 
-        //[TestMethod]
-        //public void Get_invokes_ProcessQueryAsync_on_mediator_passing_GetCategoriesQuery_with_correct_data()
-        //{
-        //    var queryOptions = new ODataQueryOptions<Category>(new ODataQueryContext(new EdmModel(), typeof(Category), new ODataPath()), new DefaultHttpRequest(new DefaultHttpContext()));
-        //   // ApplyODataQueryConditions<Category, GetCategoriesQuery>(queryOptions, new GetCategoriesQuery());
+            _mediatorMock
+                .Setup(m => m.ProcessRestQueryAsync(
+                    It.IsAny<RestOperation>(),
+                    It.IsAny<GetCategoryByIdQuery>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new OkResult());
 
-        //    var categoryId = AnonymousData.Int();
-        //    var response = _controller.Get(categoryId);
-        //    _mediatorMock.Verify(sm => sm.ProcessQueryAsync(It.Is<GetCategoriesQuery>(c =>
-        //        c.Top != null
-        //    )), Times.Once);
-        //}
+            // Act
+            await _controller.Get(categoryId, cancellationToken);
 
-        //[TestMethod]
-        //public void GetById_invokes_ProcessQueryAsync_on_mediator_passing_GetCategoryByIdQuery_with_correct_data()
-        //{
-        //    var categoryId = Any.Int();
-        //    var response = _controller.Get(categoryId);
+            // Assert
+            _mediatorMock.Verify(m => m.ProcessRestQueryAsync(
+                RestOperation.GetSingle,
+                It.Is<GetCategoryByIdQuery>(q => q.CategoryId == categoryId),
+                cancellationToken),
+                Times.Once);
+        }
 
-        //    _mediatorMock.Verify(sm => sm.ProcessRestQueryAsync(It.Is<GetCategoryByIdQuery>(c =>
-        //        c.CategoryId == categoryId
-        //    )), Times.Once);
-        //}
+        [TestMethod]
+        public async Task Post_invokes_ProcessRestCommandAsync_with_CreateWithContent_operation_and_CreateCategoryCommand_with_correct_category()
+        {
+            // Arrange
+            var category = new Category
+            {
+                Id = Any.Int(),
+                Name = Any.String(),
+                Description = Any.String()
+            };
+            var cancellationToken = new CancellationToken();
 
-        //[TestMethod]
-        //public void Post_invokes_ProcessCommandAsync_on_mediator_passing_CreateCategoryCommand_with_correct_data()
-        //{
-        //    var category = _builder.Build(c => c.Id = 0);
-        //    var response = _controller.PostAsync(category);
+            _mediatorMock
+                .Setup(m => m.ProcessRestCommandAsync(
+                    It.IsAny<RestOperation>(),
+                    It.IsAny<CreateCategoryCommand>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new OkResult());
 
-        //    _mediatorMock.Verify(sm => sm.ProcessRestCommandAsync<Category>(It.Is<CreateCategoryCommand>(c =>
-        //        c.Category.Description == category.Description &&
-        //        c.Category.Name == category.Name &&
-        //        c.Category.Active == category.Active
-        //    )), Times.Once);
-        //}
+            // Act
+            await _controller.Post(category, cancellationToken);
+
+            // Assert
+            _mediatorMock.Verify(m => m.ProcessRestCommandAsync(
+                RestOperation.CreateWithContent,
+                It.Is<CreateCategoryCommand>(c => c.Category == category),
+                cancellationToken),
+                Times.Once);
+        }
+
+        [TestMethod]
+        public async Task Put_invokes_ProcessRestCommandAsync_with_UpdateWithContent_operation_and_UpdateCategoryCommand_with_correct_id_and_category()
+        {
+            // Arrange
+            var categoryId = Any.Int();
+            var category = new Category
+            {
+                Id = Any.Int(),
+                Name = Any.String(),
+                Description = Any.String()
+            };
+            var cancellationToken = new CancellationToken();
+
+            _mediatorMock
+                .Setup(m => m.ProcessRestCommandAsync(
+                    It.IsAny<RestOperation>(),
+                    It.IsAny<UpdateCategoryCommand>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new OkResult());
+
+            // Act
+            await _controller.Put(categoryId, category, cancellationToken);
+
+            // Assert
+            _mediatorMock.Verify(m => m.ProcessRestCommandAsync(
+                RestOperation.UpdateWithContent,
+                It.Is<UpdateCategoryCommand>(c => c.CategoryId == categoryId && c.Category == category),
+                cancellationToken),
+                Times.Once);
+        }
+
+        [TestMethod]
+        public async Task Delete_invokes_ProcessRestCommandAsync_with_Delete_operation_and_DeleteCategoryCommand_with_correct_id()
+        {
+            // Arrange
+            var categoryId = Any.Int();
+            var cancellationToken = new CancellationToken();
+
+            _mediatorMock
+                .Setup(m => m.ProcessRestCommandAsync(
+                    It.IsAny<RestOperation>(),
+                    It.IsAny<DeleteCategoryCommand>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new OkResult());
+
+            // Act
+            await _controller.Delete(categoryId, cancellationToken);
+
+            // Assert
+            _mediatorMock.Verify(m => m.ProcessRestCommandAsync(
+                RestOperation.Delete,
+                It.Is<DeleteCategoryCommand>(c => c.CategoryId == categoryId),
+                cancellationToken),
+                Times.Once);
+        }
     }
 }
