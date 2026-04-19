@@ -6,4 +6,5 @@ export { apiClient } from './client';
 export { userService } from './userService';
 export { categoryService } from './categoryService';
 export { transactionService } from './transactionService';
+export { roleService } from './roleService';
 

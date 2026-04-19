@@ -3,7 +3,7 @@
 ## Prerequisites
 
 1. **Start the Backend API**
-   - Navigate to `Example/Application.Api`
+   - Navigate to `Example/MindedExample.Api`
    - Run the API (it should be available at `http://localhost:5000`)
    - Ensure the database is seeded with sample data
 

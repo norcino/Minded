@@ -8,6 +8,8 @@ import UserList from './components/users/UserList';
 import CategoryList from './components/categories/CategoryList';
 import TransactionList from './components/transactions/TransactionList';
 import ConfigurationPage from './components/configuration/ConfigurationPage';
+import RoleManagement from './components/admin/RoleManagement';
+import UserRoleAssignment from './components/admin/UserRoleAssignment';
 
 /**
  * Main App component.
@@ -26,6 +28,8 @@ function App() {
               <Route path="categories" element={<CategoryList />} />
               <Route path="transactions" element={<TransactionList />} />
               <Route path="configuration" element={<ConfigurationPage />} />
+              <Route path="admin/roles" element={<RoleManagement />} />
+              <Route path="admin/user-roles" element={<UserRoleAssignment />} />
             </Route>
           </Routes>
         </BrowserRouter>

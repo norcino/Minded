@@ -1,0 +1,70 @@
+using System.Linq;
+using System.Threading.Tasks;
+using Builder;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Minded.Extensions.Validation;
+using Minded.Framework.CQRS.Abstractions;
+using MindedExample.Application.Category.Command;
+using MindedExample.Application.Category.Validator;
+
+namespace MindedExample.Application.Category.UnitTests
+{
+    [TestClass]
+    public class CreateCategoryCommandValidatorTest
+    {
+        private CreateCategoryCommandValidator _sut;
+
+        [TestInitialize]
+        public void TestInitialize()
+        {
+            _sut = new CreateCategoryCommandValidator(new CategoryValidator());
+        }
+
+        [TestMethod]
+        public async Task Validation_succeed_when_category_is_valid_for_creation()
+        {
+            MindedExample.Domain.Category category = Builder<MindedExample.Domain.Category>.New()
+                .Build(e => { e.Name = "Category name"; e.Id = 0; });
+            var command = new CreateCategoryCommand(category);
+            IValidationResult result = await _sut.ValidateAsync(command);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.IsValid);
+            Assert.IsFalse(result.OutcomeEntries.Any());
+        }
+
+        [TestMethod]
+        public async Task Validation_fails_when_category_in_command_is_null()
+        {
+            var command = new CreateCategoryCommand(null);
+            IValidationResult result = await _sut.ValidateAsync(command);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.IsValid);
+            Assert.IsTrue(result.OutcomeEntries.Any(e =>
+                e.PropertyName == nameof(command.Category) &&
+                e.Severity == Severity.Error &&
+                e.Message == "{0} is mandatory"));
+        }
+
+        [TestMethod]
+        public async Task Validation_fails_when_category_in_command_has_id()
+        {
+            MindedExample.Domain.Category category = Builder<MindedExample.Domain.Category>.New()
+                .Build(e => {
+                    e.Name = "Category name";
+                    e.Id = 1;
+                });
+            
+            var command = new CreateCategoryCommand(category);
+            IValidationResult result = await _sut.ValidateAsync(command);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.IsValid);
+            Assert.IsTrue(result.OutcomeEntries.Any(e =>
+                e.PropertyName == nameof(command.Category.Id) &&
+                e.Severity == Severity.Error &&
+                e.Message == "{0} should not be specified on creation"));
+        }
+    }
+}

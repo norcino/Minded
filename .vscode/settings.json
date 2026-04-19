@@ -1,0 +1,4 @@
+{
+    "kiroAgent.configureMCP": "Disabled",
+    "dotnet.defaultSolution": "Minded-Example.sln"
+}

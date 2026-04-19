@@ -68,7 +68,7 @@ class ApiClient {
   constructor() {
     // Create axios instance with default configuration
     this.client = axios.create({
-      baseURL: '/api', // Proxied through Vite to http://localhost:5000/api
+      baseURL: '/api', // Proxied through Vite to the backend (see VITE_API_URL in .env)
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -83,11 +83,12 @@ class ApiClient {
           config.data = toPascalCase(config.data);
         }
 
-        // Add any authentication tokens here if needed
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
+        // Add impersonation header if a user ID is stored
+        const userId = localStorage.getItem('impersonateUserId');
+        if (userId) {
+          config.headers['X-Impersonate-UserId'] = userId;
+        }
+
         return config;
       },
       (error) => {

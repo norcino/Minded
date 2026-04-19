@@ -34,7 +34,16 @@ interface UserProviderProps {
  * @returns Provider component with user context
  */
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUserState] = useState<User | null>(null);
+
+  const setCurrentUser = (user: User | null) => {
+    setCurrentUserState(user);
+    if (user) {
+      localStorage.setItem('impersonateUserId', String(user.id));
+    } else {
+      localStorage.removeItem('impersonateUserId');
+    }
+  };
 
   const value: UserContextType = {
     currentUser,

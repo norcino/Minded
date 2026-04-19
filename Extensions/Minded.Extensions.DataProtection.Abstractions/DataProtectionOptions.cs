@@ -86,4 +86,3 @@ namespace Minded.Extensions.DataProtection.Abstractions
         }
     }
 }
-

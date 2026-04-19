@@ -11,16 +11,18 @@ namespace Minded.Extensions.Configuration
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Add Minded framework allowing to use teh MindedBuilder to customise the framework behaviour
+        /// Adds the Minded framework to the application's DI container, allowing the <see cref="MindedBuilder"/>
+        /// to configure the framework behaviour.
         /// </summary>
-        /// <param name="serviceCollection">Service Collection used to control the dependency injection</param>
-        /// <param name="assemblyFilter">Filter function used to select the assemblies to scan</param>
-        /// <param name="MindedBuilder"><paramref name="MindedBuilder"/></param>
+        /// <param name="serviceCollection">Service Collection used to control the dependency injection.</param>
+        /// <param name="configuration">Application configuration instance.</param>
+        /// <param name="assemblyFilter">Filter function used to select the assemblies to scan for handlers and decorators.</param>
+        /// <param name="mindedBuilderConfiguration">Optional action that receives the <see cref="MindedBuilder"/> and allows further customisation.</param>
         public static void AddMinded(this IServiceCollection serviceCollection, IConfiguration configuration, Func<AssemblyName, bool> assemblyFilter = null,
-            Action<MindedBuilder> MindedBuilder = null)
+            Action<MindedBuilder> mindedBuilderConfiguration = null)
         {
             var builder = new MindedBuilder(serviceCollection, configuration, assemblyFilter);
-            MindedBuilder?.Invoke(builder);
+            mindedBuilderConfiguration?.Invoke(builder);
         }
     }
 }

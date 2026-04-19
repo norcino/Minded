@@ -138,6 +138,7 @@ dotnet add package Minded.Extensions.Validation      # For validation
 dotnet add package Minded.Extensions.Logging         # For logging
 dotnet add package Minded.Extensions.Exception       # For exception handling
 dotnet add package Minded.Extensions.Caching.Memory  # For caching
+dotnet add package Minded.Extensions.Authorization    # For RBAC authorization
 dotnet add package Minded.Extensions.OData           # For OData support
 ```
 
@@ -525,6 +526,7 @@ The following decorators accept configuration options:
 | **Transaction** | `TransactionOptions` | ❌ No | ✅ Yes |
 | **Exception** | `ExceptionOptions` | ✅ Yes | ❌ No |
 | **Data Protection** | `DataProtectionOptions` | ✅ Yes | ✅ Yes |
+| **Authorization** | `AuthorizationOptions` | ✅ Yes | ❌ No |
 
 **Decorators without Configuration Options**:
 - **Validation** - Configured via `[ValidateCommand]`/`[ValidateQuery]` attributes and FluentValidation validators
@@ -1040,6 +1042,190 @@ public class GetOrderWithItemsQuery : IQuery<OrderDto>
 - Read locks to prevent updates during query execution
 
 **See**: [Transaction Decorator Documentation](Extensions/Minded.Extensions.Transaction/README.md)
+
+#### Authorization Decorator
+
+**Purpose**: Enforce Role-Based Access Control (RBAC) on commands and queries through declarative attributes
+
+**Package**: `Minded.Extensions.Authorization`
+
+**Installation**:
+```bash
+dotnet add package Minded.Extensions.Authorization
+```
+
+**Usage**:
+```csharp
+builder.AddCommandValidationDecorator()
+       .AddCommandTransactionDecorator()
+       .AddCommandAuthorizationDecorator()       // After validation/transaction, before logging
+       .AddCommandLoggingDecorator()
+       .AddCommandExceptionDecorator()
+       .AddCommandHandlers();
+
+builder.AddQueryValidationDecorator()
+       .AddQueryMemoryCacheDecorator()
+       .AddQueryAuthorizationDecorator()         // After validation/cache, before logging
+       .AddQueryLoggingDecorator()
+       .AddQueryExceptionDecorator()
+       .AddQueryHandlers();
+```
+
+**How it works**:
+1. The decorator resolves an `AuthorizationDescriptor` from the command/query type's attributes (compiled once, then cached)
+2. If the request has no RBAC attributes and no enforce-authentication policy applies, it passes through to the inner handler
+3. If `[AllowUnauthenticated]` is present, the request passes through without any checks
+4. The decorator retrieves the caller's `AuthorizationContext` via `IAuthorizationContextAccessor`
+5. If the caller has no principal (`HasPrincipal = false`), the request is denied with a 401 error
+6. If the caller is authenticated, the evaluator checks all role and permission clauses (implicit AND)
+7. If all clauses pass, the request proceeds to the inner handler; otherwise it is denied with a 403 error
+
+**Attribute Examples**:
+
+```csharp
+// Require specific roles (all must be present by default)
+[RequireRoles("Admin", "Manager")]
+public class DeleteOrderCommand : ICommand { }
+
+// Require specific permissions
+[RequirePermissions("orders.read", "orders.export")]
+public class ExportOrdersQuery : IQuery<IQueryResponse<byte[]>> { }
+
+// Require authentication only (no specific roles or permissions)
+[RequireAuthentication]
+public class GetProfileQuery : IQuery<IQueryResponse<UserProfile>> { }
+
+// Explicitly allow unauthenticated access (opts out of enforce-auth policy)
+[AllowUnauthenticated]
+public class GetPublicCatalogQuery : IQuery<IQueryResponse<IEnumerable<Product>>> { }
+```
+
+**Match Modes**:
+
+Control how items within a single clause are matched using the `Match` property:
+
+```csharp
+// All (default) — every role must be present
+[RequireRoles("Admin", "Manager", Match = AuthorizationMatch.All)]
+public class SensitiveCommand : ICommand { }
+
+// Any — at least one role must be present
+[RequireRoles("Admin", "Manager", "Support", Match = AuthorizationMatch.Any)]
+public class ViewDashboardQuery : IQuery<IQueryResponse<Dashboard>> { }
+
+// AtLeast — at least Minimum items must be present
+[RequirePermissions("reports.read", "reports.export", "reports.delete",
+    Match = AuthorizationMatch.AtLeast, Minimum = 2)]
+public class GenerateReportCommand : ICommand<Report> { }
+
+// None — none of the items may be present (exclusion)
+[RequireRoles("Suspended", "Banned", Match = AuthorizationMatch.None)]
+public class PlaceOrderCommand : ICommand<Order> { }
+```
+
+**Compound Rules** (multiple attributes combine with implicit AND):
+
+```csharp
+// Caller must have BOTH the "Admin" role AND the "users.delete" permission
+[RequireRoles("Admin")]
+[RequirePermissions("users.delete")]
+public class DeleteUserCommand : ICommand { }
+
+// Caller must satisfy ALL three clauses
+[RequireRoles("Manager", "TeamLead", Match = AuthorizationMatch.Any)]
+[RequirePermissions("projects.write")]
+[RequireRoles("Suspended", Match = AuthorizationMatch.None)]
+public class UpdateProjectCommand : ICommand<Project> { }
+```
+
+**Configuration**:
+
+```csharp
+// With options
+builder.AddCommandAuthorizationDecorator(options =>
+{
+    // Require authentication for ALL commands, even those without RBAC attributes
+    options.RequireAuthenticationForAllCommands = true;
+});
+
+builder.AddQueryAuthorizationDecorator(options =>
+{
+    // Require authentication for ALL queries
+    options.RequireAuthenticationForAllQueries = true;
+
+    // Dynamic provider (takes precedence over static value)
+    options.RequireAuthenticationForAllQueriesProvider = () =>
+        _featureFlags.IsEnabled("EnforceQueryAuth");
+});
+```
+
+When `RequireAuthenticationForAllCommands` or `RequireAuthenticationForAllQueries` is enabled, every request without RBAC attributes and without `[AllowUnauthenticated]` will require an authenticated caller. Use `[AllowUnauthenticated]` to opt specific requests out of this policy.
+
+**IAuthorizationContextAccessor**:
+
+Implement `IAuthorizationContextAccessor` to bridge your authentication mechanism to the authorization system:
+
+```csharp
+public class HttpAuthorizationContextAccessor : IAuthorizationContextAccessor
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public HttpAuthorizationContextAccessor(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public AuthorizationContext Current
+    {
+        get
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            if (user?.Identity?.IsAuthenticated != true)
+                return new AuthorizationContext(hasPrincipal: false);
+
+            var roles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
+
+            var permissions = user.Claims
+                .Where(c => c.Type == "permission")
+                .Select(c => c.Value)
+                .ToList();
+
+            return new AuthorizationContext(hasPrincipal: true, roles: roles, permissions: permissions);
+        }
+    }
+}
+
+// Register in DI
+services.AddAuthorizationContextAccessor<HttpAuthorizationContextAccessor>();
+```
+
+**Error Codes**:
+
+| Scenario | ErrorCode | HTTP Status | Description |
+|----------|-----------|-------------|-------------|
+| No authenticated principal | `GenericErrorCodes.NotAuthenticated` ("401") | 401 Unauthorized | Caller has no identity |
+| RBAC clauses not satisfied | `GenericErrorCodes.NotAuthorized` ("403") | 403 Forbidden | Caller lacks required roles/permissions |
+
+These error codes are already handled by the existing `DefaultRestRulesProvider` — no custom `IRestRulesProvider` is needed.
+
+**Raw Query Exceptions**:
+
+For queries returning a raw result type (not `IQueryResponse<T>`), the decorator throws standard BCL exceptions instead of returning an envelope response:
+- `System.Security.SecurityException` — for 403 (RBAC denied)
+- `System.UnauthorizedAccessException` — for 401 (no principal)
+
+These are caught by Minded's existing `ExceptionQueryHandlerDecorator`.
+
+**Best Practices**:
+- Use `[AllowUnauthenticated]` sparingly — only for truly public endpoints
+- Enable `RequireAuthenticationForAllCommands` / `RequireAuthenticationForAllQueries` for a secure-by-default posture
+- Place the authorization decorator after validation and transaction in the pipeline so invalid requests are rejected first
+- Implement `IAuthorizationContextAccessor` as a scoped service to match the HTTP request lifecycle
+- Keep role and permission names consistent across your application — comparison is case-insensitive with trimmed whitespace
+- Do not combine `[AllowUnauthenticated]` with RBAC attributes on the same class — this is rejected at startup
 
 #### WebApi Decorator - Working with RestMediator
 
@@ -2221,6 +2407,7 @@ All Minded packages are available on NuGet:
 | [Minded.Extensions.Caching.Abstractions](https://www.nuget.org/packages/Minded.Extensions.Caching.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Caching.Abstractions.svg) | Caching interfaces and abstractions |
 | [Minded.Extensions.Caching.Memory](https://www.nuget.org/packages/Minded.Extensions.Caching.Memory/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Caching.Memory.svg) | In-memory caching decorator implementation |
 | [Minded.Extensions.Transaction](https://www.nuget.org/packages/Minded.Extensions.Transaction/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Transaction.svg) | Transaction decorator with nested transaction support |
+| [Minded.Extensions.Authorization](https://www.nuget.org/packages/Minded.Extensions.Authorization/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Authorization.svg) | RBAC authorization decorator with role and permission attributes |
 | [Minded.Extensions.DataProtection.Abstractions](https://www.nuget.org/packages/Minded.Extensions.DataProtection.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.DataProtection.Abstractions.svg) | Data protection and sanitization interfaces |
 | [Minded.Extensions.DataProtection](https://www.nuget.org/packages/Minded.Extensions.DataProtection/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.DataProtection.svg) | Data protection implementation for PII/sensitive data sanitization |
 | [Minded.Extensions.CQRS.EntityFrameworkCore](https://www.nuget.org/packages/Minded.Extensions.CQRS.EntityFrameworkCore/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.CQRS.EntityFrameworkCore.svg) | Entity Framework Core integration with base query classes |
@@ -2243,6 +2430,7 @@ All Minded packages are available on NuGet:
 - **[Logging](Extensions/Minded.Extensions.Logging/README.md)** - Comprehensive logging
 - **[Caching](Extensions/Minded.Extensions.Caching.Memory/README.md)** - In-memory caching for query results
 - **[Transaction](Extensions/Minded.Extensions.Transaction/README.md)** - Database transaction management with nested transaction support
+- **[Authorization](Extensions/Minded.Extensions.Authorization/README.md)** - RBAC authorization with role and permission attributes
 - **[WebApi/RestMediator](Extensions/Minded.Extensions.WebApi/README.md)** - REST API integration with automatic HTTP response mapping
 - **[Data Protection](Extensions/Minded.Extensions.DataProtection/README.md)** - Sensitive data protection and sanitization (PII, confidential business data)
 

@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.3.0 (2026-04-18)
+Aligned all package versions to 1.3.0, added .NET 10 support, upgraded all Microsoft dependencies to 10.x, and introduced the new Minded.Extensions.Authorization package for RBAC authorization.
+
+### New Packages
+
+* **Minded.Extensions.Authorization** - RBAC authorization decorator with role and permission attributes
+
+### Affected
+
+* All packages - version aligned to 1.3.0
+* All packages - added .NET 10 target framework support
+* All Microsoft NuGet dependencies upgraded to 10.x versions
+* Example application - general improvements and authorization showcase
+
+### Added
+
+* Added support for .NET 10
+* Upgraded NuGet package dependencies including Microsoft's to 10.x versions
+* Added `Minded.Extensions.Authorization` package with RBAC authorization decorator
+* Added `[RequireRoles]` attribute for role-based access control on commands and queries
+* Added `[RequirePermissions]` attribute for permission-based access control on commands and queries
+* Added `[RequireAuthentication]` attribute for authentication-only checks without RBAC
+* Added `[AllowUnauthenticated]` attribute to opt out of enforce-authentication policies
+* Added `AuthorizationMatch` enum with `All`, `Any`, `AtLeast`, and `None` matching modes
+* Added `AuthorizationContext` for representing caller identity, roles, and permissions
+* Added `IAuthorizationContextAccessor` interface to bridge authentication mechanisms
+* Added `DefaultRequestAuthorizationEvaluator` for case-insensitive RBAC evaluation
+* Added `AuthorizationOptions` with `RequireAuthenticationForAllCommands` and `RequireAuthenticationForAllQueries` policies
+* Added `AuthorizationDescriptorCache` for compiled attribute caching at startup
+* Added eager attribute validation at startup to catch configuration errors early
+* Added `AddCommandAuthorizationDecorator()` and `AddQueryAuthorizationDecorator()` extension methods
+* Added `AddAuthorizationContextAccessor<T>()` and `AddRequestAuthorizationEvaluator<T>()` extension methods
+* Added authorization showcase in Example application with roles, permissions, and admin section
+* Added `Permissions` and `Roles` static classes with `const string` fields for compile-time safe permission/role references
+* Added `Role` and `Permission` domain entities with many-to-many relationships
+* Added admin section in Example frontend for role management and user-role assignment
+* Added impersonation-based authorization context accessor in Example API
+* Added default "User" role assignment for newly registered users
+
+### Changed
+
+* Aligned all package versions to 1.3.0
+* General improvement of Example application
+
 ## 1.2.0 (2025-11-17)
 Added sensitive data protection feature to prevent PII and confidential data from appearing in logs.
 Created new `Minded.Extensions.DataProtection` packages for centralized data protection functionality.

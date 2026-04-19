@@ -13,8 +13,10 @@ namespace Minded.Framework.Mediator
         /// <summary>
         /// Register all the query handlers with the related decorators
         /// </summary>
-        /// <param name="builder"></param>
-        /// <param name="lifeTime"></param>
+        /// <param name="builder">The <see cref="MindedBuilder"/> instance used to register handlers.</param>
+        /// <param name="decorators">Optional additional decorator registration action applied after the queued decorators.</param>
+        /// <param name="assemblyFilter">Optional assembly filter override. Defaults to <see cref="MindedBuilder.AssemblyFilter"/>.</param>
+        /// <param name="lifeTime">DI lifetime for the registered handlers. Defaults to <see cref="ServiceLifetime.Transient"/>.</param>
         public static void AddQueryHandlers(this MindedBuilder builder, Action<MindedBuilder, Type> decorators = null, Func<AssemblyName, bool> assemblyFilter = null, ServiceLifetime lifeTime = ServiceLifetime.Transient)
         {
             foreach (Assembly assembly in builder.SourceAssemblies(assemblyFilter ?? builder.AssemblyFilter))
@@ -37,10 +39,12 @@ namespace Minded.Framework.Mediator
         }
 
         /// <summary>
-        /// Register all the command handlers with the related decorators
+        /// Register all the command handlers with the related decorators.
+        /// Scans for both <c>ICommandHandler&lt;TCommand&gt;</c> and <c>ICommandHandler&lt;TCommand, TResult&gt;</c> implementations.
         /// </summary>
-        /// <param name="builder"></param>
-        /// <param name="lifeTime"></param>
+        /// <param name="builder">The <see cref="MindedBuilder"/> instance used to register handlers.</param>
+        /// <param name="assemblyFilter">Optional assembly filter override. Defaults to <see cref="MindedBuilder.AssemblyFilter"/>.</param>
+        /// <param name="lifeTime">DI lifetime for the registered handlers. Defaults to <see cref="ServiceLifetime.Transient"/>.</param>
         public static void AddCommandHandlers(this MindedBuilder builder, Func<AssemblyName, bool> assemblyFilter = null, ServiceLifetime lifeTime = ServiceLifetime.Transient)
         {
             foreach (Assembly assembly in builder.SourceAssemblies(assemblyFilter ?? builder.AssemblyFilter))

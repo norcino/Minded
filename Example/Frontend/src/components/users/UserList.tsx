@@ -6,6 +6,8 @@ import {
   Typography,
   Alert,
   Snackbar,
+  Tooltip,
+  Chip,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
@@ -14,6 +16,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import AddIcon from '@mui/icons-material/Add';
 import { User } from '../../types';
 import { userService } from '../../api';
+import { roleService } from '../../api';
 import { useUser } from '../../context/UserContext';
 import UserDialog from './UserDialog';
 import DeleteConfirmDialog from '../common/DeleteConfirmDialog';
@@ -33,10 +36,20 @@ const UserList: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { setCurrentUser, currentUser } = useUser();
 
-  // Load users on component mount
+  // Load users on component mount and auto-impersonate the first user
   useEffect(() => {
-    loadUsers();
+    const init = async () => {
+      await loadUsers();
+    };
+    init();
   }, []);
+
+  // Auto-impersonate the first user when users are loaded and no one is impersonated yet
+  useEffect(() => {
+    if (users.length > 0 && !currentUser) {
+      setCurrentUser(users[0]);
+    }
+  }, [users]);
 
   /**
    * Load all users from the API.
@@ -45,7 +58,7 @@ const UserList: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await userService.getAll();
+      const data = await roleService.getUsersWithRoles();
       setUsers(data);
     } catch (err) {
       setError('Failed to load users. Please try again.');
@@ -126,6 +139,19 @@ const UserList: React.FC = () => {
     { field: 'surname', headerName: 'Surname', width: 150, flex: 1 },
     { field: 'email', headerName: 'Email', width: 200, flex: 1 },
     {
+      field: 'roles',
+      headerName: 'Roles',
+      width: 200,
+      flex: 1,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', py: 0.5 }}>
+          {(params.row.roles || []).map((r: string) => (
+            <Chip key={r} label={r} size="small" color="primary" variant="outlined" />
+          ))}
+        </Box>
+      ),
+    },
+    {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
@@ -133,21 +159,21 @@ const UserList: React.FC = () => {
       getActions: (params) => [
         <GridActionsCellItem
           key="impersonate"
-          icon={<PersonIcon />}
+          icon={<Tooltip title="Log in as this user to view the app from their perspective"><PersonIcon /></Tooltip>}
           label="Impersonate"
           onClick={() => handleImpersonate(params.row as User)}
           showInMenu={false}
         />,
         <GridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<Tooltip title="Edit this user's name, email, and other details"><EditIcon /></Tooltip>}
           label="Edit"
           onClick={() => handleEdit(params.row as User)}
           showInMenu={false}
         />,
         <GridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<Tooltip title="Permanently remove this user from the system"><DeleteIcon /></Tooltip>}
           label="Delete"
           onClick={() => handleDeleteClick(params.row as User)}
           showInMenu={false}
@@ -159,13 +185,19 @@ const UserList: React.FC = () => {
   return (
     <Box sx={{ height: '100%', width: '100%' }}>
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1">
-          Users
-        </Typography>
+        <Box>
+          <Typography variant="h4" component="h1">
+            Users
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Manage application users. Click the person icon to impersonate a user and view the app from their perspective — categories and transactions will be filtered accordingly.
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleCreate}
+          sx={{ flexShrink: 0 }}
         >
           Add User
         </Button>
@@ -187,6 +219,19 @@ const UserList: React.FC = () => {
             pagination: { paginationModel: { pageSize: 10 } },
           }}
           disableRowSelectionOnClick
+          getRowClassName={(params) =>
+            currentUser?.id === params.row.id ? 'impersonated-row' : ''
+          }
+          sx={{
+            '& .impersonated-row': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)',
+              borderLeft: '3px solid',
+              borderLeftColor: 'primary.main',
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.15)',
+              },
+            },
+          }}
         />
       </Paper>
 

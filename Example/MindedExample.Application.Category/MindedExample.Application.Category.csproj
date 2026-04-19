@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>False</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Authorization\Minded.Extensions.Authorization.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Caching.Abstractions\Minded.Extensions.Caching.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Caching.Memory\Minded.Extensions.Caching.Memory.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.EntityFrameworkCore\Minded.Extensions.CQRS.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Retry\Minded.Extensions.Retry.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation.Abstractions\Minded.Extensions.Validation.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Validation\Minded.Extensions.Validation.csproj" />
+    <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
+    <ProjectReference Include="..\..\Framework\Minded.Framework.Mediator.Abstractions\Minded.Framework.Mediator.Abstractions.csproj" />
+    <ProjectReference Include="..\MindedExample.Infrastructure.Data\MindedExample.Infrastructure.Data.csproj" />
+    <ProjectReference Include="..\MindedExample.Infrastructure.Persistence\MindedExample.Infrastructure.Persistence.csproj" />
+    <ProjectReference Include="..\MindedExample.Domain\MindedExample.Domain.csproj" />
+    <ProjectReference Include="..\MindedExample.Application.Common\MindedExample.Application.Common.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -8,8 +8,25 @@ using Minded.Framework.CQRS.Query.Trait;
 
 namespace Minded.Framework.CQRS.Query
 {
+    /// <summary>
+    /// Extension methods that apply <see cref="IQuery{TResult}"/> trait-based configuration
+    /// (filtering, ordering, pagination, eager loading) to an <see cref="IQueryable{T}"/> source
+    /// via Entity Framework Core.
+    /// </summary>
     public static class QueryExtensions
     {
+        /// <summary>
+        /// Applies the query trait configuration to an <see cref="IQueryable{T}"/> and returns the
+        /// shaped queryable for use with <see cref="IQueryResponse{TResult}"/> wrapping an
+        /// <see cref="IEnumerable{T}"/>.
+        /// Respects <see cref="ICanOrderBy"/>, <see cref="ICanExpand"/>, <see cref="ICanFilterExpression{T}"/>,
+        /// <see cref="ICanSkip"/>, <see cref="ICanTop"/> and <see cref="ICanCount"/> traits.
+        /// Defaults to a maximum of 100 results when <see cref="ICanTop"/> is not set.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="query">Query carrying the trait configuration.</param>
+        /// <param name="queryable">IQueryable source to shape.</param>
+        /// <returns>Shaped <see cref="IQueryable{T}"/> ready for materialisation.</returns>
         public static IQueryable<T> ApplyQueryTo<T>(this IQuery<IQueryResponse<IEnumerable<T>>> query, IQueryable<T> queryable) where T : class
         {
             if (query is ICanOrderBy o && o?.OrderBy?.Count > 0)
@@ -73,7 +90,11 @@ namespace Minded.Framework.CQRS.Query
         }
 
         /// <summary>
-        /// Applies the query to an IQueryable source and returns the matching entities or an empty list
+        /// Applies the query trait configuration to an <see cref="IQueryable{T}"/> and returns the
+        /// shaped queryable for use with queries returning a plain <see cref="IEnumerable{T}"/>.
+        /// Respects <see cref="ICanOrderBy"/>, <see cref="ICanExpand"/>, <see cref="ICanFilterExpression{T}"/>,
+        /// <see cref="ICanSkip"/>, <see cref="ICanTop"/> and <see cref="ICanCount"/> traits.
+        /// Defaults to a maximum of 100 results when <see cref="ICanTop"/> is not set.
         /// </summary>
         /// <typeparam name="T">Type of the elements in the resulting IEnumerable</typeparam>
         /// <param name="query">Query</param>
@@ -142,9 +163,10 @@ namespace Minded.Framework.CQRS.Query
         }
 
         /// <summary>
-        /// Applies the query to an IQueryable source and returns one entity if found, null otherwise.
-        /// This method do not use any Trait which use would make sense for queries returning lists of objects.
-        /// ICanCount, ICanTop, ICanSkip and ICanOrderBy are therefore ignored.
+        /// Applies filter and expand traits to the queryable and returns the first matching entity,
+        /// or <c>null</c> when no match is found.
+        /// Note: <see cref="ICanCount"/>, <see cref="ICanTop"/>, <see cref="ICanSkip"/> and <see cref="ICanOrderBy"/> traits
+        /// are intentionally ignored because they are not meaningful for single-entity queries.
         /// </summary>
         /// <typeparam name="T">Returned type</typeparam>
         /// <param name="query">Query</param>
@@ -180,6 +202,16 @@ namespace Minded.Framework.CQRS.Query
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
 
+        /// <summary>
+        /// Applies filter and expand traits to the queryable and returns the first matching entity
+        /// wrapped in an <see cref="IQueryResponse{TResult}"/>, or an empty response when no match is found.
+        /// Note: <see cref="ICanCount"/>, <see cref="ICanTop"/>, <see cref="ICanSkip"/> and <see cref="ICanOrderBy"/> traits
+        /// are intentionally ignored because they are not meaningful for single-entity queries.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="query">Query carrying the trait configuration.</param>
+        /// <param name="queryable">IQueryable source to query against.</param>
+        /// <returns>An <see cref="IQueryResponse{TResult}"/> wrapping the first matched entity.</returns>
         public async static Task<IQueryResponse<T>> ApplyQueryTo<T>(this IQuery<IQueryResponse<T>> query, IQueryable<T> queryable) where T : class
         {
             if (query is ICanExpand e && e.Expand?.Length > 0)
@@ -206,6 +238,13 @@ namespace Minded.Framework.CQRS.Query
         }
 
         #region Private methods
+        /// <summary>
+        /// Builds a lambda expression of the form <c>x => (object)x.PropertyName</c>
+        /// used to pass a property selector to LINQ ordering methods.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="propertyName">Name of the property to project (case-sensitive).</param>
+        /// <returns>A compiled lambda suitable for use with <see cref="Queryable.OrderBy{TSource,TKey}"/>.</returns>
         private static Expression<Func<T, object>> LambdaOf<T>(string propertyName)
         {
             ParameterExpression parameter = Expression.Parameter(typeof(T));

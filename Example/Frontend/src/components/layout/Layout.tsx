@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
@@ -21,6 +21,9 @@ import CategoryIcon from '@mui/icons-material/Category';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SecurityIcon from '@mui/icons-material/Security';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { useUser } from '../../context/UserContext';
 import LogConsole from '../logs/LogConsole';
 
@@ -44,9 +47,14 @@ interface NavItem {
  */
 const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [consoleHeight, setConsoleHeight] = useState(300);
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, setCurrentUser } = useUser();
+
+  const handleConsoleResize = useCallback((newHeight: number) => {
+    setConsoleHeight(newHeight);
+  }, []);
 
   /**
    * Navigation items configuration.
@@ -56,6 +64,14 @@ const Layout: React.FC = () => {
     { text: 'Categories', icon: <CategoryIcon />, path: '/categories' },
     { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
     { text: 'Configuration', icon: <SettingsIcon />, path: '/configuration' },
+  ];
+
+  /**
+   * Admin navigation items.
+   */
+  const adminItems: NavItem[] = [
+    { text: 'Roles', icon: <SecurityIcon />, path: '/admin/roles' },
+    { text: 'User Roles', icon: <AssignmentIndIcon />, path: '/admin/user-roles' },
   ];
 
   /**
@@ -105,6 +121,27 @@ const Layout: React.FC = () => {
           </ListItem>
         ))}
       </List>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton disabled>
+            <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
+            <ListItemText primary="Admin" primaryTypographyProps={{ fontWeight: 'bold', fontSize: '0.85rem' }} />
+          </ListItemButton>
+        </ListItem>
+        {adminItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => handleNavigation(item.path)}
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
     </div>
   );
 
@@ -128,7 +165,7 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {navItems.find(item => item.path === location.pathname)?.text || 'Minded Example'}
+            {[...navItems, ...adminItems].find(item => item.path === location.pathname)?.text || 'Minded Example'}
           </Typography>
           {currentUser && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -182,13 +219,15 @@ const Layout: React.FC = () => {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          paddingBottom: '320px', // Add padding to prevent content from being hidden by log console
+          height: '100vh',
+          overflow: 'auto',
+          paddingBottom: `${consoleHeight + 20}px`,
         }}
       >
         <Toolbar />
         <Outlet />
       </Box>
-      <LogConsole initialHeight={300} minHeight={100} maxHeight={800} />
+      <LogConsole initialHeight={300} minHeight={100} maxHeight={800} onResize={handleConsoleResize} />
     </Box>
   );
 };

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Minded.Framework.CQRS.Abstractions;
 
 namespace Minded.Extensions.Logging.Configuration

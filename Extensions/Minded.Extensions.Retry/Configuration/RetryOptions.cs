@@ -234,4 +234,3 @@ namespace Minded.Extensions.Retry.Configuration
         }
     }
 }
-

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Security;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +34,22 @@ namespace Minded.Extensions.WebApi
                 TResult result = await ProcessQueryAsync(query, cancellationToken);
                 return _rulesProcessor.ProcessQueryRules(operation, result);
             }
+            catch (UnauthorizedAccessException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (InvalidCredentialException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (AuthenticationException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (SecurityException)
+            {
+                return new StatusCodeResult(403);
+            }
             catch (OperationCanceledException)
             {
                 // Return 499 Client Closed Request (nginx convention)
@@ -51,6 +69,22 @@ namespace Minded.Extensions.WebApi
                 ICommandResponse result = await ProcessCommandAsync(command, cancellationToken);
                 return _rulesProcessor.ProcessCommandRules(operation, result);
             }
+            catch (UnauthorizedAccessException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (InvalidCredentialException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (AuthenticationException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (SecurityException)
+            {
+                return new StatusCodeResult(403);
+            }
             catch (OperationCanceledException)
             {
                 // Return 499 Client Closed Request (nginx convention)
@@ -69,6 +103,22 @@ namespace Minded.Extensions.WebApi
             {
                 ICommandResponse<TResult> result = await ProcessCommandAsync<TResult>(command, cancellationToken);
                 return _rulesProcessor.ProcessCommandRules<TResult>(operation, result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (InvalidCredentialException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (AuthenticationException)
+            {
+                return new StatusCodeResult(401);
+            }
+            catch (SecurityException)
+            {
+                return new StatusCodeResult(403);
             }
             catch (OperationCanceledException)
             {

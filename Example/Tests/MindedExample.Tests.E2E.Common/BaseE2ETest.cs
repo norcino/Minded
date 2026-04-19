@@ -1,0 +1,302 @@
+using MindedExample.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using Moq;
+using System.Threading.Tasks;
+using MindedExample.Domain;
+using MindedExample.Tests.Common;
+using MindedExample.Infrastructure.Configuration;
+using MindedExample.Api;
+using System.Data.Common;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Mvc.Testing;
+using QM.Common.Testing;
+using System.Linq.Expressions;
+using System.Linq;
+using System.Threading;
+
+namespace MindedExample.Tests.E2E.Common
+{
+    /// <summary>
+    /// 1) Real SQL Server - CI Testing
+    /// 2) In Memory SQLite - Dev/Live Testing
+    /// 3) Mock - Unit testing
+    /// </summary>
+    [TestClass]
+    public abstract class BaseE2ETest
+    {
+        protected const int MaxPageItemNumber = 100;
+        protected HttpClient _sutClient;
+        private IServiceCollection _serviceCollection;
+        private DbConnection _connection;
+        private IMindedExampleContext _context;
+        private static TestingProfile s_currentTestingProfile;
+        private IConfigurationRoot _configuration;
+        private Mock<IMindedExampleContext> _mockIMindedExampleContext;
+        private ServiceProvider _serviceProvider;
+        private Seeder _seeder;
+
+        public BaseE2ETest()
+        {
+            _sutClient = CreateTestApplication();
+        }
+
+        [TestInitialize]
+        public async Task BaseTestTestInitialize()
+        {
+            await ResetDb();
+            await SeedAuthorizationData();
+        }
+
+        /// <summary>
+        /// Seeds the authorization data (role-permissions) required for E2E tests.
+        /// Uses raw SQL to insert into RolePermissions and UserRoles join tables.
+        /// </summary>
+        private async Task SeedAuthorizationData()
+        {
+            if (s_currentTestingProfile == TestingProfile.UnitTesting)
+                return;
+
+            if (_context is MindedExampleContext concreteContext)
+            {
+                // Seed all role-permission mappings for Admin role
+                foreach (var permission in DefaultRolesDefinition.AllPermissions)
+                {
+                    await concreteContext.Database.ExecuteSqlRawAsync(
+                        "INSERT INTO RolePermissions (RoleName, PermissionName) VALUES ({0}, {1})",
+                        Roles.Admin, permission);
+                }
+
+                concreteContext.ChangeTracker.Clear();
+            }
+        }
+
+        /// <summary>
+        /// This method is used to Seed data consumed by the tested application and components.
+        /// </summary>
+        protected async Task<T> SeedOne<T>(Expression<Func<T, int>> id) where T : class, new()
+        {
+            return (await Seed<T>(id, 1, default)).First();
+        }
+
+        protected async Task<T> SeedOne<T>(Expression<Func<T, int>> id, Action<T, int> buildAction = default) where T : class, new()
+        {
+            return (await Seed<T>(id, 1, buildAction)).First();
+        }
+
+        protected async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id) where T : class, new()
+        {
+            return await Seed<T>(id, 100, default);
+        }
+
+        protected async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id, int quantity = 100) where T : class, new()
+        {
+            return await Seed<T>(id, quantity, default);
+        }
+
+        protected async Task<IEnumerable<T>> Seed<T>(Expression<Func<T, int>> id, int quantity = 100, Action<T, int> buildAction = default) where T : class, new()
+        {
+            return await _seeder.Seed(id, quantity, buildAction);
+        }
+
+        protected HttpClient CreateTestApplication(Action<IServiceCollection> serviceCollectionSetup = null, Dictionary<string, string> configurationOverride = null)
+        {
+            _configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("testappsettings.json", optional: false)
+                .AddInMemoryCollection(configurationOverride)
+                .Build();
+
+            s_currentTestingProfile = (TestingProfile) Enum.Parse(typeof(TestingProfile), _configuration.GetValue<string>("TestingProfile"));
+
+            var mockEnv = new Mock<IWebHostEnvironment>();
+            mockEnv.SetupProperty(p => p.EnvironmentName, s_currentTestingProfile.ToString());
+            mockEnv.SetupProperty(p => p.ApplicationName, GetType().Assembly.FullName);
+            mockEnv.SetupProperty(p => p.ContentRootPath, AppContext.BaseDirectory);
+            mockEnv.SetupProperty(p => p.WebRootPath, AppContext.BaseDirectory);
+            IWebHostEnvironment env = mockEnv.Object;
+
+            _mockIMindedExampleContext = new Mock<IMindedExampleContext>(MockBehavior.Strict);
+            SetupDbContextMockObject();
+
+            WebApplicationFactory<Startup> applicationFactory = new WebApplicationFactory<Startup>().WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureTestServices(services => {
+                    ConfigureContext(services);
+
+                    services.AddScoped<Minded.Extensions.Authorization.IAuthorizationContextAccessor>(sp =>
+                        new TestAdminAuthorizationContextAccessor());
+
+                    serviceCollectionSetup?.Invoke(services);
+
+                    _serviceProvider = services.BuildServiceProvider();
+                });
+
+                builder.UseConfiguration(_configuration);
+                builder.UseEnvironment(s_currentTestingProfile.ToString());
+            });
+
+            HttpClient client = applicationFactory.CreateClient();
+            _context = _serviceProvider.GetService<IMindedExampleContext>();
+
+            return client;
+        }
+
+        private void SetupDbContextMockObject()
+        {
+            _mockIMindedExampleContext.Setup(c => c.Dispose());
+            _mockIMindedExampleContext.Setup<Task<int>>(c => c.SaveChangesAsync()).ReturnsAsync(1);
+
+            _mockIMindedExampleContext.SetupGet(c => c.Categories).Returns(new List<Category>().GetMockDbSet().Object);
+            _mockIMindedExampleContext.SetupGet(t => t.Transactions).Returns(new List<Transaction>().GetMockDbSet().Object);
+            _mockIMindedExampleContext.SetupGet(t => t.Users).Returns(new List<User>().GetMockDbSet().Object);
+        }
+
+        private void ConfigureContext(IServiceCollection services)
+        {
+            _serviceCollection = services;
+            switch (s_currentTestingProfile)
+            {
+                case TestingProfile.UnitTesting:
+                    services.OverrideAddScoped(_mockIMindedExampleContext.Object);
+                    _seeder = new Seeder(s_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
+                    break;
+                case TestingProfile.E2ELive:
+                    ServiceDescriptor descriptorDbContext = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
+                    if (descriptorDbContext != null)
+                    {
+                        services.Remove(descriptorDbContext);
+                    }
+
+                    ServiceDescriptor descriptorIMindedContext = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
+                    if (descriptorIMindedContext != null)
+                    {
+                        services.Remove(descriptorIMindedContext);
+                    }
+
+                    services.AddDbContext<MindedExampleContext>(options =>
+                    {
+                        options.UseSqlite($"DataSource='file::memory:?cache=shared'");
+                        options.EnableSensitiveDataLogging();
+                        options.EnableDetailedErrors();
+                    }, ServiceLifetime.Singleton);
+
+                    services.AddSingleton<IMindedExampleContext>(s =>
+                    {
+                        MindedExampleContext context = s.GetService<MindedExampleContext>();
+                        _connection = context.Database.GetDbConnection();
+                        _connection.Open();
+                        context.Database.EnsureCreated();
+
+                        if (_context == null)
+                        {
+                            _context = context;
+                            _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
+                        }
+
+                        return context;
+                    });
+                    break;
+                case TestingProfile.E2E:
+                    ServiceDescriptor descriptorDbContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(MindedExampleContext));
+                    if (descriptorDbContextE2E != null)
+                    {
+                        services.Remove(descriptorDbContextE2E);
+                    }
+
+                    ServiceDescriptor descriptorIMindedContextE2E = services.SingleOrDefault(d => d.ServiceType == typeof(IMindedExampleContext));
+                    if (descriptorIMindedContextE2E != null)
+                    {
+                        services.Remove(descriptorIMindedContextE2E);
+                    }
+
+                    services.AddDbContext<MindedExampleContext>(options =>
+                    {
+                        options.UseSqlServer(_configuration.GetConnectionString(Constants.ConfigConnectionStringName));
+                        options.UseLoggerFactory(Startup.AppLoggerFactory);
+                    });
+
+                    services.AddTransient<IMindedExampleContext>(s =>
+                    {
+                        _context = s.GetService<MindedExampleContext>();
+                        _context.Database.EnsureCreated();
+                        _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
+                        return _context;
+                    });
+                    break;
+            }
+        }
+
+        public async Task ResetDb(CancellationToken cancellationToken = default)
+        {
+            if (s_currentTestingProfile == TestingProfile.UnitTesting)
+            {
+                _mockIMindedExampleContext.Reset();
+                SetupDbContextMockObject();
+                _seeder = new Seeder(s_currentTestingProfile, _mockIMindedExampleContext.Object, _mockIMindedExampleContext);
+                return;
+            }
+
+            if (s_currentTestingProfile == TestingProfile.E2ELive)
+            {
+                if (_context is MindedExampleContext concreteContext)
+                {
+                    concreteContext.ChangeTracker.Clear();
+
+                    string transactionsTable = concreteContext.Model.FindEntityType(typeof(Transaction))?.GetTableName() ?? "Transactions";
+                    string categoriesTable = concreteContext.Model.FindEntityType(typeof(Category))?.GetTableName() ?? "Categories";
+                    string usersTable = concreteContext.Model.FindEntityType(typeof(User))?.GetTableName() ?? "Users";
+
+#pragma warning disable EF1002 // Risk of vulnerability to SQL injection.
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {transactionsTable}", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {categoriesTable}", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM UserRoles", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM RolePermissions", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {usersTable}", cancellationToken);
+#pragma warning restore EF1002 // Risk of vulnerability to SQL injection.
+
+                    await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM sqlite_sequence", cancellationToken);
+
+                    concreteContext.ChangeTracker.Clear();
+                }
+
+                _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
+                return;
+            }
+
+            await _context.Database.EnsureDeletedAsync(cancellationToken);
+            await _context.Database.EnsureCreatedAsync(cancellationToken);
+
+            _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
+        }
+    }
+
+    /// <summary>
+    /// Test-only authorization context accessor that always returns an admin context with all permissions.
+    /// </summary>
+    internal class TestAdminAuthorizationContextAccessor : Minded.Extensions.Authorization.IAuthorizationContextAccessor
+    {
+        private static readonly Minded.Extensions.Authorization.AuthorizationContext _adminContext =
+            new Minded.Extensions.Authorization.AuthorizationContext(
+                true,
+                new[] { Roles.Admin },
+                new[]
+                {
+                    Permissions.CanCreateCategory, Permissions.CanCreateRootCategory,
+                    Permissions.CanUpdateCategory, Permissions.CanDeleteCategory,
+                    Permissions.CanCreateTransaction, Permissions.CanUpdateTransaction,
+                    Permissions.CanDeleteTransaction, Permissions.CanCreateUser,
+                    Permissions.CanUpdateUser, Permissions.CanDeleteUser,
+                    Permissions.CanManageRoles, Permissions.CanAssignRoles
+                });
+
+        public Minded.Extensions.Authorization.AuthorizationContext Current => _adminContext;
+    }
+}

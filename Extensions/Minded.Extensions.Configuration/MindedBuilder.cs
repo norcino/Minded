@@ -24,8 +24,23 @@ namespace Minded.Extensions.Configuration
         /// Action used to filter the assemblies by name to be used to register decorators
         /// </summary>
         public Func<AssemblyName, bool> AssemblyFilter { get; }
+
+        /// <summary>
+        /// Ordered list of actions to register query handler decorators.
+        /// Each action is invoked once per discovered query handler type during <c>AddQueryHandlers</c>.
+        /// </summary>
         public List<Action<MindedBuilder, Type>> QueuedQueryDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
+
+        /// <summary>
+        /// Ordered list of actions to register command handler decorators (without result).
+        /// Each action is invoked once per discovered command handler type during <c>AddCommandHandlers</c>.
+        /// </summary>
         public List<Action<MindedBuilder, Type>> QueuedCommandDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
+
+        /// <summary>
+        /// Ordered list of actions to register command handler decorators that return a typed result.
+        /// Each action is invoked once per discovered <c>ICommandHandler&lt;TCommand, TResult&gt;</c> type.
+        /// </summary>
         public List<Action<MindedBuilder, Type>> QueuedCommandWithResultDecoratorsRegistrationAction { get; } = new List<Action<MindedBuilder, Type>>();
 
         /// <summary>
@@ -58,7 +73,10 @@ namespace Minded.Extensions.Configuration
         private readonly ConcurrentDictionary<Assembly, Type[]> _assemblyTypesCache =
             new ConcurrentDictionary<Assembly, Type[]>();
 
+        /// <summary>The DI service collection used to register framework and decorator services.</summary>
         public IServiceCollection ServiceCollection { get; }
+
+        /// <summary>Application configuration used by decorators to read their settings (e.g. from appsettings.json).</summary>
         public IConfiguration Configuration { get; }
 
         public MindedBuilder(IServiceCollection serviceCollection, IConfiguration configuration, Func<AssemblyName, bool> assemblyNameFilter = null)

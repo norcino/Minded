@@ -9,7 +9,23 @@ export interface User {
   email: string;
   categories?: Category[];
   transactions?: Transaction[];
+  roles?: string[];
 }
+
+/**
+ * Role DTO with name and associated permissions.
+ * Roles are string-based, stored in join tables.
+ */
+export interface RoleDto {
+  name: string;
+  permissions: string[];
+}
+
+/**
+ * Grouped permissions returned by the API.
+ * Keys are group names (e.g. "Categories"), values are permission name arrays.
+ */
+export type PermissionGroups = Record<string, string[]>;
 
 /**
  * Category entity for organizing transactions.
@@ -84,4 +100,3 @@ export interface ODataResponse<T> {
   value: T[];
   '@odata.count'?: number;
 }
-

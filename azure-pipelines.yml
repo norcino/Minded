@@ -1,143 +1,242 @@
-pool:
-  name: Azure Pipelines
-  vmImage: 'ubuntu-latest'
-    
-steps:
-- task: DotNetCoreCLI@2
-  displayName: Restore
-  inputs:
-    command: restore
-    projects: '**/*.csproj'
+jobs:
+- job: BuildAndPack
+  displayName: 'Build and Pack NuGet Packages'
+  pool:
+    name: Azure Pipelines
+    vmImage: 'ubuntu-latest'
 
-- task: DotNetCoreCLI@2
-  displayName: Build
-  inputs:
-    projects: '**/*.csproj'
-    arguments: '--configuration $(BuildConfiguration)'
+  steps:
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs:
+      command: restore
+      projects: '**/*.csproj'
 
-- pwsh: |
-    $branch = "$(Build.SourceBranch)"
-    $buildNumber = "$(Build.BuildNumber)"
+  - task: DotNetCoreCLI@2
+    displayName: Build
+    inputs:
+      projects: '**/*.csproj'
+      arguments: '--configuration $(BuildConfiguration)'
 
-    Write-Host "Branch: $branch"
-    Write-Host "Build Number: $buildNumber"
+  - pwsh: |
+      $branch = "$(Build.SourceBranch)"
+      $buildNumber = "$(Build.BuildNumber)"
 
-    # Determine version suffix and whether to push to NuGet.org based on branch
-    $versionSuffix = ""
-    $pushToNuGet = "false"
+      Write-Host "Branch: $branch"
+      Write-Host "Build Number: $buildNumber"
 
-    if ($branch -eq "refs/heads/master") {
-      # Stable release - no suffix
+      # Determine version suffix and whether to push to NuGet.org based on branch
       $versionSuffix = ""
-      $pushToNuGet = "true"
-      Write-Host "Branch type: MASTER (stable release)"
-    }
-    elseif ($branch -eq "refs/heads/dev" -or $branch -eq "refs/heads/develop") {
-      # Development branch - preview
-      $versionSuffix = "preview.$buildNumber"
-      $pushToNuGet = "true"
-      Write-Host "Branch type: DEVELOPMENT (preview release)"
-    }
-    elseif ($branch -like "refs/heads/release/*") {
-      # Release branch - release candidate
-      $versionSuffix = "rc.$buildNumber"
-      $pushToNuGet = "true"
-      Write-Host "Branch type: RELEASE (release candidate)"
-    }
-    elseif ($branch -like "refs/heads/feature/*" -or $branch -like "refs/heads/features/*") {
-      # Feature branch - alpha
-      $versionSuffix = "alpha.$buildNumber"
-      $pushToNuGet = "true"
-      Write-Host "Branch type: FEATURE (alpha release)"
-    }
-    else {
-      # Non-standard branch - alpha but don't push to NuGet.org
-      $versionSuffix = "alpha.$buildNumber"
       $pushToNuGet = "false"
-      Write-Host "Branch type: NON-STANDARD (alpha, internal only)"
-      Write-Host "##vso[task.logissue type=warning]Branch does not follow naming convention. Package will NOT be pushed to NuGet.org"
-    }
 
-    Write-Host "Version Suffix: $versionSuffix"
-    Write-Host "Push to NuGet.org: $pushToNuGet"
+      if ($branch -eq "refs/heads/master") {
+        # Stable release - no suffix
+        $versionSuffix = ""
+        $pushToNuGet = "true"
+        Write-Host "Branch type: MASTER (stable release)"
+      }
+      elseif ($branch -eq "refs/heads/dev" -or $branch -eq "refs/heads/develop") {
+        # Development branch - preview
+        $versionSuffix = "preview.$buildNumber"
+        $pushToNuGet = "true"
+        Write-Host "Branch type: DEVELOPMENT (preview release)"
+      }
+      elseif ($branch -like "refs/heads/release/*") {
+        # Release branch - release candidate
+        $versionSuffix = "rc.$buildNumber"
+        $pushToNuGet = "true"
+        Write-Host "Branch type: RELEASE (release candidate)"
+      }
+      elseif ($branch -like "refs/heads/feature/*" -or $branch -like "refs/heads/features/*") {
+        # Feature branch - alpha
+        $versionSuffix = "alpha.$buildNumber"
+        $pushToNuGet = "true"
+        Write-Host "Branch type: FEATURE (alpha release)"
+      }
+      else {
+        # Non-standard branch - alpha but don't push to NuGet.org
+        $versionSuffix = "alpha.$buildNumber"
+        $pushToNuGet = "false"
+        Write-Host "Branch type: NON-STANDARD (alpha, internal only)"
+        Write-Host "##vso[task.logissue type=warning]Branch does not follow naming convention. Package will NOT be pushed to NuGet.org"
+      }
 
-    # Set pipeline variables
-    Write-Host "##vso[task.setvariable variable=VersionSuffix]$versionSuffix"
-    Write-Host "##vso[task.setvariable variable=PushToNuGet]$pushToNuGet"
-  displayName: 'Determine Version Suffix and Push Strategy'
+      Write-Host "Version Suffix: $versionSuffix"
+      Write-Host "Push to NuGet.org: $pushToNuGet"
 
-- pwsh: |
-    $ErrorActionPreference = "Continue"
-    $versionSuffix = "$(VersionSuffix)"
+      # Set pipeline variables for this job
+      Write-Host "##vso[task.setvariable variable=VersionSuffix]$versionSuffix"
+      Write-Host "##vso[task.setvariable variable=PushToNuGet;isOutput=true]$pushToNuGet"
 
-    # Build pack command with or without version suffix
-    $packArgs = @(
-      "Minded.sln",
-      "--include-symbols",
-      "-p:SymbolPackageFormat=snupkg",
-      "--configuration", "$(BuildConfiguration)",
-      "--output", "$(Build.ArtifactStagingDirectory)"
-    )
+      # Save to file for next job
+      $configDir = "$(Build.ArtifactStagingDirectory)/config"
+      New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+      $pushToNuGet | Out-File -FilePath "$configDir/PushToNuGet.txt" -NoNewline
+      Write-Host "Saved PushToNuGet flag to artifact: $pushToNuGet"
+    displayName: 'Determine Version Suffix and Push Strategy'
+    name: DetermineVersion
 
-    if ($versionSuffix) {
-      $packArgs += "--version-suffix"
-      $packArgs += $versionSuffix
-      Write-Host "Packing with version suffix: $versionSuffix"
-    } else {
-      Write-Host "Packing stable release (no version suffix)"
-    }
+  - pwsh: |
+      $ErrorActionPreference = "Continue"
+      $versionSuffix = "$(VersionSuffix)"
 
-    & dotnet pack @packArgs 2>&1 | Tee-Object -Variable packOutput
+      # Build pack command with or without version suffix
+      $packArgs = @(
+        "Minded.sln",
+        "--include-symbols",
+        "-p:SymbolPackageFormat=snupkg",
+        "--configuration", "$(BuildConfiguration)",
+        "--output", "$(Build.ArtifactStagingDirectory)/packages"
+      )
 
-    $exitCode = $LASTEXITCODE
-    Write-Host "Pack exit code: $exitCode"
+      if ($versionSuffix) {
+        $packArgs += "--version-suffix"
+        $packArgs += $versionSuffix
+        Write-Host "Packing with version suffix: $versionSuffix"
+      } else {
+        Write-Host "Packing stable release (no version suffix)"
+      }
 
-    if ($exitCode -ne 0) {
-      Write-Host "##[error]Pack failed with exit code $exitCode"
-      Write-Host "Full output:"
-      Write-Host $packOutput
-      exit $exitCode
-    }
+      & dotnet pack @packArgs 2>&1 | Tee-Object -Variable packOutput
 
-    Write-Host "Pack completed successfully"
-  displayName: 'Pack NuGet Packages'
+      $exitCode = $LASTEXITCODE
+      Write-Host "Pack exit code: $exitCode"
 
-- task: DotNetCoreCLI@2
-  displayName: 'NuGet Push to Internal Feed (All Branches)'
-  inputs:
-    command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
-    nuGetFeedType: 'internal'
-    publishVstsFeed: '781d4237-b045-4959-bd79-25174518b8d8/b371f2d0-81c8-46d0-b653-f90e65088279'
+      if ($exitCode -ne 0) {
+        Write-Host "##[error]Pack failed with exit code $exitCode"
+        Write-Host "Full output:"
+        Write-Host $packOutput
+        exit $exitCode
+      }
 
-- task: DotNetCoreCLI@2
-  displayName: 'NuGet Push Packages to NuGet.org'
-  condition: eq(variables['PushToNuGet'], 'true')
-  inputs:
-    command: custom
-    custom: nuget
-    arguments: 'push $(Build.ArtifactStagingDirectory)/*.nupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --skip-duplicate'
+      Write-Host "Pack completed successfully"
 
-- task: DotNetCoreCLI@2
-  displayName: 'NuGet Push Symbols to NuGet.org'
-  condition: eq(variables['PushToNuGet'], 'true')
-  inputs:
-    command: custom
-    custom: nuget
-    arguments: 'push $(Build.ArtifactStagingDirectory)/*.snupkg -s https://api.nuget.org/v3/index.json -k $(NugetApiKey) --skip-duplicate'
+      # List created packages
+      Write-Host "`nCreated packages:"
+      Get-ChildItem "$(Build.ArtifactStagingDirectory)/packages" -Filter *.nupkg | ForEach-Object {
+        Write-Host "  - $($_.Name)"
+      }
+    displayName: 'Pack NuGet Packages'
 
-- task: DotNetCoreCLI@2
-  displayName: Publish
-  inputs:
-    command: publish
-    publishWebProjects: True
-    arguments: '--configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory)'
-    zipAfterPublish: True
-  enabled: false
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish NuGet Packages as Pipeline Artifact'
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)/packages'
+      artifactName: 'nuget-packages'
+      publishLocation: 'pipeline'
 
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact'
-  inputs:
-    PathtoPublish: '$(build.artifactstagingdirectory)'
-  enabled: false
-  condition: succeededOrFailed()
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish Configuration as Pipeline Artifact'
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)/config'
+      artifactName: 'build-config'
+      publishLocation: 'pipeline'
+
+- job: PublishPackages
+  displayName: 'Publish NuGet Packages'
+  dependsOn: BuildAndPack
+  pool:
+    name: Azure Pipelines
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download NuGet Packages'
+    inputs:
+      artifactName: 'nuget-packages'
+      targetPath: '$(Pipeline.Workspace)/packages'
+
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download Build Configuration'
+    inputs:
+      artifactName: 'build-config'
+      targetPath: '$(Pipeline.Workspace)/config'
+
+  - pwsh: |
+      $pushToNuGet = Get-Content "$(Pipeline.Workspace)/config/PushToNuGet.txt"
+      Write-Host "PushToNuGet flag from build job: $pushToNuGet"
+      Write-Host "##vso[task.setvariable variable=PushToNuGet]$pushToNuGet"
+
+      # List packages to be published
+      Write-Host "`nPackages to publish:"
+      Get-ChildItem "$(Pipeline.Workspace)/packages" -Filter *.nupkg | ForEach-Object {
+        Write-Host "  - $($_.Name)"
+      }
+    displayName: 'Load Configuration and List Packages'
+
+  - pwsh: |
+      $ErrorActionPreference = "Continue"
+
+      Write-Host "Pushing packages to internal Azure DevOps feed..."
+
+      # Push .nupkg files (excluding symbols)
+      $packages = Get-ChildItem "$(Pipeline.Workspace)/packages" -Filter *.nupkg | Where-Object { $_.Name -notlike "*.symbols.nupkg" }
+
+      foreach ($package in $packages) {
+        Write-Host "`nPushing: $($package.Name)"
+        dotnet nuget push $package.FullName `
+          --source "https://pkgs.dev.azure.com/norcino/781d4237-b045-4959-bd79-25174518b8d8/_packaging/b371f2d0-81c8-46d0-b653-f90e65088279/nuget/v3/index.json" `
+          --api-key az `
+          --skip-duplicate
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "##vso[task.logissue type=warning]Failed to push $($package.Name) to internal feed (exit code: $LASTEXITCODE)"
+        } else {
+          Write-Host "Successfully pushed $($package.Name)"
+        }
+      }
+
+      Write-Host "`nInternal feed push completed"
+    displayName: 'Push to Internal Azure DevOps Feed (All Branches)'
+
+  - pwsh: |
+      $ErrorActionPreference = "Continue"
+
+      Write-Host "Pushing packages to NuGet.org..."
+
+      # Push .nupkg files (excluding symbols)
+      $packages = Get-ChildItem "$(Pipeline.Workspace)/packages" -Filter *.nupkg | Where-Object { $_.Name -notlike "*.symbols.nupkg" -and $_.Name -notlike "*.snupkg" }
+
+      foreach ($package in $packages) {
+        Write-Host "`nPushing: $($package.Name)"
+        dotnet nuget push $package.FullName `
+          --source https://api.nuget.org/v3/index.json `
+          --api-key $(NugetApiKey) `
+          --skip-duplicate
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "##vso[task.logissue type=warning]Failed to push $($package.Name) to NuGet.org (exit code: $LASTEXITCODE)"
+        } else {
+          Write-Host "Successfully pushed $($package.Name) to NuGet.org"
+        }
+      }
+
+      Write-Host "`nNuGet.org package push completed"
+    displayName: 'Push Packages to NuGet.org'
+    condition: eq(variables['PushToNuGet'], 'true')
+
+  - pwsh: |
+      $ErrorActionPreference = "Continue"
+
+      Write-Host "Pushing symbol packages to NuGet.org..."
+
+      # Push .snupkg files
+      $symbolPackages = Get-ChildItem "$(Pipeline.Workspace)/packages" -Filter *.snupkg
+
+      foreach ($package in $symbolPackages) {
+        Write-Host "`nPushing: $($package.Name)"
+        dotnet nuget push $package.FullName `
+          --source https://api.nuget.org/v3/index.json `
+          --api-key $(NugetApiKey) `
+          --skip-duplicate
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "##vso[task.logissue type=warning]Failed to push $($package.Name) to NuGet.org (exit code: $LASTEXITCODE)"
+        } else {
+          Write-Host "Successfully pushed $($package.Name) to NuGet.org"
+        }
+      }
+
+      Write-Host "`nNuGet.org symbol push completed"
+    displayName: 'Push Symbols to NuGet.org'
+    condition: eq(variables['PushToNuGet'], 'true')

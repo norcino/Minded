@@ -1,4 +1,4 @@
-﻿using Minded.Framework.CQRS.Query;
+using Minded.Framework.CQRS.Query;
 
 namespace Minded.Extensions.Exception
 {
