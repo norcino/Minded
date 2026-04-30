@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.cs"
+applyTo: "Example/**/*.cs"
 ---
 
 # Minded Framework – Backend Clean Architecture Guidelines
@@ -173,6 +173,7 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
 - Controllers inject `IRestMediator` only — no handlers, no repositories.
 - For OData-enabled collection endpoints inject `ODataQueryOptions<TEntity>` and call `query.ApplyODataQueryOptions(queryOptions)`.
 - Always accept `CancellationToken cancellationToken = default` in controller actions.
+- Inject `IRestMediator` only — never `IMediator` or any handler directly.
 - Map HTTP verbs to `RestOperation` values:
 
 | HTTP method        | RestOperation              |
@@ -215,28 +216,28 @@ public class CategoryController : Controller
 
 ## 8. Decorator Registration (DI)
 
-Register decorators in Program.cs / Startup.cs via `services.AddMinded(builder => { ... })`. The **registration order determines execution order** (first registered = outermost decorator at runtime):
+Register decorators in Program.cs / Startup.cs via `services.AddMinded(builder => { ... })`. **Decorators are registered from innermost to outermost**: the first decorator registered is innermost (runs last, right before the handler); the last registered is outermost (runs first, earliest interception). `AddCommandHandlers()` / `AddQueryHandlers()` register the actual handlers and are always innermost regardless of call order.
 
 ```csharp
 services.AddMinded(builder =>
 {
-    builder.AddCommandValidationDecorator()   // outermost: validate first
-           .AddCommandLoggingDecorator()
-           .AddCommandExceptionDecorator()
-           .AddCommandRetryDecorator()        // innermost before handler
+    builder.AddCommandValidationDecorator()   // innermost decorator: validates right before handler
+           .AddCommandRetryDecorator()        // wraps validation + handler; retries on exception
+           .AddCommandLoggingDecorator()      // logs each attempt including retries
+           .AddCommandExceptionDecorator()    // outermost: catches all unhandled exceptions
            .AddCommandHandlers();
 
     builder.AddQueryValidationDecorator()
-           .AddQueryMemoryCacheDecorator()    // short-circuit before logging if cached
+           .AddQueryMemoryCacheDecorator()    // short-circuits before handler if cached
            .AddQueryLoggingDecorator()
-           .AddQueryExceptionDecorator()
+           .AddQueryExceptionDecorator()      // outermost
            .AddQueryHandlers();
 
     builder.AddRestMediator();
 });
 ```
 
-Do **not** skip a decorator layer for a single command/query by removing it globally — use the opt-in attributes (`[ValidateCommand]`, `[RetryCommand]`, `[MemoryCache]`) to control per-command behaviour.
+Do **not** skip a decorator layer globally to exclude one command/query — use opt-in attributes (`[ValidateCommand]`, `[RetryCommand]`, `[MemoryCache]`) to control per-command/query behaviour.
 
 ---
 

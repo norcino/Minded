@@ -21,6 +21,7 @@
 - [Example Application](#example-application)
 - [Available Packages](#available-packages)
 - [Documentation](#documentation)
+- [AI-Assisted Development](#ai-assisted-development)
 - [License](#license)
 
 ---
@@ -1330,7 +1331,7 @@ public class User
 **Configure DataProtection based on environment:**
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Add DataProtection with environment-based configuration
     builder.AddDataProtection(options =>
@@ -1705,7 +1706,7 @@ public class MyCustomSanitizer : ILoggingSanitizer
 Register using ```RegisterLoggingSanitizerPipelineConfiguration``` in ```MindedBuilder``` it is possible to add a new sanitizer to the pipeline, which will be executed befure the logging output is generated, it is possible also to register specific properties to be excluded from the logging output:
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
     {
@@ -2446,6 +2447,30 @@ All Minded packages are available on NuGet:
 - [Command Pattern](https://en.wikipedia.org/wiki/Command_pattern)
 - [Decorator Pattern](https://en.wikipedia.org/wiki/Decorator_pattern)
 - [CQRS](https://martinfowler.com/bliki/CQRS.html)
+
+---
+
+## AI-Assisted Development
+
+The [`AI/`](AI/) folder contains canonical steering files that teach AI coding tools how to work with Minded correctly. Two categories are covered:
+
+| File | Purpose |
+|------|---------|
+| [`AI/minded-contributing.md`](AI/minded-contributing.md) | For **framework contributors**: adding new decorator extensions, package conventions, coding standards |
+| [`AI/minded-utilization.md`](AI/minded-utilization.md) | For **application developers**: Commands, Queries, Handlers, Validators, DI setup, REST controllers |
+
+### Pre-configured for this repo
+
+| Tool | Files |
+|------|-------|
+| **GitHub Copilot** | `.github/copilot-instructions.md` (overview) · `.github/instructions/minded-backend.instructions.md` (Example app) · `.github/instructions/minded-contributing.instructions.md` (Framework/Extensions) |
+| **Kiro** | `.kiro/steering/minded-overview.md` · `.kiro/steering/minded-contributing.md` · `.kiro/steering/minded-utilization.md` |
+| **Claude Code** | `CLAUDE.md` |
+| **Augment Code** | `.augment/rules/minded-framework.md` |
+
+### Using Minded AI guidance in your application repo
+
+Copy [`AI/minded-utilization.md`](AI/minded-utilization.md) to your repo and configure it for your AI tool of choice. See [`AI/README.md`](AI/README.md) for per-tool setup instructions (frontmatter format, file path, and folder location for each tool).
 
 ---
 

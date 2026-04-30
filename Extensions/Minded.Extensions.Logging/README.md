@@ -55,7 +55,7 @@ See [Sensitive Data Protection](#sensitive-data-protection) for more details.
 Register the logging decorators in your `Program.cs` or `Startup.cs`:
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Add command logging decorator
     builder.AddCommandLoggingDecorator();
@@ -415,7 +415,7 @@ When logged, sensitive properties are automatically omitted:
 
 ```csharp
 // Program.cs
-services.AddMinded(Configuration, asm => asm.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, asm => asm.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Enable data protection for sensitive data handling
     builder.AddDataProtection(options =>

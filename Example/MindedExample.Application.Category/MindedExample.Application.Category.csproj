@@ -22,6 +22,7 @@
     <ProjectReference Include="..\MindedExample.Infrastructure.Persistence\MindedExample.Infrastructure.Persistence.csproj" />
     <ProjectReference Include="..\MindedExample.Domain\MindedExample.Domain.csproj" />
     <ProjectReference Include="..\MindedExample.Application.Common\MindedExample.Application.Common.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Context\Minded.Extensions.Context.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Linq;
 using Minded.Extensions.Authorization.Attributes;
 
 namespace Minded.Extensions.Authorization.Decorator

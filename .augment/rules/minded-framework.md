@@ -6,12 +6,15 @@ type: "always_apply"
 
 Guidelines for developing applications using the Minded Framework with CQRS pattern, REST API, and decorators.
 
+> Full canonical guides: `AI/minded-contributing.md` (extending the framework) and `AI/minded-utilization.md` (using the framework in applications).
+
 ## Core Principles
 
-- Always ask clarifying questions when requirements are unclear
-- Follow Single Responsibility Principle - one handler per command/query
-- Strict separation: Commands change state, Queries retrieve data
-- Commands can use other commands and queries; Queries can only use other queries
+- Always ask clarifying questions when requirements are unclear.
+- Follow Single Responsibility Principle — one handler per command/query.
+- Strict separation: Commands change state, Queries retrieve data.
+- Commands may orchestrate other commands/queries via `IMediator` (saga/orchestrator pattern); Queries should only call other queries.
+- Never put validation or cross-cutting logic inside a handler — use the decorator pipeline.
 
 ## Required Packages
 
@@ -324,17 +327,18 @@ public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>
 
 ## Startup Configuration
 
+**Decorator registration order: first registered = innermost (runs last, right before handler); last registered = outermost (runs first). Exception handling must be outermost (registered last).**
+
 ```csharp
-services.AddMinded(Configuration, 
-    assembly => assembly.Name.StartsWith("Service."), 
+services.AddMinded(Configuration,
+    assembly => assembly.Name.StartsWith("Service."),
     builder =>
 {
     builder.AddMediator();
     builder.AddRestMediator();
-    
-    // Command Pipeline (order matters)
-    builder.AddCommandValidationDecorator()
-           .AddCommandExceptionDecorator(options => options.Serialize = true)
+
+    // Command Pipeline — innermost first, outermost last
+    builder.AddCommandValidationDecorator()           // innermost: validates right before handler
            .AddCommandRetryDecorator(options =>
            {
                options.DefaultRetryCount = 3;
@@ -344,14 +348,15 @@ services.AddMinded(Configuration,
            })
            .AddCommandLoggingDecorator(options => options.Enabled = true)
            .AddCommandTransactionDecorator()
+           .AddCommandExceptionDecorator(options => options.Serialize = true)  // outermost
            .AddCommandHandlers();
 
-    // Query Pipeline
+    // Query Pipeline — innermost first, outermost last
     builder.AddQueryValidationDecorator()
-           .AddQueryExceptionDecorator(options => options.Serialize = true)
            .AddQueryRetryDecorator(applyToAllQueries: false)
-           .AddQueryLoggingDecorator(options => options.Enabled = true)
            .AddQueryMemoryCacheDecorator()
+           .AddQueryLoggingDecorator(options => options.Enabled = true)
+           .AddQueryExceptionDecorator(options => options.Serialize = true)    // outermost
            .AddQueryHandlers();
 });
 

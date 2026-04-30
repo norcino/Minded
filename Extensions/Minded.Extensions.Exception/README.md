@@ -35,7 +35,7 @@ This is suitable for development environments or applications without sensitive 
 ### Basic Usage (Without Data Protection)
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     builder.AddCommandExceptionDecorator();
     builder.AddQueryExceptionDecorator();
@@ -62,7 +62,7 @@ public class User
 }
 
 // Configure DataProtection and Exception handling
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     builder.AddDataProtection(options =>
     {
@@ -384,7 +384,7 @@ public class MyCustomSanitizer : ILoggingSanitizer
 Register your custom sanitizer as a singleton:
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Register your custom sanitizer
     builder.ServiceCollection.AddSingleton<ILoggingSanitizer, MyCustomSanitizer>();

@@ -29,6 +29,7 @@ using Serilog.Core;
 using MindedExample.Api.OData;
 using MindedExample.Api.Hubs;
 using Minded.Extensions.Authorization.Configuration;
+using Minded.Extensions.Context.Decorator;
 using MindedExample.Api.Authorization;
 using MindedExample.Api.Logging;
 using Microsoft.AspNetCore.OData;
@@ -183,6 +184,10 @@ namespace MindedExample.Api
                 // The sanitizer will automatically be discovered and applied by the pipeline
                 b.ServiceCollection.AddSingleton<Minded.Framework.CQRS.Abstractions.Sanitization.ILoggingSanitizer,
                     CustomLoggingSanitizer>();
+
+                // Ambient context decorator: must be registered as the outermost layer so that
+                // all subsequent decorators and handlers observe a populated IMindedContext.
+                b.AddContextDecorator();
 
                 b.AddCommandValidationDecorator()
                 .AddCommandExceptionDecorator(options =>

@@ -1,3 +1,4 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.2.11408.102
@@ -100,6 +101,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minded.Extensions.Authorization", "Extensions\Minded.Extensions.Authorization\Minded.Extensions.Authorization.csproj", "{71624AE4-908A-95A4-6CD0-B992797D4638}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minded.Extensions.Authorization.Tests", "Tests\Minded.Extensions.Authorization.Tests\Minded.Extensions.Authorization.Tests.csproj", "{F4E71C26-44D4-66BF-A10C-89DFC1C4E4BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minded.Extensions.Context", "Extensions\Minded.Extensions.Context\Minded.Extensions.Context.csproj", "{2F0675AF-3449-4A25-B043-554E0A9CC6A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -603,6 +606,18 @@ Global
 		{F4E71C26-44D4-66BF-A10C-89DFC1C4E4BB}.Release|x64.Build.0 = Release|Any CPU
 		{F4E71C26-44D4-66BF-A10C-89DFC1C4E4BB}.Release|x86.ActiveCfg = Release|Any CPU
 		{F4E71C26-44D4-66BF-A10C-89DFC1C4E4BB}.Release|x86.Build.0 = Release|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Debug|x64.Build.0 = Debug|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Debug|x86.Build.0 = Debug|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Release|x64.ActiveCfg = Release|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Release|x64.Build.0 = Release|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Release|x86.ActiveCfg = Release|Any CPU
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -649,6 +664,7 @@ Global
 		{257DBA37-9162-4904-9352-2224D6522E66} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{71624AE4-908A-95A4-6CD0-B992797D4638} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 		{F4E71C26-44D4-66BF-A10C-89DFC1C4E4BB} = {E07D3C91-DBD9-496E-AD65-FE84A33303A9}
+		{2F0675AF-3449-4A25-B043-554E0A9CC6A3} = {543652B0-4A5B-4BC3-863F-7102C12F4D6D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7C9F706B-19EF-445C-9AF7-246B32541C7F}
