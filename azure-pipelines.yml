@@ -82,7 +82,7 @@ jobs:
 
       # Build pack command with or without version suffix
       $packArgs = @(
-        "Minded.sln",
+        "Minded.slnx",
         "--include-symbols",
         "-p:SymbolPackageFormat=snupkg",
         "--configuration", "$(BuildConfiguration)",

@@ -30,6 +30,14 @@ namespace MindedExample.Domain
                 Permissions.CanCreateRole, Permissions.CanDeleteRole,
                 Permissions.CanUpdateRolePermissions, Permissions.CanUpdateConfiguration
             },
+            [Roles.TenantAdmin] = new[]
+            {
+                Permissions.CanCreateCategory, Permissions.CanCreateRootCategory,
+                Permissions.CanUpdateCategory, Permissions.CanDeleteCategory,
+                Permissions.CanCreateTransaction, Permissions.CanUpdateTransaction,
+                Permissions.CanDeleteTransaction, Permissions.CanCreateUser,
+                Permissions.CanUpdateUser, Permissions.CanDeleteUser
+            },
             [Roles.User] = new[]
             {
                 Permissions.CanCreateTransaction,

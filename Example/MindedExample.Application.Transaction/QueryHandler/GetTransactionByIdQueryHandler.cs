@@ -14,10 +14,12 @@ namespace MindedExample.Application.Transaction.QueryHandler
     public class GetTransactionByIdQueryHandler : IQueryHandler<GetTransactionByIdQuery, MindedExample.Domain.Transaction>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public GetTransactionByIdQueryHandler(IMindedExampleContext context)
+        public GetTransactionByIdQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -30,9 +32,14 @@ namespace MindedExample.Application.Transaction.QueryHandler
         /// <returns>Transaction if found, null otherwise</returns>
         public Task<MindedExample.Domain.Transaction> HandleAsync(GetTransactionByIdQuery query, CancellationToken cancellationToken = default)
         {
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return Task.FromResult<MindedExample.Domain.Transaction>(null);
+            }
+
             return _context.Transactions
                 .AsNoTracking()
-                .SingleOrDefaultAsync(c => c.Id == query.TransactionId, cancellationToken);
+                .SingleOrDefaultAsync(c => c.Id == query.TransactionId && c.User.TenantId == _currentUserAccessor.TenantId.Value, cancellationToken);
         }
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.OData.Query;
 using Minded.Extensions.WebApi;
 using MindedExample.Application.Transaction.Command;
 using MindedExample.Application.Transaction.Query;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MindedExample.Api.Controllers
 {
@@ -14,6 +15,7 @@ namespace MindedExample.Api.Controllers
     /// Demonstrates RestMediator usage with CQRS pattern, OData support, and proper CancellationToken handling.
     /// </summary>
     [Route("api/[controller]")]
+    [Authorize]
     public class TransactionController : Controller
     {
         private readonly IRestMediator _restMediator;

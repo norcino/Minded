@@ -15,10 +15,12 @@ namespace MindedExample.Application.Transaction.CommandHandler
     public class UpdateTransactionCommandHandler : ICommandHandler<UpdateTransactionCommand, MindedExample.Domain.Transaction>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public UpdateTransactionCommandHandler(IMindedExampleContext context)
+        public UpdateTransactionCommandHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -30,7 +32,26 @@ namespace MindedExample.Application.Transaction.CommandHandler
         /// <returns>Successful command response with the updated transaction</returns>
         public async Task<ICommandResponse<MindedExample.Domain.Transaction>> HandleAsync(UpdateTransactionCommand command, CancellationToken cancellationToken = default)
         {
-            MindedExample.Domain.Transaction transaction = await _context.Transactions.SingleOrDefaultAsync(p => p.Id == command.TransactionId, cancellationToken);
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return new CommandResponse<MindedExample.Domain.Transaction>(default(MindedExample.Domain.Transaction), false);
+            }
+
+            var tenantId = _currentUserAccessor.TenantId.Value;
+            MindedExample.Domain.Transaction transaction = await _context.Transactions
+                .SingleOrDefaultAsync(p => p.Id == command.TransactionId && p.User.TenantId == tenantId, cancellationToken);
+            if (transaction == null)
+            {
+                return new CommandResponse<MindedExample.Domain.Transaction>(default(MindedExample.Domain.Transaction), false);
+            }
+
+            var userExistsInTenant = await _context.Users
+                .AnyAsync(u => u.Id == command.Transaction.UserId && u.TenantId == tenantId, cancellationToken);
+            if (!userExistsInTenant)
+            {
+                return new CommandResponse<MindedExample.Domain.Transaction>(default(MindedExample.Domain.Transaction), false);
+            }
+
             transaction.Description = command.Transaction.Description;
             transaction.CategoryId = command.Transaction.CategoryId;
             transaction.Credit = command.Transaction.Credit;

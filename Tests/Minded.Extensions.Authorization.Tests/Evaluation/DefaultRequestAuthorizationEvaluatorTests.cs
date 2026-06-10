@@ -162,10 +162,12 @@ public class DefaultRequestAuthorizationEvaluatorTests
 
         Prop.ForAll(arb, tuple =>
         {
-            var roles = tuple.roleClauses.Select(r => new RoleClause(r, AuthorizationMatch.All, 0)).ToArray();
-            var perms = tuple.permClauses.Select(p => new PermissionClause(p, AuthorizationMatch.All, 0)).ToArray();
+            var roles = tuple.roleClauses.Select(r =>
+                new RoleClause(r, AuthorizationMatch.All, 0, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>())).ToArray();
+            var perms = tuple.permClauses.Select(p =>
+                new PermissionClause(p, AuthorizationMatch.All, 0, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>())).ToArray();
 
-            var descriptor = new AuthorizationDescriptor(true, false, false, roles, perms);
+            var descriptor = new AuthorizationDescriptor(true, false, false, roles, perms, Array.Empty<ClaimClause>(), Array.Empty<ResourceClause>());
             var authContext = new AuthorizationContext(true, tuple.context.AsReadOnly(), tuple.context.AsReadOnly());
             var decision = _evaluator.Evaluate(_dummyType, descriptor, authContext);
 
@@ -184,7 +186,9 @@ public class DefaultRequestAuthorizationEvaluatorTests
             isProtected: true,
             allowUnauthenticated: false,
             requireAuthenticationOnly: false,
-            roleClauses: new[] { new RoleClause(roles, match, minimum) },
-            permissionClauses: Array.Empty<PermissionClause>());
+            roleClauses: new[] { new RoleClause(roles, match, minimum, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>()) },
+            permissionClauses: Array.Empty<PermissionClause>(),
+            claimClauses: Array.Empty<ClaimClause>(),
+            resourceClauses: Array.Empty<ResourceClause>());
     }
 }

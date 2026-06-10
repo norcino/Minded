@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using MindedExample.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Minded.Framework.CQRS.Command;
 using MindedExample.Application.Category.Command;
 
@@ -20,6 +21,7 @@ namespace MindedExample.Application.Category.CommandHandler
     public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryCommand, MindedExample.Domain.Category>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
         /// <summary>
         /// Thread-safe dictionary to track retry attempts per category name.
@@ -27,9 +29,10 @@ namespace MindedExample.Application.Category.CommandHandler
         /// </summary>
         private static readonly ConcurrentDictionary<string, int> _attemptTracker = new ConcurrentDictionary<string, int>();
 
-        public CreateCategoryCommandHandler(IMindedExampleContext context)
+        public CreateCategoryCommandHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -45,6 +48,20 @@ namespace MindedExample.Application.Category.CommandHandler
         /// <exception cref="InvalidOperationException">Thrown on first 3 attempts to simulate transient failure</exception>
         public async Task<ICommandResponse<MindedExample.Domain.Category>> HandleAsync(CreateCategoryCommand command, CancellationToken cancellationToken = default)
         {
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return new CommandResponse<MindedExample.Domain.Category>(default(MindedExample.Domain.Category), false);
+            }
+
+            var userExistsInTenant = await _context.Users.AnyAsync(
+                u => u.Id == command.Category.UserId && u.TenantId == _currentUserAccessor.TenantId.Value,
+                cancellationToken);
+
+            if (!userExistsInTenant)
+            {
+                return new CommandResponse<MindedExample.Domain.Category>(default(MindedExample.Domain.Category), false);
+            }
+
             // DEMO: Simulate transient failures for the first 3 attempts
             // This demonstrates the retry decorator in action
             var categoryKey = $"{command.Category.Name}_{command.TraceId}";

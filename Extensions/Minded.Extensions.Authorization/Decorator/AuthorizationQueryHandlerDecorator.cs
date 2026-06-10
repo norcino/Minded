@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -8,10 +9,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Minded.Extensions.Authorization.Configuration;
+using Minded.Extensions.Context;
 using Minded.Extensions.Exception;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Query;
 using Minded.Framework.Decorator;
+using Minded.Framework.Mediator;
 
 namespace Minded.Extensions.Authorization.Decorator
 {
@@ -31,9 +34,13 @@ namespace Minded.Extensions.Authorization.Decorator
         private readonly IAuthorizationContextAccessor _contextAccessor;
         private readonly IRequestAuthorizationEvaluator _evaluator;
         private readonly IOptions<AuthorizationOptions> _options;
+        private readonly IMindedContextAccessor _mindedContextAccessor;
+        private readonly IMediator _mediator;
         private readonly ILogger _logger;
         private static readonly bool _isEnvelopeResponse;
         private static readonly Type _innerResultType;
+
+        private readonly struct AuthorizationBypass { }
 
         static AuthorizationQueryHandlerDecorator()
         {
@@ -69,12 +76,16 @@ namespace Minded.Extensions.Authorization.Decorator
             IAuthorizationContextAccessor contextAccessor,
             IRequestAuthorizationEvaluator evaluator,
             IOptions<AuthorizationOptions> options,
+            IMindedContextAccessor mindedContextAccessor,
+            IMediator mediator,
             ILogger<AuthorizationQueryHandlerDecorator<TQuery, TResult>> logger)
             : base(queryHandler)
         {
             _contextAccessor = contextAccessor;
             _evaluator = evaluator;
             _options = options;
+            _mindedContextAccessor = mindedContextAccessor;
+            _mediator = mediator;
             _logger = logger;
         }
 
@@ -84,6 +95,12 @@ namespace Minded.Extensions.Authorization.Decorator
 
             try
             {
+                var mindedContext = _mindedContextAccessor.Current;
+                if (mindedContext.TryGetScoped<AuthorizationBypass>(out _))
+                {
+                    return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                }
+
                 var descriptor = AuthorizationDescriptorCache.GetOrCreate(typeof(TQuery));
 
                 // AllowUnauthenticated always passes through
@@ -115,7 +132,8 @@ namespace Minded.Extensions.Authorization.Decorator
                 // If only authentication is required (no RBAC clauses), pass through
                 if (descriptor.RequireAuthenticationOnly
                     && descriptor.RoleClauses.Count == 0
-                    && descriptor.PermissionClauses.Count == 0)
+                    && descriptor.PermissionClauses.Count == 0
+                    && descriptor.ClaimClauses.Count == 0)
                 {
                     stopwatch.Stop();
                     LogAllowed(query, stopwatch.Elapsed);
@@ -140,9 +158,28 @@ namespace Minded.Extensions.Authorization.Decorator
                     return DenyUnauthorized();
                 }
 
+                if (!EvaluateMatchPropertyClaims(descriptor, query, context))
+                {
+                    stopwatch.Stop();
+                    LogDenied(query, stopwatch.Elapsed, isUnauthenticated: false);
+                    return DenyUnauthorized();
+                }
+
+                if (!await EvaluateResourceClausesAsync(descriptor, query, context, mindedContext, cancellationToken))
+                {
+                    stopwatch.Stop();
+                    LogDenied(query, stopwatch.Elapsed, isUnauthenticated: false);
+                    return DenyUnauthorized();
+                }
+
                 stopwatch.Stop();
                 LogAllowed(query, stopwatch.Elapsed);
                 return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+            }
+            catch (MindedContextRequiredException)
+            {
+                // Misconfiguration must surface; never silently degrade to a denial.
+                throw;
             }
             catch (SecurityException)
             {
@@ -158,6 +195,19 @@ namespace Minded.Extensions.Authorization.Decorator
                 stopwatch.Stop();
                 LogDenied(query, stopwatch.Elapsed, isUnauthenticated: false);
                 return DenyUnauthorized();
+            }
+        }
+
+        private static void EnsureMindedContextAvailable(IMindedContext mindedContext)
+        {
+            if (mindedContext is NullMindedContext)
+            {
+                throw new MindedContextRequiredException(
+                    $"Request '{typeof(TQuery).Name}' uses [RequireResourceAccess] which requires an active " +
+                    "Minded context to install the recursion guard for the inner authorization query. " +
+                    "Register the Minded context decorators on your MindedBuilder (for example by calling " +
+                    "AddCommandContextDecorator() and AddQueryContextDecorator()) so that an IMindedContext " +
+                    "is published for every mediator invocation.");
             }
         }
 
@@ -223,6 +273,154 @@ namespace Minded.Extensions.Authorization.Decorator
         private static OutcomeEntry CreateUnauthorizedOutcomeEntry()
         {
             return new OutcomeEntry(string.Empty, "Authorization failed.", null, Severity.Error, GenericErrorCodes.NotAuthorized);
+        }
+
+        private bool EvaluateMatchPropertyClaims(AuthorizationDescriptor descriptor, TQuery query, AuthorizationContext context)
+        {
+            foreach (var claimClause in descriptor.ClaimClauses)
+            {
+                if (string.IsNullOrWhiteSpace(claimClause.MatchProperty))
+                {
+                    continue;
+                }
+
+                if (IsOrClauseSatisfied(claimClause.OrAnyRole, claimClause.OrAnyPermission, claimClause.OrAnyClaim, context))
+                {
+                    continue;
+                }
+
+                if (!context.Claims.TryGetValue(claimClause.ClaimType, out var claimValue))
+                {
+                    return false;
+                }
+
+                var property = typeof(TQuery).GetProperty(claimClause.MatchProperty);
+                var propertyValue = property?.GetValue(query)?.ToString();
+                if (!string.Equals((claimValue ?? string.Empty).Trim(), (propertyValue ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private async Task<bool> EvaluateResourceClausesAsync(
+            AuthorizationDescriptor descriptor,
+            TQuery query,
+            AuthorizationContext context,
+            IMindedContext mindedContext,
+            CancellationToken cancellationToken)
+        {
+            foreach (var resourceClause in descriptor.ResourceClauses)
+            {
+                if (IsOrClauseSatisfied(resourceClause.OrAnyRole, resourceClause.OrAnyPermission, resourceClause.OrAnyClaim, context))
+                {
+                    continue;
+                }
+
+                if (!context.Claims.TryGetValue(resourceClause.ResourceIdClaim, out var claimValue))
+                {
+                    return false;
+                }
+
+                var resourceProperty = typeof(TQuery).GetProperty(resourceClause.ResourceIdProperty);
+                var resourceId = resourceProperty?.GetValue(query);
+
+                var authQuery = Activator.CreateInstance(resourceClause.QueryType, resourceId, claimValue);
+                if (authQuery == null)
+                {
+                    return false;
+                }
+
+                EnsureMindedContextAvailable(mindedContext);
+
+                using (mindedContext.BeginScope(new AuthorizationBypass()))
+                {
+                    bool authorized = await DispatchAuthorizationQueryAsync(resourceClause.QueryType, authQuery, cancellationToken);
+                    if (!authorized)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private async Task<bool> DispatchAuthorizationQueryAsync(Type queryType, object queryInstance, CancellationToken cancellationToken)
+        {
+            var queryInterface = queryType.GetInterfaces().First(i =>
+                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQuery<>));
+            var resultType = queryInterface.GetGenericArguments()[0];
+
+            var method = typeof(IMediator)
+                .GetMethod(nameof(IMediator.ProcessQueryAsync))
+                .MakeGenericMethod(resultType);
+
+            var taskObject = (Task)method.Invoke(_mediator, new[] { queryInstance, (object)cancellationToken });
+            await taskObject.ConfigureAwait(false);
+
+            var resultObject = taskObject.GetType().GetProperty("Result", BindingFlags.Public | BindingFlags.Instance)?.GetValue(taskObject);
+            if (resultType == typeof(bool))
+            {
+                return resultObject is bool granted && granted;
+            }
+
+            if (resultObject == null)
+            {
+                return false;
+            }
+
+            var successful = (bool)(resultObject.GetType().GetProperty(nameof(IQueryResponse<bool>.Successful))?.GetValue(resultObject) ?? false);
+            var grantedValue = (bool)(resultObject.GetType().GetProperty(nameof(IQueryResponse<bool>.Result))?.GetValue(resultObject) ?? false);
+            return successful && grantedValue;
+        }
+
+        private static bool IsOrClauseSatisfied(
+            IReadOnlyList<string> orAnyRole,
+            IReadOnlyList<string> orAnyPermission,
+            IReadOnlyList<string> orAnyClaim,
+            AuthorizationContext context)
+        {
+            if (MatchesAny(orAnyRole, context.Roles) || MatchesAny(orAnyPermission, context.Permissions))
+            {
+                return true;
+            }
+
+            if (orAnyClaim != null)
+            {
+                for (int i = 0; i < orAnyClaim.Count; i++)
+                {
+                    var key = orAnyClaim[i]?.Trim();
+                    if (!string.IsNullOrEmpty(key) && context.Claims.ContainsKey(key))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool MatchesAny(IReadOnlyList<string> requiredItems, IReadOnlyCollection<string> contextItems)
+        {
+            if (requiredItems == null || requiredItems.Count == 0)
+            {
+                return false;
+            }
+
+            var normalized = new HashSet<string>(contextItems.Select(item => item.Trim()), StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < requiredItems.Count; i++)
+            {
+                var item = requiredItems[i]?.Trim();
+                if (!string.IsNullOrEmpty(item) && normalized.Contains(item))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

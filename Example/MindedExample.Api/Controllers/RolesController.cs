@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Minded.Extensions.WebApi;
 using MindedExample.Application.Role.Command;
 using MindedExample.Application.Role.Query;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MindedExample.Api.Controllers
 {
@@ -13,6 +14,7 @@ namespace MindedExample.Api.Controllers
     /// Provides CRUD operations for roles, permission listing, and role-permission assignment.
     /// </summary>
     [Route("api/[controller]")]
+    [Authorize]
     public class RolesController : Controller
     {
         private readonly IRestMediator _restMediator;

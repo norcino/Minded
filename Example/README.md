@@ -20,15 +20,15 @@ Example/
 │   ├── Controllers/          # REST controllers using RestMediator
 │   ├── OData/               # OData navigation property serialization
 │   └── Startup.cs           # Application configuration
-├── Service.Category/         # Category business logic
+├── MindedExample.Application.Category/         # Category business logic
 │   ├── Command/             # Commands (Create, Update, Delete)
 │   ├── CommandHandler/      # Command handlers
 │   ├── Query/               # Queries (Get, List)
 │   ├── QueryHandler/        # Query handlers
 │   └── Validator/           # FluentValidation validators
-├── Service.Transaction/      # Transaction business logic
-├── Service.Configuration/    # Runtime configuration management
-├── Service.User/            # User management business logic
+├── MindedExample.Application.Transaction/      # Transaction business logic
+├── MindedExample.Application.Configuration/    # Runtime configuration management
+├── MindedExample.Application.User/            # User management business logic
 ├── MindedExample.Application.Common/          # Shared service utilities
 ├── MindedExample.Infrastructure.Configuration/    # Configuration services and metadata
 ├── MindedExample.Domain/             # Entity models

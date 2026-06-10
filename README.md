@@ -1956,9 +1956,9 @@ Minded/
 │   ├── Minded.Extensions.Caching.Memory/
 │   └── Minded.Extensions.OData/
 ├── Example/                            # Example application
-│   ├── Application.Api/
-│   ├── Service.Category/
-│   ├── Service.Transaction/
+│   ├── MindedExample.Api/
+│   ├── MindedExample.Application.Category/
+│   ├── MindedExample.Application.Transaction/
 │   └── Tests/
 └── Tests/                              # Framework tests
 ````
@@ -2163,13 +2163,12 @@ The example application is a simple **Category and Transaction Management API** 
 
 ```
 Example/
-├── Application.Api/              # ASP.NET Core Web API
+├── MindedExample.Api/              # ASP.NET Core Web API
 │   ├── Controllers/
 │   │   ├── CategoryController.cs
 │   │   └── TransactionController.cs
-│   ├── Startup.cs               # Minded configuration
 │   └── Program.cs
-├── Service.Category/            # Category domain
+├── MindedExample.Application.Category/            # Category domain
 │   ├── Command/
 │   │   ├── CreateCategoryCommand.cs
 │   │   ├── UpdateCategoryCommand.cs
@@ -2187,22 +2186,24 @@ Example/
 │   └── Validator/
 │       ├── CreateCategoryCommandValidator.cs
 │       └── CategoryValidator.cs
-├── Service.Transaction/         # Transaction domain
+├── MindedExample.Application.Transaction/         # Transaction domain
 │   └── (similar structure)
-├── Data.Context/                # EF Core DbContext
+├── MindedExample.Infrastructure.Persistence/    # EF Core DbContext
 │   ├── MindedExampleContext.cs
 │   └── DatabaseSeeder.cs        # Automatic seeding
-├── Data.Entity/                 # Domain entities
+├── MindedExample.Domain/                 # Domain entities
 │   ├── Category.cs
 │   ├── Transaction.cs
 │   └── User.cs
 └── Tests/                       # Unit and integration tests
-    ├── Service.Category.Tests/
-    ├── Service.Transaction.Tests/
-    └── Application.Api.E2ETests/
+    ├── MindedExample.Application.Category.UnitTests/
+    ├── MindedExample.Application.Transaction.UnitTests/
+    └── MindedExample.Api.E2ETests/
 ```
 
 ### Running the Example
+
+For a detailed quick-start guide including prerequisites, login credentials, and sample data, see **[Example/example-app.md](Example/example-app.md)**.
 
 1. **Clone the Repository**
    ```bash
@@ -2212,29 +2213,30 @@ Example/
 
 2. **Run the API**
    ```bash
-   cd Application.Api
+   cd MindedExample.Api
    dotnet run
    ```
 
 3. **Access the API**
-   - Swagger UI: `https://localhost:5001/swagger`
-   - API Base URL: `https://localhost:5001/api`
+   - Swagger UI: `http://localhost:6000/swagger`
+   - API Base URL: `http://localhost:6000/api`
+   - Frontend (Vite): `http://localhost:3000`
 
 4. **Try Some Requests**
 
    **Get all categories:**
    ```bash
-   GET https://localhost:5001/api/category
+   GET http://localhost:6000/api/category
    ```
 
    **Get a single category:**
    ```bash
-   GET https://localhost:5001/api/category/1
+   GET http://localhost:6000/api/category/1
    ```
 
    **Create a category:**
    ```bash
-   POST https://localhost:5001/api/category
+   POST http://localhost:6000/api/category
    Content-Type: application/json
 
    {
@@ -2244,14 +2246,14 @@ Example/
 
    **OData query:**
    ```bash
-   GET https://localhost:5001/api/category?$filter=name eq 'Electronics'&$orderby=name&$top=10
+   GET http://localhost:6000/api/category?$filter=name eq 'Electronics'&$orderby=name&$top=10
    ```
 
 ### Key Examples to Study
 
 #### 1. Simple Command with Validation
 
-**Command**: `Service.Category/Command/CreateCategoryCommand.cs`
+**Command**: `MindedExample.Application.Category/Command/CreateCategoryCommand.cs`
 ```csharp
 [ValidateCommand]
 public class CreateCategoryCommand : ICommand<Category>
@@ -2260,7 +2262,7 @@ public class CreateCategoryCommand : ICommand<Category>
 }
 ```
 
-**Handler**: `Service.Category/CommandHandler/CreateCategoryCommandHandler.cs`
+**Handler**: `MindedExample.Application.Category/CommandHandler/CreateCategoryCommandHandler.cs`
 ```csharp
 public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryCommand, Category>
 {
@@ -2281,7 +2283,7 @@ public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryComman
 }
 ```
 
-**Validator**: `Service.Category/Validator/CreateCategoryCommandValidator.cs`
+**Validator**: `MindedExample.Application.Category/Validator/CreateCategoryCommandValidator.cs`
 ```csharp
 public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCommand>
 {
@@ -2303,7 +2305,7 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
 
 #### 2. Query with Caching
 
-**Query**: `Service.Category/Query/GetCategoryByIdQuery.cs`
+**Query**: `MindedExample.Application.Category/Query/GetCategoryByIdQuery.cs`
 ```csharp
 [MemoryCache(ExpirationInSeconds = 300)]
 public class GetCategoryByIdQuery : IQuery<Category>, IGenerateCacheKey
@@ -2316,7 +2318,7 @@ public class GetCategoryByIdQuery : IQuery<Category>, IGenerateCacheKey
 
 #### 3. Query with OData Support
 
-**Query**: `Service.Category/Query/GetCategoriesQuery.cs`
+**Query**: `MindedExample.Application.Category/Query/GetCategoriesQuery.cs`
 ```csharp
 [ValidateQuery]
 public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>,
@@ -2333,7 +2335,7 @@ public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>,
 
 #### 4. Controller Using RestMediator
 
-**Controller**: `Application.Api/Controllers/CategoryController.cs`
+**Controller**: `MindedExample.Api/Controllers/CategoryController.cs`
 ```csharp
 [Route("api/[controller]")]
 public class CategoryController : Controller
@@ -2362,7 +2364,7 @@ public class CategoryController : Controller
 
 The example application automatically seeds the database with sample data in development mode. This is perfect for testing and understanding the framework.
 
-**See**: [Database Seeding Documentation](Example/Data.Context/README_DatabaseSeeding.md)
+**See**: [Database Seeding Documentation](Example/MindedExample.Infrastructure.Persistence/README_DatabaseSeeding.md)
 
 ### Running Tests
 
@@ -2371,7 +2373,7 @@ The example application automatically seeds the database with sample data in dev
 dotnet test
 
 # Run specific test project
-cd Tests/Service.Category.Tests
+cd Tests/MindedExample.Application.Category.UnitTests
 dotnet test
 
 # Run with coverage

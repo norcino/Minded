@@ -35,6 +35,8 @@ Detailed rules load automatically when you edit files in these areas:
 - `[RetryCommand]` applies **only** to idempotent operations (never financial debits, email sends, etc.).
 - Exception decorator must be **last registered** (outermost) to catch all errors.
 - No validation inside handlers — use `[ValidateCommand]` + `ICommandValidator<T>`.
-- No `IMediator` calls inside standard CRUD handlers.
+- No `IMediator` calls inside read only OData controllers.
+- Inside handlers use `IMediator` to call other command handlers or query handlers to respect single responsibility principle.
+- Entities loaded inside Validators are available inside Handlers through `IMindedContextAccessor` and `ICurrentContext.Items` dictionary.
 - All public APIs in `Framework/` and `Extensions/` require XML documentation (`/// <summary>`).
 - All I/O via `async/await`; never `.Result` or `.Wait()`.

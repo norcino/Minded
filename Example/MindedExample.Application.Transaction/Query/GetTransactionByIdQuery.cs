@@ -1,9 +1,11 @@
 using System;
+using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 
 namespace MindedExample.Application.Transaction.Query
 {
+    [RequireClaim("is_global_admin", "false")]
     public class GetTransactionByIdQuery : IQuery<MindedExample.Domain.Transaction>, ILoggable
     {
         public int TransactionId { get; }

@@ -46,3 +46,13 @@ Minded is an open-source .NET **CQRS + Mediator + Decorator** framework (NuGet p
 3. Tests use MSTest + Moq + FluentAssertions.
 4. Never put validation or cross-cutting logic inside a handler — use the decorator pipeline.
 5. Exception handling must be the outermost decorator (registered last) to catch all errors.
+
+## Copilot Session Checklist (Mandatory)
+
+For all Example API changes, enforce this checklist before considering the task complete:
+
+1. Controller actions are thin and delegate through `IRestMediator`.
+2. No direct `IMindedExampleContext` (or EF data access) usage in controllers.
+3. Every endpoint behavior is implemented through CQRS command/query + handler.
+4. Input validation is implemented via validators/decorators, not inline controller logic.
+5. Authorization is policy/decorator/handler driven; avoid embedding business authorization logic in controller actions.

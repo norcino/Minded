@@ -25,6 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Authorization\Minded.Extensions.Authorization.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Context\Minded.Extensions.Context.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.WebApi\Minded.Extensions.WebApi.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
     <ProjectReference Include="..\..\Framework\Minded.Framework.Decorator\Minded.Framework.Decorator.csproj" />

@@ -36,8 +36,23 @@ namespace MindedExample.Domain
         [SensitiveData]
         public string Email { get; set; }
 
+        public int? TenantId { get; set; }
+
+        public bool IsGlobalAdmin { get; set; }
+
+        public string TenantRole { get; set; } = TenantMemberRoles.Member;
+
+        [SensitiveData]
+        public string PasswordHash { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
         public virtual ICollection<Category> Categories { get; set; }
         public virtual ICollection<Transaction> Transactions { get; set; }
+        public virtual Tenant Tenant { get; set; }
+        public virtual ICollection<TenantInvite> CreatedInvites { get; set; } = new HashSet<TenantInvite>();
+        public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new HashSet<PasswordResetToken>();
+        public virtual ICollection<Tenant> OwnedTenants { get; set; } = new HashSet<Tenant>();
 
         /// <summary>
         /// Role names assigned to this user (stored in UserRoles join table).

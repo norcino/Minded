@@ -14,9 +14,11 @@ using Minded.Extensions.Authorization;
 using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Authorization.Configuration;
 using Minded.Extensions.Authorization.Decorator;
+using Minded.Extensions.Context;
 using Minded.Extensions.Exception;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Command;
+using Minded.Framework.Mediator;
 
 namespace Minded.Extensions.Authorization.Tests.Decorators;
 
@@ -101,9 +103,11 @@ public class CommandAuthorizationDecoratorTests
         options ??= new AuthorizationOptions();
         var optionsWrapper = Options.Create(options);
         var logger = NullLoggerFactory.Instance.CreateLogger<AuthorizationCommandHandlerDecorator<TCommand>>();
+        var mindedContextAccessor = new MindedContextAccessor();
+        var mediator = new Mock<IMediator>().Object;
 
         return new AuthorizationCommandHandlerDecorator<TCommand>(
-            innerHandler, contextAccessor, evaluator, optionsWrapper, logger);
+            innerHandler, contextAccessor, evaluator, optionsWrapper, mindedContextAccessor, mediator, logger);
     }
 
     private static AuthorizationCommandHandlerDecorator<TCommand, TResult> CreateDecoratorWithResult<TCommand, TResult>(
@@ -116,9 +120,11 @@ public class CommandAuthorizationDecoratorTests
         options ??= new AuthorizationOptions();
         var optionsWrapper = Options.Create(options);
         var logger = NullLoggerFactory.Instance.CreateLogger<AuthorizationCommandHandlerDecorator<TCommand, TResult>>();
+        var mindedContextAccessor = new MindedContextAccessor();
+        var mediator = new Mock<IMediator>().Object;
 
         return new AuthorizationCommandHandlerDecorator<TCommand, TResult>(
-            innerHandler, contextAccessor, evaluator, optionsWrapper, logger);
+            innerHandler, contextAccessor, evaluator, optionsWrapper, mindedContextAccessor, mediator, logger);
     }
 
     private static Mock<ICommandHandler<TCommand>> CreateMockHandler<TCommand>(ICommandResponse response = null) where TCommand : ICommand

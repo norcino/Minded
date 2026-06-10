@@ -34,6 +34,10 @@ using MindedExample.Api.Authorization;
 using MindedExample.Api.Logging;
 using Microsoft.AspNetCore.OData;
 using Microsoft.OpenApi;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace MindedExample.Api
 {
@@ -109,6 +113,8 @@ namespace MindedExample.Api
                 .AllowCredentials()); // Required for SignalR
 
             app.UseRouting();
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
@@ -152,9 +158,47 @@ namespace MindedExample.Api
 
             // Register HttpContextAccessor for authorization context
             services.AddHttpContextAccessor();
+            services.AddScoped<ICurrentUserAccessor, HttpCurrentUserAccessor>();
+            services.AddScoped<JwtTokenFactory>();
+            services.AddScoped<IPasswordHasher<MindedExample.Domain.User>, PasswordHasher<MindedExample.Domain.User>>();
 
-            // Register authorization context accessor for impersonation-based auth
-            services.AddAuthorizationContextAccessor<ImpersonationAuthorizationContextAccessor>();
+            var jwtSection = Configuration.GetSection("Jwt");
+            var signingKey = jwtSection["SigningKey"] ?? "ThisIsADevelopmentOnlySigningKeyPleaseChange";
+            var issuer = jwtSection["Issuer"] ?? "MindedExample";
+            var audience = jwtSection["Audience"] ?? "MindedExample.Frontend";
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = issuer,
+                    ValidAudience = audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey))
+                };
+            });
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("GlobalAdminOnly", policy =>
+                    policy.RequireClaim("is_global_admin", "true"));
+
+                options.AddPolicy("TenantMemberManagement", policy =>
+                    policy.Requirements.Add(new TenantMemberManagementRequirement()));
+            });
+
+            services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, TenantMemberManagementAuthorizationHandler>();
+
+            // Register authorization context accessor for authenticated-user authorization evaluation
+            services.AddAuthorizationContextAccessor<CurrentUserAuthorizationContextAccessor>();
 
             // Register SignalR for real-time log streaming
             services.AddSignalR();

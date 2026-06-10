@@ -10,16 +10,24 @@ namespace MindedExample.Application.Role.CommandHandler
     public class AssignRolesToUserCommandHandler : ICommandHandler<AssignRolesToUserCommand>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public AssignRolesToUserCommandHandler(IMindedExampleContext context)
+        public AssignRolesToUserCommandHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         public async Task<ICommandResponse> HandleAsync(AssignRolesToUserCommand command, CancellationToken cancellationToken = default)
         {
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return new CommandResponse { Successful = false };
+            }
+
+            var tenantId = _currentUserAccessor.TenantId.Value;
             var user = await _context.Users
-                .SingleOrDefaultAsync(u => u.Id == command.UserId, cancellationToken);
+                .SingleOrDefaultAsync(u => u.Id == command.UserId && u.TenantId == tenantId, cancellationToken);
 
             if (user == null)
             {
@@ -30,14 +38,14 @@ namespace MindedExample.Application.Role.CommandHandler
             {
                 // Clear existing roles for this user
                 await concreteContext.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM UserRoles WHERE UserId = {0}", command.UserId);
+                    "DELETE FROM UserRoles WHERE TenantId = {0} AND UserId = {1}", tenantId, command.UserId);
 
                 // Insert new roles
                 foreach (var roleName in command.RoleNames)
                 {
                     await concreteContext.Database.ExecuteSqlRawAsync(
-                        "INSERT INTO UserRoles (UserId, RoleName) VALUES ({0}, {1})",
-                        command.UserId, roleName);
+                        "INSERT INTO UserRoles (TenantId, UserId, RoleName) VALUES ({0}, {1}, {2})",
+                        tenantId, command.UserId, roleName);
                 }
             }
 

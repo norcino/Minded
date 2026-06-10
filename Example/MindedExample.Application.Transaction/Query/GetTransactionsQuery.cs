@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.OData.Query;
+using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 using System;
@@ -10,6 +11,7 @@ namespace MindedExample.Application.Transaction.Query
     /// Query to retrieve transactions with OData query options.
     /// Uses a computed property for logging the OData options string representation.
     /// </summary>
+    [RequireClaim("is_global_admin", "false")]
     public class GetTransactionsQuery : IQuery<List<MindedExample.Domain.Transaction>>, ILoggable
     {
         public GetTransactionsQuery(ODataQueryOptions<MindedExample.Domain.Transaction> options, Guid? traceId = null)

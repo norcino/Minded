@@ -15,10 +15,12 @@ namespace MindedExample.Application.Category.CommandHandler
     public class DeleteCategoryCommandHandler : ICommandHandler<DeleteCategoryCommand>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public DeleteCategoryCommandHandler(IMindedExampleContext context)
+        public DeleteCategoryCommandHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -30,7 +32,18 @@ namespace MindedExample.Application.Category.CommandHandler
         /// <returns>Successful command response</returns>
         public async Task<ICommandResponse> HandleAsync(DeleteCategoryCommand command, CancellationToken cancellationToken = default)
         {
-            MindedExample.Domain.Category category = await _context.Categories.SingleOrDefaultAsync(c => c.Id == command.CategoryId, cancellationToken);
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return new CommandResponse { Successful = false };
+            }
+
+            MindedExample.Domain.Category category = await _context.Categories
+                .SingleOrDefaultAsync(c => c.Id == command.CategoryId && c.User.TenantId == _currentUserAccessor.TenantId.Value, cancellationToken);
+
+            if (category == null)
+            {
+                return new CommandResponse { Successful = false };
+            }
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync(cancellationToken);

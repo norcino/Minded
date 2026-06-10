@@ -15,9 +15,11 @@ using Minded.Extensions.Authorization;
 using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Authorization.Configuration;
 using Minded.Extensions.Authorization.Decorator;
+using Minded.Extensions.Context;
 using Minded.Extensions.Exception;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Query;
+using Minded.Framework.Mediator;
 
 namespace Minded.Extensions.Authorization.Tests.Decorators;
 
@@ -93,9 +95,11 @@ public class QueryAuthorizationDecoratorTests
         options ??= new AuthorizationOptions();
         var optionsWrapper = Options.Create(options);
         var logger = NullLoggerFactory.Instance.CreateLogger<AuthorizationQueryHandlerDecorator<TQuery, TResult>>();
+        var mindedContextAccessor = new MindedContextAccessor();
+        var mediator = new Mock<IMediator>().Object;
 
         return new AuthorizationQueryHandlerDecorator<TQuery, TResult>(
-            innerHandler, contextAccessor, evaluator, optionsWrapper, logger);
+            innerHandler, contextAccessor, evaluator, optionsWrapper, mindedContextAccessor, mediator, logger);
     }
 
     private static Mock<IQueryHandler<TQuery, TResult>> CreateMockHandler<TQuery, TResult>(TResult response = default) where TQuery : IQuery<TResult>

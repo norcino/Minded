@@ -8,6 +8,7 @@ namespace MindedExample.Application.Transaction.Command
 {
     [ValidateCommand]
     [RequirePermissions(MindedExample.Domain.Permissions.CanCreateTransaction)]
+    [RequireClaim("is_global_admin", "false")]
     public class CreateTransactionCommand : ICommand<MindedExample.Domain.Transaction>, ILoggable
     {
         public MindedExample.Domain.Transaction Transaction { get; set; }

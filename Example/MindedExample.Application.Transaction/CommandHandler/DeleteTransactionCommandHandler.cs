@@ -15,10 +15,12 @@ namespace MindedExample.Application.Transaction.CommandHandler
     public class DeleteTransactionCommandHandler : ICommandHandler<DeleteTransactionCommand>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public DeleteTransactionCommandHandler(IMindedExampleContext context)
+        public DeleteTransactionCommandHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -30,7 +32,18 @@ namespace MindedExample.Application.Transaction.CommandHandler
         /// <returns>Successful command response</returns>
         public async Task<ICommandResponse> HandleAsync(DeleteTransactionCommand command, CancellationToken cancellationToken = default)
         {
-            MindedExample.Domain.Transaction transaction = await _context.Transactions.SingleOrDefaultAsync(t => t.Id == command.TransactionId, cancellationToken);
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return new CommandResponse { Successful = false };
+            }
+
+            MindedExample.Domain.Transaction transaction = await _context.Transactions
+                .SingleOrDefaultAsync(t => t.Id == command.TransactionId && t.User.TenantId == _currentUserAccessor.TenantId.Value, cancellationToken);
+
+            if (transaction == null)
+            {
+                return new CommandResponse { Successful = false };
+            }
 
             _context.Transactions.Remove(transaction);
             await _context.SaveChangesAsync(cancellationToken);

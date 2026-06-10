@@ -12,7 +12,6 @@ import {
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import PersonIcon from '@mui/icons-material/Person';
 import AddIcon from '@mui/icons-material/Add';
 import { User } from '../../types';
 import { userService } from '../../api';
@@ -23,7 +22,7 @@ import DeleteConfirmDialog from '../common/DeleteConfirmDialog';
 
 /**
  * UserList component displays a list of users in a data grid.
- * Provides functionality to create, edit, delete, and impersonate users.
+ * Provides functionality to create, edit, and delete users.
  * Uses MUI DataGrid for advanced features like sorting and filtering.
  */
 const UserList: React.FC = () => {
@@ -34,22 +33,15 @@ const UserList: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { setCurrentUser, currentUser } = useUser();
+  const { currentUser } = useUser();
 
-  // Load users on component mount and auto-impersonate the first user
+  // Load users on component mount
   useEffect(() => {
     const init = async () => {
       await loadUsers();
     };
     init();
   }, []);
-
-  // Auto-impersonate the first user when users are loaded and no one is impersonated yet
-  useEffect(() => {
-    if (users.length > 0 && !currentUser) {
-      setCurrentUser(users[0]);
-    }
-  }, [users]);
 
   /**
    * Load all users from the API.
@@ -101,10 +93,6 @@ const UserList: React.FC = () => {
     try {
       await userService.delete(selectedUser.id);
       setSuccess('User deleted successfully');
-      // If deleted user was impersonated, clear impersonation
-      if (currentUser?.id === selectedUser.id) {
-        setCurrentUser(null);
-      }
       await loadUsers();
     } catch (err) {
       setError('Failed to delete user. Please try again.');
@@ -113,14 +101,6 @@ const UserList: React.FC = () => {
       setDeleteDialogOpen(false);
       setSelectedUser(null);
     }
-  };
-
-  /**
-   * Handle impersonating a user.
-   */
-  const handleImpersonate = (user: User) => {
-    setCurrentUser(user);
-    setSuccess(`Now impersonating ${user.name} ${user.surname}`);
   };
 
   /**
@@ -158,13 +138,6 @@ const UserList: React.FC = () => {
       width: 150,
       getActions: (params) => [
         <GridActionsCellItem
-          key="impersonate"
-          icon={<Tooltip title="Log in as this user to view the app from their perspective"><PersonIcon /></Tooltip>}
-          label="Impersonate"
-          onClick={() => handleImpersonate(params.row as User)}
-          showInMenu={false}
-        />,
-        <GridActionsCellItem
           key="edit"
           icon={<Tooltip title="Edit this user's name, email, and other details"><EditIcon /></Tooltip>}
           label="Edit"
@@ -190,7 +163,7 @@ const UserList: React.FC = () => {
             Users
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Manage application users. Click the person icon to impersonate a user and view the app from their perspective — categories and transactions will be filtered accordingly.
+            Manage users in your tenant.
           </Typography>
         </Box>
         <Button
@@ -205,7 +178,7 @@ const UserList: React.FC = () => {
 
       {currentUser && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Currently impersonating: {currentUser.name} {currentUser.surname} ({currentUser.email})
+          Signed in as: {currentUser.name} {currentUser.surname} ({currentUser.email})
         </Alert>
       )}
 
@@ -220,10 +193,10 @@ const UserList: React.FC = () => {
           }}
           disableRowSelectionOnClick
           getRowClassName={(params) =>
-            currentUser?.id === params.row.id ? 'impersonated-row' : ''
+            currentUser?.id === params.row.id ? 'current-user-row' : ''
           }
           sx={{
-            '& .impersonated-row': {
+            '& .current-user-row': {
               backgroundColor: 'rgba(25, 118, 210, 0.08)',
               borderLeft: '3px solid',
               borderLeftColor: 'primary.main',

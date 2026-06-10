@@ -12,7 +12,6 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Grid,
   Chip,
   Select,
   MenuItem,
@@ -327,9 +326,9 @@ const ConfigurationPage: React.FC = () => {
             />
           </AccordionSummary>
           <AccordionDetails>
-            <Grid container spacing={3}>
+            <Box sx={{ display: 'grid', gap: 3 }}>
               {entries.map((entry) => (
-                <Grid item xs={12} key={entry.key}>
+                <Box key={entry.key}>
                   <Paper sx={{ p: 2 }}>
                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                       {entry.name}
@@ -347,9 +346,9 @@ const ConfigurationPage: React.FC = () => {
                     </Box>
                     {renderConfigControl(entry)}
                   </Paper>
-                </Grid>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </AccordionDetails>
         </Accordion>
       ))}

@@ -13,6 +13,7 @@ namespace MindedExample.Application.Category.Command
     /// </summary>
     [ValidateCommand]
     [RequirePermissions(Domain.Permissions.CanDeleteCategory)]
+    [RequireClaim("is_global_admin", "false")]
     public class DeleteCategoryCommand : ICommand, ILoggable
     {
         public int CategoryId { get; }

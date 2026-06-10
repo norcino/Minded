@@ -13,6 +13,7 @@ namespace MindedExample.Application.Transaction.Command
     /// </summary>
     [ValidateCommand]
     [RequirePermissions(MindedExample.Domain.Permissions.CanUpdateTransaction)]
+    [RequireClaim("is_global_admin", "false")]
     public class UpdateTransactionCommand : ICommand<MindedExample.Domain.Transaction>, ILoggable
     {
         public int TransactionId { get; set; }

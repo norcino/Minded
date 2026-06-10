@@ -19,6 +19,21 @@ namespace Minded.Extensions.Authorization.Attributes
         public int Minimum { get; set; } = 0;
 
         /// <summary>
+        /// Gets or sets role names that short-circuit this clause when any one is present on the caller.
+        /// </summary>
+        public string[] OrAnyRole { get; set; }
+
+        /// <summary>
+        /// Gets or sets permission names that short-circuit this clause when any one is present on the caller.
+        /// </summary>
+        public string[] OrAnyPermission { get; set; }
+
+        /// <summary>
+        /// Gets or sets claim keys that short-circuit this clause when any one is present on the caller.
+        /// </summary>
+        public string[] OrAnyClaim { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of <see cref="RequireRolesAttribute"/> with the specified role names.
         /// </summary>
         /// <param name="roles">The role names required by this clause.</param>

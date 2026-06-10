@@ -83,10 +83,9 @@ class ApiClient {
           config.data = toPascalCase(config.data);
         }
 
-        // Add impersonation header if a user ID is stored
-        const userId = localStorage.getItem('impersonateUserId');
-        if (userId) {
-          config.headers['X-Impersonate-UserId'] = userId;
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
 
         return config;

@@ -16,6 +16,10 @@ namespace MindedExample.Infrastructure.Persistence
         public virtual DbSet<Category> Categories { get; set; }
         public virtual DbSet<Transaction> Transactions { get; set; }
         public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<Tenant> Tenants { get; set; }
+        public virtual DbSet<TenantInvite> TenantInvites { get; set; }
+        public virtual DbSet<TenantJoinRequest> TenantJoinRequests { get; set; }
+        public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
         public new DbSet<T> Set<T>() where T : class, new()
         {
@@ -58,20 +62,24 @@ namespace MindedExample.Infrastructure.Persistence
             // Configure UserRoles join table (string-based, no FK to a Roles entity)
             modelBuilder.SharedTypeEntity<Dictionary<string, object>>("UserRoles", b =>
             {
+                b.Property<int>("TenantId");
                 b.Property<int>("UserId");
                 b.Property<string>("RoleName").HasColumnType("varchar(100)");
-                b.HasKey("UserId", "RoleName");
+                b.HasKey("TenantId", "UserId", "RoleName");
                 b.ToTable("UserRoles");
                 b.HasOne<User>().WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Tenant>().WithMany().HasForeignKey("TenantId").OnDelete(DeleteBehavior.Cascade);
             });
 
             // Configure RolePermissions join table (pure string-string, no entity references)
             modelBuilder.SharedTypeEntity<Dictionary<string, object>>("RolePermissions", b =>
             {
+                b.Property<int>("TenantId");
                 b.Property<string>("RoleName").HasColumnType("varchar(100)");
                 b.Property<string>("PermissionName").HasColumnType("varchar(100)");
-                b.HasKey("RoleName", "PermissionName");
+                b.HasKey("TenantId", "RoleName", "PermissionName");
                 b.ToTable("RolePermissions");
+                b.HasOne<Tenant>().WithMany().HasForeignKey("TenantId").OnDelete(DeleteBehavior.Cascade);
             });
         }
 

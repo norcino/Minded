@@ -3,8 +3,11 @@
  * Provides centralized access to all API service modules.
  */
 export { apiClient } from './client';
+export { authService } from './authService';
 export { userService } from './userService';
 export { categoryService } from './categoryService';
 export { transactionService } from './transactionService';
 export { roleService } from './roleService';
+export { tenantAdminService } from './tenantAdminService';
+export { appTenantService } from './appTenantService';
 

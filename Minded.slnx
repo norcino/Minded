@@ -1,0 +1,64 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Extensions/">
+    <Project Path="Extensions/Minded.Extensions.Authorization/Minded.Extensions.Authorization.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Caching.Abstractions/Minded.Extensions.Caching.Abstractions.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Caching.Memory/Minded.Extensions.Caching.Memory.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Configuration/Minded.Extensions.Configuration.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Context/Minded.Extensions.Context.csproj" />
+    <Project Path="Extensions/Minded.Extensions.CQRS.EntityFrameworkCore/Minded.Extensions.CQRS.EntityFrameworkCore.csproj" />
+    <Project Path="Extensions/Minded.Extensions.CQRS.OData/Minded.Extensions.CQRS.OData.csproj" />
+    <Project Path="Extensions/Minded.Extensions.DataProtection.Abstractions/Minded.Extensions.DataProtection.Abstractions.csproj" />
+    <Project Path="Extensions/Minded.Extensions.DataProtection/Minded.Extensions.DataProtection.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Exception/Minded.Extensions.Exception.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Logging/Minded.Extensions.Logging.csproj" />
+    <Project Path="Extensions/Minded.Extensions.OData/Minded.Extensions.OData.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Retry/Minded.Extensions.Retry.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Transaction/Minded.Extensions.Transaction.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Validation.Abstractions/Minded.Extensions.Validation.Abstractions.csproj" />
+    <Project Path="Extensions/Minded.Extensions.Validation/Minded.Extensions.Validation.csproj" />
+    <Project Path="Extensions/Minded.Extensions.WebApi/Minded.Extensions.WebApi.csproj" />
+  </Folder>
+  <Folder Name="/Framework/">
+    <Project Path="Framework/Minded.Framework.CQRS.Abstractions/Minded.Framework.CQRS.Abstractions.csproj" />
+    <Project Path="Framework/Minded.Framework.CQRS/Minded.Framework.CQRS.csproj" />
+    <Project Path="Framework/Minded.Framework.Decorator/Minded.Framework.Decorator.csproj" />
+    <Project Path="Framework/Minded.Framework.Mediator.Abstractions/Minded.Framework.Mediator.Abstractions.csproj" />
+    <Project Path="Framework/Minded.Framework.Mediator/Minded.Framework.Mediator.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="azure-pipelines.yml" />
+    <File Path="Changelog.md" />
+    <File Path="key.snk" />
+    <File Path="LICENSE" />
+    <File Path="Minded-128.png" />
+    <File Path="minded.ico" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Minded.Extensions.Authorization.Tests/Minded.Extensions.Authorization.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Caching.Abstractions.Tests/Minded.Extensions.Caching.Abstractions.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Caching.Memory.Tests/Minded.Extensions.Caching.Memory.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Configuration.Tests/Minded.Extensions.Configuration.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.CQRS.EntityFrameworkCore.Tests/Minded.Extensions.CQRS.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.CQRS.OData.Tests/Minded.Extensions.CQRS.OData.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Exception.Tests/Minded.Extensions.Exception.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Logging.Tests/Minded.Extensions.Logging.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Retry.IntegrationTests/Minded.Extensions.Retry.IntegrationTests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Retry.Tests/Minded.Extensions.Retry.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Validation.Abstractions.Tests/Minded.Extensions.Validation.Abstractions.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.Validation.Tests/Minded.Extensions.Validation.Tests.csproj" />
+    <Project Path="Tests/Minded.Extensions.WebApi.IntegrationTests/Minded.Extensions.WebApi.IntegrationTests.csproj" />
+    <Project Path="Tests/Minded.Extensions.WebApi.Tests/Minded.Extensions.WebApi.Tests.csproj" />
+    <Project Path="Tests/Minded.Framework.CQRS.Abstractions.Tests/Minded.Framework.CQRS.Abstractions.Tests.csproj" />
+    <Project Path="Tests/Minded.Framework.CQRS.Tests/Minded.Framework.CQRS.Tests.csproj" />
+    <Project Path="Tests/Minded.Framework.Decorator.Tests/Minded.Framework.Decorator.Tests.csproj" />
+    <Project Path="Tests/Minded.Framework.Mediator.Abstractions.Tests/Minded.Framework.Mediator.Abstractions.Tests.csproj" />
+    <Project Path="Tests/Minded.Framework.Mediator.Tests/Minded.Framework.Mediator.Tests.csproj" />
+    <Project Path="Tests/Minded.Testing.Common/Minded.Testing.Common.csproj" />
+  </Folder>
+</Solution>

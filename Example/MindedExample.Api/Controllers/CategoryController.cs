@@ -7,6 +7,7 @@ using Minded.Extensions.WebApi;
 using MindedExample.Application.Category.Command;
 using MindedExample.Application.Category.Query;
 using Minded.Extensions.CQRS.OData;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MindedExample.Api.Controllers
 {
@@ -15,6 +16,7 @@ namespace MindedExample.Api.Controllers
     /// Demonstrates RestMediator usage with CQRS pattern, OData support, and proper CancellationToken handling.
     /// </summary>
     [Route("api/[controller]")]
+    [Authorize]
     public class CategoryController : Controller
     {
         private readonly IRestMediator _restMediator;

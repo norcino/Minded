@@ -23,17 +23,23 @@ Aligned all package versions to 1.3.0, added .NET 10 support, upgraded all Micro
 * Added `Minded.Extensions.Authorization` package with RBAC authorization decorator
 * Added `[RequireRoles]` attribute for role-based access control on commands and queries
 * Added `[RequirePermissions]` attribute for permission-based access control on commands and queries
+* Added `[RequireClaim]` attribute for claim-based access control with value matching, `AuthorizationMatch` modes, and `MatchProperty` to bind a claim value to a request property
+* Added `[RequireResourceAccess]` attribute for resource-based authorization that dispatches an `IQuery<bool>` (or `IQuery<IQueryResponse<bool>>`) authorization query through the mediator using a request property as resource id and a claim as caller identifier
+* Added `OrAnyRole`, `OrAnyPermission`, and `OrAnyClaim` properties on `[RequireRoles]`, `[RequirePermissions]`, `[RequireClaim]`, and `[RequireResourceAccess]` to short-circuit the primary clause when any listed role/permission/claim is present
 * Added `[RequireAuthentication]` attribute for authentication-only checks without RBAC
 * Added `[AllowUnauthenticated]` attribute to opt out of enforce-authentication policies
 * Added `AuthorizationMatch` enum with `All`, `Any`, `AtLeast`, and `None` matching modes
-* Added `AuthorizationContext` for representing caller identity, roles, and permissions
+* Added `AuthorizationContext` for representing caller identity, roles, permissions, and claims (claim keys are case-insensitive)
 * Added `IAuthorizationContextAccessor` interface to bridge authentication mechanisms
 * Added `DefaultRequestAuthorizationEvaluator` for case-insensitive RBAC evaluation
 * Added `AuthorizationOptions` with `RequireAuthenticationForAllCommands` and `RequireAuthenticationForAllQueries` policies
 * Added `AuthorizationDescriptorCache` for compiled attribute caching at startup
-* Added eager attribute validation at startup to catch configuration errors early
-* Added `AddCommandAuthorizationDecorator()` and `AddQueryAuthorizationDecorator()` extension methods
+* Added eager attribute validation at startup to catch configuration errors early (now also validates `MatchProperty` and `ResourceIdProperty` exist on the request type and that the authorization query type exposes a public `(object resourceId, string claimValue)` constructor)
+* Added recursion prevention for resource authorization: the inner authorization query runs inside an async-flow-scoped bypass marker on `IMindedContext`, preventing the authorization decorator from re-evaluating itself when dispatched through the mediator
+* Added `MindedContextRequiredException` thrown at runtime when a `[RequireResourceAccess]` clause is reached without an active `IMindedContext`, with a remediation message pointing to the Minded context decorator registration
+* Added `AddCommandAuthorizationDecorator()` and `AddQueryAuthorizationDecorator()` extension methods (now also register a fallback `IMindedContextAccessor` so the decorators can resolve the ambient context)
 * Added `AddAuthorizationContextAccessor<T>()` and `AddRequestAuthorizationEvaluator<T>()` extension methods
+* Added `Minded.Extensions.Authorization` README and developer documentation with usage examples and DI registration guidance
 * Added authorization showcase in Example application with roles, permissions, and admin section
 * Added `Permissions` and `Roles` static classes with `const string` fields for compile-time safe permission/role references
 * Added `Role` and `Permission` domain entities with many-to-many relationships

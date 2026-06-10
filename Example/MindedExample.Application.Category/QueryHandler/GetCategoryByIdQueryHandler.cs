@@ -14,10 +14,12 @@ namespace MindedExample.Application.Category.QueryHandler
     public class GetCategoryByIdQueryHandler : IQueryHandler<GetCategoryByIdQuery, MindedExample.Domain.Category>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public GetCategoryByIdQueryHandler(IMindedExampleContext context)
+        public GetCategoryByIdQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -30,9 +32,14 @@ namespace MindedExample.Application.Category.QueryHandler
         /// <returns>Category if found, null otherwise</returns>
         public async Task<MindedExample.Domain.Category> HandleAsync(GetCategoryByIdQuery query, CancellationToken cancellationToken = default)
         {
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return null;
+            }
+
             return await _context.Categories
                 .AsNoTracking()
-                .SingleOrDefaultAsync(c => c.Id == query.CategoryId, cancellationToken);
+                .SingleOrDefaultAsync(c => c.Id == query.CategoryId && c.User.TenantId == _currentUserAccessor.TenantId.Value, cancellationToken);
         }
     }
 }

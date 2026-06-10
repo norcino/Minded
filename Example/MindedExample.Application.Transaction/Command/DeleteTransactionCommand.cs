@@ -13,6 +13,7 @@ namespace MindedExample.Application.Transaction.Command
     /// </summary>
     [ValidateCommand]
     [RequirePermissions(MindedExample.Domain.Permissions.CanDeleteTransaction)]
+    [RequireClaim("is_global_admin", "false")]
     public class DeleteTransactionCommand : ICommand, ILoggable
     {
         public int TransactionId { get; }

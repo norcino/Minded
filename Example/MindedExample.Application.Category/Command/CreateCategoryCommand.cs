@@ -19,6 +19,7 @@ namespace MindedExample.Application.Category.Command
     [ValidateCommand]
     [RetryCommand]
     [RequirePermissions(Domain.Permissions.CanCreateCategory)]
+    [RequireClaim("is_global_admin", "false")]
     public class CreateCategoryCommand : ICommand<MindedExample.Domain.Category>, ILoggable, ITraceable
     {
         public MindedExample.Domain.Category Category { get; set; }

@@ -2,12 +2,30 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "frontend: dev",
+            "type": "npm",
+            "script": "dev",
+            "path": "Example/Frontend",
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "custom",
+                "pattern": {
+                    "regexp": "."
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".",
+                    "endsPattern": "Local:"
+                }
+            }
+        },
+        {
             "label": "build",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/Minded-Example.sln",
+                "${workspaceFolder}/Minded-Example.slnx",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -19,7 +37,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/Minded-Example.sln",
+                "${workspaceFolder}/Minded-Example.slnx",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -33,7 +51,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/Minded-Example.sln"
+                "${workspaceFolder}/Minded-Example.slnx"
             ],
             "problemMatcher": "$msCompile"
         }

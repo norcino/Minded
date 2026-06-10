@@ -14,17 +14,24 @@ namespace MindedExample.Application.Transaction.QueryHandler
  public class ExistsTransactionByIdQueryHandler : IQueryHandler<ExistsTransactionByIdQuery, bool>
  {
  private readonly IMindedExampleContext _context;
+ private readonly ICurrentUserAccessor _currentUserAccessor;
 
- public ExistsTransactionByIdQueryHandler(IMindedExampleContext context)
+ public ExistsTransactionByIdQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
  {
  _context = context;
+ _currentUserAccessor = currentUserAccessor;
  }
 
  public async Task<bool> HandleAsync(ExistsTransactionByIdQuery query, CancellationToken cancellationToken = default)
  {
+ if (!_currentUserAccessor.TenantId.HasValue)
+ {
+ return false;
+ }
+
  return await _context.Transactions
  .AsNoTracking()
- .AnyAsync(t => t.Id == query.TransactionId, cancellationToken);
+ .AnyAsync(t => t.Id == query.TransactionId && t.User.TenantId == _currentUserAccessor.TenantId.Value, cancellationToken);
  }
  }
 }

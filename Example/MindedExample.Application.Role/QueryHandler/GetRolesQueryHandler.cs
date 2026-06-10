@@ -13,20 +13,29 @@ namespace MindedExample.Application.Role.QueryHandler
     public class GetRolesQueryHandler : IQueryHandler<GetRolesQuery, IQueryResponse<IEnumerable<RoleDto>>>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public GetRolesQueryHandler(IMindedExampleContext context)
+        public GetRolesQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         public async Task<IQueryResponse<IEnumerable<RoleDto>>> HandleAsync(GetRolesQuery query, CancellationToken cancellationToken = default)
         {
             var result = new List<RoleDto>();
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return new QueryResponse<IEnumerable<RoleDto>>(result);
+            }
+
+            var tenantId = _currentUserAccessor.TenantId.Value;
 
             if (_context is MindedExampleContext concreteContext)
             {
                 // Query the RolePermissions shared-type entity
                 var rolePermissions = await concreteContext.Set<Dictionary<string, object>>("RolePermissions")
+                    .Where(rp => (int)rp["TenantId"] == tenantId)
                     .ToListAsync(cancellationToken);
 
                 var grouped = rolePermissions

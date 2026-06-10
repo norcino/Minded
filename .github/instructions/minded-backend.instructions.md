@@ -10,10 +10,10 @@ These rules apply to all C# code in this repository. They enforce clean architec
 
 ## 1. Project & Folder Structure
 
-Each service lives in its own project (e.g. `Service.Category`, `Service.Transaction`). Inside each service project use exactly these top-level folders:
+Each service lives in its own project (e.g. `Application.Category`, `Application.Transaction`). Inside each service project use exactly these top-level folders:
 
 ```
-Service.{Feature}/
+Application.{Feature}/
 ├── Command/          # ICommand / ICommand<TResult> definitions
 ├── CommandHandler/   # ICommandHandler<TCommand> / ICommandHandler<TCommand, TResult>
 ├── Query/            # IQuery<TResult> definitions
@@ -21,7 +21,7 @@ Service.{Feature}/
 └── Validator/        # ICommandValidator<T>, IQueryValidator<T, R>, IValidator<TEntity>
 ```
 
-Namespaces follow the folder: `Service.{Feature}.Command`, `Service.{Feature}.CommandHandler`, etc.
+Namespaces follow the folder: `Application.{Feature}.Command`, `Application.{Feature}.CommandHandler`, etc.
 
 ---
 
@@ -174,6 +174,10 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
 - For OData-enabled collection endpoints inject `ODataQueryOptions<TEntity>` and call `query.ApplyODataQueryOptions(queryOptions)`.
 - Always accept `CancellationToken cancellationToken = default` in controller actions.
 - Inject `IRestMediator` only — never `IMediator` or any handler directly.
+- Do not inject `IMindedExampleContext` (or any DbContext) in controllers.
+- Do not execute LINQ/data access inside controllers.
+- Controllers are transport adapters only: map HTTP request to command/query and delegate to `IRestMediator`.
+- Non-trivial authorization checks must be implemented with ASP.NET authorization policies, decorators, or handlers, not with inline controller business logic.
 - Map HTTP verbs to `RestOperation` values:
 
 | HTTP method        | RestOperation              |
@@ -212,6 +216,16 @@ public class CategoryController : Controller
 }
 ```
 
+### Non-negotiable API architecture gate
+
+Before considering backend work complete, verify all these conditions:
+
+1. Every endpoint with business behavior has a dedicated command/query.
+2. Business logic lives in handlers, not in controllers.
+3. Controller actions contain only: input mapping, `RestOperation` selection, mediator delegation.
+4. No direct persistence dependencies (`IMindedExampleContext`, EF query APIs) in controllers.
+5. Any controller-level exception handling must be transport-only and not business orchestration.
+
 ---
 
 ## 8. Decorator Registration (DI)
@@ -245,7 +259,7 @@ Do **not** skip a decorator layer globally to exclude one command/query — use 
 
 Three test tiers are required for every feature. Test projects live in `Example/Tests/`:
 
-### 9.1 Unit tests — `Service.{Feature}.Tests`
+### 9.1 Unit tests — `Application.{Feature}.Tests`
 - Test **validators** in isolation.
 - Use MSTest (`[TestClass]`, `[TestMethod]`) with FluentAssertions for assertions.
 - Instantiate the validator directly (no DI container).
@@ -272,7 +286,7 @@ public class CreateCategoryCommandValidatorTest
 }
 ```
 
-### 9.2 Integration tests — `Service.{Feature}.IntegrationTests`
+### 9.2 Integration tests — `Application.{Feature}.IntegrationTests`
 - Test **command/query handlers** end-to-end against a real (in-memory SQLite) database.
 - Extend `BaseServiceIntegrationTest` which sets up the EF context and mediator.
 - Assert on the database state after the command executes (use `Context.{DbSet}.SingleAsync(...)`).

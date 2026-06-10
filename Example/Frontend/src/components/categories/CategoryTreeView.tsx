@@ -23,7 +23,6 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  DragOverEvent,
   closestCenter,
   useDraggable,
   useDroppable,
@@ -49,7 +48,6 @@ interface DraggableTreeItemProps {
   onAddChild: (parentCategory: Category) => void;
   expandedNodes: string[];
   onNodeToggle: (nodeId: string) => void;
-  isOver?: boolean;
 }
 
 /**
@@ -63,7 +61,6 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
   onAddChild,
   expandedNodes,
   onNodeToggle,
-  isOver = false,
 }) => {
   // Make this item draggable
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
@@ -232,7 +229,6 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
   const [treeData, setTreeData] = useState<CategoryNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const [overCategory, setOverCategory] = useState<Category | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { currentUser } = useUser();
@@ -316,25 +312,11 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
   };
 
   /**
-   * Handle drag over event - track which category is being hovered.
-   */
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (over) {
-      const category = over.data.current?.category as Category;
-      setOverCategory(category);
-    } else {
-      setOverCategory(null);
-    }
-  };
-
-  /**
    * Handle drag end event - update category parent.
    */
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCategory(null);
-    setOverCategory(null);
 
     if (!over) return;
 
@@ -502,7 +484,6 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
         <DndContext
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <RootDropZone />

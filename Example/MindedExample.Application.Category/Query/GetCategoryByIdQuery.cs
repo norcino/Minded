@@ -1,12 +1,14 @@
 using System;
 using Minded.Extensions.Caching.Decorator;
 using Minded.Extensions.Caching.Memory.Decorator;
+using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 
 namespace MindedExample.Application.Category.Query
 {
     [MemoryCache(ExpirationInSeconds = 300)]
+    [RequireClaim("is_global_admin", "false")]
     public class GetCategoryByIdQuery : IQuery<MindedExample.Domain.Category>, IGenerateCacheKey, ILoggable
     {
         public int CategoryId { get; }

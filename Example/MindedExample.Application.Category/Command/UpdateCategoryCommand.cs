@@ -13,6 +13,7 @@ namespace MindedExample.Application.Category.Command
     /// </summary>
     [ValidateCommand]
     [RequirePermissions(Domain.Permissions.CanUpdateCategory)]
+    [RequireClaim("is_global_admin", "false")]
     public class UpdateCategoryCommand : ICommand, ILoggable
     {
         public MindedExample.Domain.Category Category { get; }

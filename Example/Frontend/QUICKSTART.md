@@ -4,7 +4,7 @@
 
 1. **Start the Backend API**
    - Navigate to `Example/MindedExample.Api`
-   - Run the API (it should be available at `http://localhost:5000`)
+  - Run the API (it should be available at `http://localhost:6000`)
    - Ensure the database is seeded with sample data
 
 2. **Install Node.js**
@@ -120,7 +120,7 @@ The application will open at `http://localhost:3000`
 ### API Connection Issues
 
 If you see "Failed to load" errors:
-1. Verify the backend API is running on `http://localhost:5000`
+1. Verify the backend API is running on `http://localhost:6000`
 2. Check the browser console for CORS errors
 3. Ensure the API endpoints are accessible
 

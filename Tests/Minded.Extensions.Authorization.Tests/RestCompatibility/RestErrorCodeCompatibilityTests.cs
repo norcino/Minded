@@ -15,10 +15,12 @@ using Minded.Extensions.Authorization;
 using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Authorization.Configuration;
 using Minded.Extensions.Authorization.Decorator;
+using Minded.Extensions.Context;
 using Minded.Extensions.Exception;
 using Minded.Extensions.WebApi;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Command;
+using Minded.Framework.Mediator;
 
 namespace Minded.Extensions.Authorization.Tests.RestCompatibility;
 
@@ -49,9 +51,11 @@ public class RestErrorCodeCompatibilityTests
         options ??= new AuthorizationOptions();
         var optionsWrapper = Options.Create(options);
         var logger = NullLoggerFactory.Instance.CreateLogger<AuthorizationCommandHandlerDecorator<TCommand>>();
+        var mindedContextAccessor = new MindedContextAccessor();
+        var mediator = new Mock<IMediator>().Object;
 
         return new AuthorizationCommandHandlerDecorator<TCommand>(
-            innerHandler, contextAccessor, evaluator, optionsWrapper, logger);
+            innerHandler, contextAccessor, evaluator, optionsWrapper, mindedContextAccessor, mediator, logger);
     }
 
     private static Mock<ICommandHandler<TCommand>> CreateMockHandler<TCommand>(ICommandResponse response = null) where TCommand : ICommand

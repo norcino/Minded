@@ -15,10 +15,12 @@ namespace MindedExample.Application.Category.CommandHandler
     public class UpdateCategoryCommandHandler : ICommandHandler<UpdateCategoryCommand>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public UpdateCategoryCommandHandler(IMindedExampleContext context)
+        public UpdateCategoryCommandHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -30,7 +32,13 @@ namespace MindedExample.Application.Category.CommandHandler
         /// <returns>Successful command response with the updated category</returns>
         public async Task<ICommandResponse> HandleAsync(UpdateCategoryCommand command, CancellationToken cancellationToken = default)
         {
-            MindedExample.Domain.Category category = await _context.Categories.SingleOrDefaultAsync(c => c.Id == command.CategoryId, cancellationToken);
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return new CommandResponse<MindedExample.Domain.Category>(default(MindedExample.Domain.Category), false);
+            }
+
+            MindedExample.Domain.Category category = await _context.Categories
+                .SingleOrDefaultAsync(c => c.Id == command.CategoryId && c.User.TenantId == _currentUserAccessor.TenantId.Value, cancellationToken);
 
             // Update category properties
             // Note: category should never be null here due to validation, but defensive programming

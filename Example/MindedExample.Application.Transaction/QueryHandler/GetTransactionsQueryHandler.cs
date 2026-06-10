@@ -19,11 +19,16 @@ namespace MindedExample.Application.Transaction.QueryHandler
     {
         private readonly IMindedExampleContext _context;
         private readonly ILogger<IQueryHandler<GetTransactionsQuery, List<MindedExample.Domain.Transaction>>> _logger;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public GetTransactionsQueryHandler(IMindedExampleContext context, ILogger<IQueryHandler<GetTransactionsQuery, List<MindedExample.Domain.Transaction>>> logger)
+        public GetTransactionsQueryHandler(
+            IMindedExampleContext context,
+            ILogger<IQueryHandler<GetTransactionsQuery, List<MindedExample.Domain.Transaction>>> logger,
+            ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
             _logger = logger;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
@@ -35,7 +40,16 @@ namespace MindedExample.Application.Transaction.QueryHandler
         /// <returns>List of transactions matching the query criteria</returns>
         public Task<List<MindedExample.Domain.Transaction>> HandleAsync(GetTransactionsQuery query, CancellationToken cancellationToken = default)
         {
-            IEnumerable<MindedExample.Domain.Transaction> result = _context.Transactions.AsQueryable().ApplyODataQueryOptions(query.Options);
+            if (!_currentUserAccessor.TenantId.HasValue)
+            {
+                return Task.FromResult(new List<MindedExample.Domain.Transaction>());
+            }
+
+            var tenantId = _currentUserAccessor.TenantId.Value;
+            IEnumerable<MindedExample.Domain.Transaction> result = _context.Transactions
+                .Where(t => t.User.TenantId == tenantId)
+                .AsQueryable()
+                .ApplyODataQueryOptions(query.Options);
             return Task.FromResult(result.ToList());
         }
     }

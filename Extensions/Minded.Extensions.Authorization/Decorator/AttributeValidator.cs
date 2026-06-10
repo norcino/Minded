@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Minded.Extensions.Authorization.Attributes;
+using Minded.Framework.CQRS.Query;
 
 namespace Minded.Extensions.Authorization.Decorator
 {
@@ -21,6 +22,7 @@ namespace Minded.Extensions.Authorization.Decorator
             bool hasRbac = false;
             bool hasAllowUnauthenticated = false;
             bool hasRequireAuthentication = false;
+            bool hasRequireResourceAccess = false;
 
             foreach (var attr in attributes)
             {
@@ -28,11 +30,27 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     hasRbac = true;
                     ValidateItems(requestType, rolesAttr.Roles, rolesAttr.Match, rolesAttr.Minimum, "RequireRolesAttribute");
+                    ValidateOrItems(requestType, rolesAttr.OrAnyRole, "RequireRolesAttribute.OrAnyRole");
+                    ValidateOrItems(requestType, rolesAttr.OrAnyPermission, "RequireRolesAttribute.OrAnyPermission");
+                    ValidateOrItems(requestType, rolesAttr.OrAnyClaim, "RequireRolesAttribute.OrAnyClaim");
                 }
                 else if (attr is RequirePermissionsAttribute permsAttr)
                 {
                     hasRbac = true;
                     ValidateItems(requestType, permsAttr.Permissions, permsAttr.Match, permsAttr.Minimum, "RequirePermissionsAttribute");
+                    ValidateOrItems(requestType, permsAttr.OrAnyRole, "RequirePermissionsAttribute.OrAnyRole");
+                    ValidateOrItems(requestType, permsAttr.OrAnyPermission, "RequirePermissionsAttribute.OrAnyPermission");
+                    ValidateOrItems(requestType, permsAttr.OrAnyClaim, "RequirePermissionsAttribute.OrAnyClaim");
+                }
+                else if (attr is RequireClaimAttribute claimAttr)
+                {
+                    hasRbac = true;
+                    ValidateClaim(requestType, claimAttr);
+                }
+                else if (attr is RequireResourceAccessAttribute resourceAttr)
+                {
+                    hasRequireResourceAccess = true;
+                    ValidateRequireResourceAccess(requestType, resourceAttr);
                 }
                 else if (attr is RequireAuthenticationAttribute)
                 {
@@ -44,10 +62,10 @@ namespace Minded.Extensions.Authorization.Decorator
                 }
             }
 
-            if (hasAllowUnauthenticated && (hasRbac || hasRequireAuthentication))
+            if (hasAllowUnauthenticated && (hasRbac || hasRequireAuthentication || hasRequireResourceAccess))
             {
                 throw new InvalidOperationException(
-                    $"Type '{requestType.Name}' has AllowUnauthenticatedAttribute combined with RBAC or RequireAuthenticationAttribute. " +
+                    $"Type '{requestType.Name}' has AllowUnauthenticatedAttribute combined with RBAC, RequireAuthenticationAttribute, or RequireResourceAccessAttribute. " +
                     "These are contradictory and cannot be used together.");
             }
         }
@@ -97,6 +115,121 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     throw new InvalidOperationException(
                         $"Type '{requestType.Name}' has {attributeName} with Match={match} and Minimum != 0.");
+                }
+            }
+        }
+
+        private static void ValidateClaim(Type requestType, RequireClaimAttribute claimAttr)
+        {
+            if (string.IsNullOrWhiteSpace(claimAttr.ClaimType))
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireClaimAttribute with blank ClaimType.");
+            }
+
+            if (string.IsNullOrWhiteSpace(claimAttr.MatchProperty))
+            {
+                ValidateItems(requestType, claimAttr.Values, claimAttr.Match, claimAttr.Minimum, "RequireClaimAttribute");
+            }
+            else
+            {
+                var property = requestType.GetProperty(claimAttr.MatchProperty);
+                if (property == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Type '{requestType.Name}' has RequireClaimAttribute with MatchProperty '{claimAttr.MatchProperty}' which does not exist.");
+                }
+            }
+
+            bool hasValues = claimAttr.Values != null && claimAttr.Values.Length > 0;
+            bool hasMatchProperty = !string.IsNullOrWhiteSpace(claimAttr.MatchProperty);
+            if (!hasValues && !hasMatchProperty)
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireClaimAttribute with neither Values nor MatchProperty configured.");
+            }
+
+            ValidateOrItems(requestType, claimAttr.OrAnyRole, "RequireClaimAttribute.OrAnyRole");
+            ValidateOrItems(requestType, claimAttr.OrAnyPermission, "RequireClaimAttribute.OrAnyPermission");
+            ValidateOrItems(requestType, claimAttr.OrAnyClaim, "RequireClaimAttribute.OrAnyClaim");
+        }
+
+        private static void ValidateRequireResourceAccess(Type requestType, RequireResourceAccessAttribute resourceAttr)
+        {
+            if (string.IsNullOrWhiteSpace(resourceAttr.ResourceIdProperty))
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute with blank resourceIdProperty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(resourceAttr.ResourceIdClaim))
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute with blank resourceIdClaim.");
+            }
+
+            var resourceProperty = requestType.GetProperty(resourceAttr.ResourceIdProperty);
+            if (resourceProperty == null)
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute referencing property '{resourceAttr.ResourceIdProperty}' which does not exist.");
+            }
+
+            if (resourceAttr.QueryType == null)
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute with null queryType.");
+            }
+
+            var interfaces = resourceAttr.QueryType.GetInterfaces();
+            bool implementsSupportedQuery = interfaces.Any(i =>
+                i.IsGenericType
+                && i.GetGenericTypeDefinition() == typeof(IQuery<>)
+                && IsSupportedQueryResultType(i.GetGenericArguments()[0]));
+
+            if (!implementsSupportedQuery)
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute with queryType '{resourceAttr.QueryType.Name}' which does not implement IQuery<bool> or IQuery<IQueryResponse<bool>>.");
+            }
+
+            var constructor = resourceAttr.QueryType.GetConstructor(new[] { typeof(object), typeof(string) });
+            if (constructor == null)
+            {
+                throw new InvalidOperationException(
+                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute with queryType '{resourceAttr.QueryType.Name}' which does not have a constructor accepting (object resourceId, string claimValue).");
+            }
+
+            ValidateOrItems(requestType, resourceAttr.OrAnyRole, "RequireResourceAccessAttribute.OrAnyRole");
+            ValidateOrItems(requestType, resourceAttr.OrAnyPermission, "RequireResourceAccessAttribute.OrAnyPermission");
+            ValidateOrItems(requestType, resourceAttr.OrAnyClaim, "RequireResourceAccessAttribute.OrAnyClaim");
+        }
+
+        private static bool IsSupportedQueryResultType(Type resultType)
+        {
+            if (resultType == typeof(bool))
+            {
+                return true;
+            }
+
+            return resultType.IsGenericType
+                && resultType.GetGenericTypeDefinition() == typeof(IQueryResponse<>)
+                && resultType.GetGenericArguments()[0] == typeof(bool);
+        }
+
+        private static void ValidateOrItems(Type requestType, string[] items, string memberName)
+        {
+            if (items == null)
+            {
+                return;
+            }
+
+            foreach (var item in items)
+            {
+                if (string.IsNullOrWhiteSpace(item))
+                {
+                    throw new InvalidOperationException(
+                        $"Type '{requestType.Name}' has {memberName} with a blank or whitespace-only value.");
                 }
             }
         }

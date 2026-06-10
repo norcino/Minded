@@ -13,9 +13,11 @@ using Minded.Extensions.Authorization;
 using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Authorization.Configuration;
 using Minded.Extensions.Authorization.Decorator;
+using Minded.Extensions.Context;
 using Minded.Extensions.Exception;
 using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.CQRS.Command;
+using Minded.Framework.Mediator;
 
 namespace Minded.Extensions.Authorization.Tests.Logging;
 
@@ -85,9 +87,11 @@ public class AuthorizationLoggingTests
         options ??= new AuthorizationOptions();
         var optionsWrapper = Options.Create(options);
         var logger = new TestLogger<AuthorizationCommandHandlerDecorator<TCommand>>();
+        var mindedContextAccessor = new MindedContextAccessor();
+        var mediator = new Mock<IMediator>().Object;
 
         var decorator = new AuthorizationCommandHandlerDecorator<TCommand>(
-            innerHandler, contextAccessor, evaluator, optionsWrapper, logger);
+            innerHandler, contextAccessor, evaluator, optionsWrapper, mindedContextAccessor, mediator, logger);
 
         return (decorator, logger);
     }

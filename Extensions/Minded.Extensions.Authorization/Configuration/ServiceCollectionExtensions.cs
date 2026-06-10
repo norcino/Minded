@@ -4,6 +4,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Minded.Extensions.Context;
 using Minded.Extensions.Authorization.Decorator;
 using Minded.Extensions.Configuration;
 using Minded.Framework.CQRS.Command;
@@ -39,6 +40,7 @@ namespace Minded.Extensions.Authorization.Configuration
 
             // Register default evaluator if not already registered
             builder.ServiceCollection.TryAddSingleton<IRequestAuthorizationEvaluator, DefaultRequestAuthorizationEvaluator>();
+            builder.ServiceCollection.TryAddSingleton<IMindedContextAccessor>(sp => new MindedContextAccessor());
 
             // Queue command decorator registration for ICommand
             builder.QueueCommandDecoratorRegistrationAction((b, i) =>
@@ -78,6 +80,7 @@ namespace Minded.Extensions.Authorization.Configuration
 
             // Register default evaluator if not already registered
             builder.ServiceCollection.TryAddSingleton<IRequestAuthorizationEvaluator, DefaultRequestAuthorizationEvaluator>();
+            builder.ServiceCollection.TryAddSingleton<IMindedContextAccessor>(sp => new MindedContextAccessor());
 
             // Queue query decorator registration
             builder.QueueQueryDecoratorRegistrationAction((b, i) =>

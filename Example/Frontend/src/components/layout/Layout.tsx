@@ -20,10 +20,11 @@ import PeopleIcon from '@mui/icons-material/People';
 import CategoryIcon from '@mui/icons-material/Category';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import SettingsIcon from '@mui/icons-material/Settings';
-import PersonOffIcon from '@mui/icons-material/PersonOff';
+import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SecurityIcon from '@mui/icons-material/Security';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import GroupsIcon from '@mui/icons-material/Groups';
 import { useUser } from '../../context/UserContext';
 import LogConsole from '../logs/LogConsole';
 
@@ -50,7 +51,13 @@ const Layout: React.FC = () => {
   const [consoleHeight, setConsoleHeight] = useState(300);
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, setCurrentUser } = useUser();
+  const { currentUser, tenantName, logout } = useUser();
+  const isGlobalAdmin = !!currentUser?.isGlobalAdmin;
+  const isTenantAdmin = !!currentUser && (
+    currentUser.tenantRole === 'Owner' ||
+    currentUser.tenantRole === 'Admin' ||
+    currentUser.roles?.includes('TenantAdmin')
+  );
 
   const handleConsoleResize = useCallback((newHeight: number) => {
     setConsoleHeight(newHeight);
@@ -59,20 +66,27 @@ const Layout: React.FC = () => {
   /**
    * Navigation items configuration.
    */
-  const navItems: NavItem[] = [
-    { text: 'Users', icon: <PeopleIcon />, path: '/' },
-    { text: 'Categories', icon: <CategoryIcon />, path: '/categories' },
-    { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
-    { text: 'Configuration', icon: <SettingsIcon />, path: '/configuration' },
-  ];
+  const navItems: NavItem[] = isGlobalAdmin
+    ? []
+    : [
+      { text: 'Users', icon: <PeopleIcon />, path: '/' },
+      { text: 'Categories', icon: <CategoryIcon />, path: '/categories' },
+      { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
+      { text: 'Configuration', icon: <SettingsIcon />, path: '/configuration' },
+    ];
 
   /**
    * Admin navigation items.
    */
-  const adminItems: NavItem[] = [
-    { text: 'Roles', icon: <SecurityIcon />, path: '/admin/roles' },
-    { text: 'User Roles', icon: <AssignmentIndIcon />, path: '/admin/user-roles' },
-  ];
+  const adminItems: NavItem[] = isGlobalAdmin
+    ? [{ text: 'Tenants', icon: <GroupsIcon />, path: '/admin/global-tenants' }]
+    : isTenantAdmin
+      ? [
+        { text: 'Tenant Admin', icon: <GroupsIcon />, path: '/admin/tenant' },
+        { text: 'Roles', icon: <SecurityIcon />, path: '/admin/roles' },
+        { text: 'User Roles', icon: <AssignmentIndIcon />, path: '/admin/user-roles' },
+      ]
+      : [];
 
   /**
    * Handle drawer toggle for mobile view.
@@ -92,9 +106,9 @@ const Layout: React.FC = () => {
   /**
    * Handle clearing user impersonation.
    */
-  const handleClearImpersonation = () => {
-    setCurrentUser(null);
-    navigate('/');
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   /**
@@ -121,27 +135,31 @@ const Layout: React.FC = () => {
           </ListItem>
         ))}
       </List>
-      <Divider />
-      <List>
-        <ListItem disablePadding>
-          <ListItemButton disabled>
-            <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
-            <ListItemText primary="Admin" primaryTypographyProps={{ fontWeight: 'bold', fontSize: '0.85rem' }} />
-          </ListItemButton>
-        </ListItem>
-        {adminItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
-              sx={{ pl: 4 }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+      {adminItems.length > 0 && (
+        <>
+          <Divider />
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton disabled>
+                <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
+                <ListItemText primary="Admin" primaryTypographyProps={{ fontWeight: 'bold', fontSize: '0.85rem' }} />
+              </ListItemButton>
+            </ListItem>
+            {adminItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </>
+      )}
     </div>
   );
 
@@ -170,15 +188,15 @@ const Layout: React.FC = () => {
           {currentUser && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="body2">
-                Impersonating: {currentUser.name} {currentUser.surname}
+                {currentUser.name} {currentUser.surname} {(!isGlobalAdmin && tenantName) ? `(${tenantName})` : isGlobalAdmin ? '(Application Admin)' : ''}
               </Typography>
               <Button
                 color="inherit"
-                startIcon={<PersonOffIcon />}
-                onClick={handleClearImpersonation}
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
                 size="small"
               >
-                Clear
+                Logout
               </Button>
             </Box>
           )}

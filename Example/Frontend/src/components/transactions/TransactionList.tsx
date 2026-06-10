@@ -20,7 +20,7 @@ import DeleteConfirmDialog from '../common/DeleteConfirmDialog';
 /**
  * TransactionList component displays a list of transactions in a data grid.
  * Provides functionality to create, edit, and delete transactions.
- * Filters transactions based on the currently impersonated user.
+ * Filters transactions based on the currently authenticated user.
  * Supports advanced features like sorting, filtering, and pagination.
  */
 const TransactionList: React.FC = () => {
@@ -192,7 +192,7 @@ const TransactionList: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="warning">
-          Please select a user to impersonate from the Users page to manage transactions.
+          Please sign in to manage transactions.
         </Alert>
       </Box>
     );
