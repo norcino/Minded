@@ -39,7 +39,7 @@ Application/
       CommandHandlers/    # ICommandHandler<TCommand, TResult> implementations
       Queries/            # IQuery<TResult> definitions
       QueryHandlers/      # IQueryHandler<TQuery, TResult> implementations
-      Validators/         # ICommandValidator<T>, IQueryValidator<T>, IValidator<TEntity>
+      Validators/         # ICommandValidator<T>, IQueryValidator<TQuery, TResult>, IValidator<TEntity>
 ```
 
 Namespaces follow the folder path: `{AppName}.Application.Features.{Feature}.Commands`.
@@ -50,7 +50,7 @@ Namespaces follow the folder path: `{AppName}.Application.Features.{Feature}.Com
 
 These rules are enforced by the framework — violations cause runtime errors or silent misbehaviour:
 
-- Every `[ValidateCommand]`-decorated command **must** have a registered `ICommandValidator<TCommand>`.
+- Every `[ValidateCommand]`-decorated command **must** have a registered `ICommandValidator<TCommand>` — the validation decorator takes the validator as a constructor dependency, so a missing validator fails at runtime with a DI resolution error when the command is dispatched.
 - Every `[ValidateQuery]`-decorated query **must** have a registered `IQueryValidator<TQuery, TResult>`.
 - `[MemoryCache]` and `IGenerateCacheKey` **must always be used together** on the same query. Never use one without the other.
 - `GetCacheKey()` **must** return a string that uniquely identifies the result — include **all** discriminating properties.
@@ -125,7 +125,7 @@ public class CreateEntityCommandHandler : ICommandHandler<CreateEntityCommand, E
         CreateEntityCommand command, CancellationToken cancellationToken = default)
     {
         var entity = await _repository.CreateAsync(command.Entity, cancellationToken);
-        return command.Succeed(entity);
+        return CommandResponse<Entity>.Success(entity);
     }
 }
 ```
@@ -135,7 +135,7 @@ public class CreateEntityCommandHandler : ICommandHandler<CreateEntityCommand, E
 - **One responsibility**: execute the business action only. No validation, no orchestration.
 - **No validation inside handlers** — validation belongs in `ICommandValidator<T>`.
 - **Handlers should not call `IMediator`** for standard CRUD operations. Keep handlers thin.
-- Return `command.Succeed(result)` on success; `command.Fail(new OutcomeEntry(...))` on known business failures.
+- Return `CommandResponse<TResult>.Success(result)` on success; `CommandResponse<TResult>.Error(new OutcomeEntry(...))` on known business failures. (`new CommandResponse<TResult>(result)` is equivalent to `Success` — the result constructor sets `Successful = true`.)
 - All I/O must use `async/await`; never `.Result` or `.Wait()`.
 - Inject only what is directly needed (repositories, domain services, loggers).
 
@@ -269,7 +269,7 @@ public class CreateEntityCommandValidator : ICommandValidator<CreateEntityComman
         {
             result.OutcomeEntries.Add(new OutcomeEntry(
                 nameof(command.Entity), "{0} is required",
-                GenericErrorCodes.ValidationFailed, Severity.Error));
+                attemptedValue: null, Severity.Error, GenericErrorCodes.ValidationFailed));
             return result;  // early return — avoid null-reference cascade
         }
 
@@ -290,7 +290,7 @@ public class EntityValidator : IValidator<Entity>
         if (string.IsNullOrWhiteSpace(entity.Name))
             result.OutcomeEntries.Add(new OutcomeEntry(
                 nameof(entity.Name), "{0} cannot be empty",
-                GenericErrorCodes.ValidationFailed, Severity.Error));
+                entity.Name, Severity.Error, GenericErrorCodes.ValidationFailed));
 
         return Task.FromResult<IValidationResult>(result);
     }
@@ -300,6 +300,7 @@ public class EntityValidator : IValidator<Entity>
 ### Rules
 
 - Create separate validators: `ICommandValidator<T>`, `IQueryValidator<T, TResult>`, `IValidator<TEntity>`.
+- The validation logic inside a validator may use any library (FluentValidation, DataAnnotations, plain code) — what matters is that the class implements the Minded validator interface so the decorator can resolve and invoke it.
 - Reuse entity validators across multiple command validators via constructor injection.
 - Use `Severity.Error` for hard failures, `Severity.Warning` for advisory checks, `Severity.Info` for informational outcomes.
 - Return early after a null guard failure to avoid null-reference cascades.
@@ -351,6 +352,8 @@ services.AddMinded(
 ## REST Controllers
 
 Use `IRestMediator` (from `Minded.Extensions.WebApi`). Controllers inject **only** `IRestMediator` — no handlers, no repositories, no direct `IMediator`.
+
+> **Read-only OData controllers** are the exception: they inject the `DbContext` directly and expose `IQueryable` for OData query composition. Do **not** call `IMediator`/`IRestMediator` from these controllers.
 
 ```csharp
 [ApiController]

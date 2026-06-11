@@ -15,7 +15,7 @@ Minded is an open-source .NET **CQRS + Mediator + Decorator** framework (NuGet p
 
 - **`IMediator`** dispatches `ICommand<TResult>` and `IQuery<TResult>` to registered handlers, resolved from `IServiceProvider` using a compiled delegate cache.
 - **Decorator chain**: cross-cutting concerns are applied as decorator layers. Registered via `MindedBuilder`; **first registered = innermost** (runs last, closest to handler); **last registered = outermost** (runs first).
-- **CQRS**: Commands mutate state; Queries read state. They never cross-call within a handler.
+- **CQRS**: Commands mutate state; Queries read state. When a handler must trigger other commands/queries (orchestration), it dispatches them through `IMediator` — never by invoking another handler class directly; standard CRUD handlers should not need `IMediator`.
 - **Opt-in attributes**: decorators only activate when the corresponding attribute is present on the command/query class (e.g. `[ValidateCommand]`, `[RetryCommand]`, `[MemoryCache]`).
 
 ## Key Packages
@@ -52,7 +52,7 @@ Minded is an open-source .NET **CQRS + Mediator + Decorator** framework (NuGet p
 For all Example API changes, enforce this checklist before considering the task complete:
 
 1. Controller actions are thin and delegate through `IRestMediator`.
-2. No direct `IMindedExampleContext` (or EF data access) usage in controllers.
+2. No direct `IMindedExampleContext` (or EF data access) usage in controllers — read-only OData controllers excepted: they inject the DbContext directly and expose `IQueryable`, with no `IMediator`/`IRestMediator` calls.
 3. Every endpoint behavior is implemented through CQRS command/query + handler.
 4. Input validation is implemented via validators/decorators, not inline controller logic.
 5. Authorization is policy/decorator/handler driven; avoid embedding business authorization logic in controller actions.

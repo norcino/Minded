@@ -4,18 +4,20 @@ Core OData utilities and extensions for Minded Framework, providing foundational
 
 ## Features
 
-- **OData Query Parsing** - Parse OData query strings into LINQ expressions
-- **OData Expression Builders** - Build OData-compatible queries
-- **ASP.NET Core OData Integration** - Seamless integration with ASP.NET Core OData
-- **Query Composition** - Compose complex queries with $filter, $orderby, $top, $skip
-- **Entity Framework Core Support** - Works with EF Core IQueryable
-- **Type-Safe Queries** - Strongly-typed query building
+- **Filter expression extraction** - `GetFilterExpression<TEntity>()` converts an OData `$filter` into a LINQ `Expression<Func<TEntity, bool>>`
+- **Direct IQueryable application** - `ApplyODataQueryOptions()` applies OData query options to any `IQueryable<T>` and unwraps `$select`/`$expand` projections back into plain entities
+- **ASP.NET Core OData Integration** - Built on `Microsoft.AspNetCore.OData`
+- **Trait-based CQRS flow** - Designed to work with `Minded.Extensions.CQRS.OData` (populates query trait interfaces from OData options) and `Minded.Extensions.CQRS.EntityFrameworkCore` (applies the traits to EF Core queryables)
 
 ## Installation
 
 ```bash
 dotnet add package Minded.Extensions.OData
 dotnet add package Microsoft.AspNetCore.OData
+
+# Recommended companions for the trait-based flow shown below
+dotnet add package Minded.Extensions.CQRS.OData
+dotnet add package Minded.Extensions.CQRS.EntityFrameworkCore
 ```
 
 ## Quick Start
@@ -45,7 +47,7 @@ public class Startup
                 .SetMaxTop(100)
                 .AddRouteComponents("odata", modelBuilder.GetEdmModel()));
 
-        services.AddMinded(builder =>
+        services.AddMinded(Configuration, mindedBuilderConfiguration: builder =>
         {
             builder.AddQueryLoggingDecorator();
             builder.AddQueryExceptionDecorator();
@@ -54,85 +56,109 @@ public class Startup
 }
 ```
 
-### 2. Create an OData Query
+### 2. Create a Trait-Based Query and Handler (Recommended)
+
+The framework-intended pattern does **not** pass `ODataQueryOptions` into the query. Instead, the query implements the CQRS **trait interfaces** (`ICanFilterExpression<T>`, `ICanOrderBy`, `ICanTop`, `ICanSkip`, `ICanCount`, `ICanExpand`); the controller populates them with `ApplyODataQueryOptions()` (from `Minded.Extensions.CQRS.OData`) and the handler applies them with `ApplyQueryTo()` (from `Minded.Extensions.CQRS.EntityFrameworkCore`). This keeps queries and handlers free of any ASP.NET Core OData dependency.
 
 ```csharp
-using Minded.Framework.CQRS.Abstractions;
-using Microsoft.AspNetCore.OData.Query;
+using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using Minded.Framework.CQRS.Query;
+using Minded.Framework.CQRS.Query.Trait;
 
-public class GetProductsODataQuery : IQuery<IQueryable<Product>>
+public class GetProductsQuery : IQuery<IQueryResponse<IEnumerable<Product>>>,
+    ICanFilterExpression<Product>, ICanOrderBy, ICanTop, ICanSkip, ICanCount, ICanExpand
 {
-    public ODataQueryOptions<Product> QueryOptions { get; set; }
-}
+    // ICanFilterExpression<Product> - populated from $filter
+    public Expression<Func<Product, bool>> Filter { get; set; }
 
-public class GetProductsODataQueryHandler : IQueryHandler<GetProductsODataQuery, IQueryable<Product>>
+    // ICanOrderBy - populated from $orderby
+    public IList<OrderDescriptor> OrderBy { get; set; }
+
+    // ICanTop / ICanSkip - populated from $top / $skip
+    public int? Top { get; set; }
+    public int? Skip { get; set; }
+
+    // ICanCount - populated from $count
+    public bool Count { get; set; }
+    public bool CountOnly { get; set; }
+    public int CountValue { get; set; }
+
+    // ICanExpand - populated from $expand
+    public string[] Expand { get; set; }
+
+    public Guid TraceId { get; } = Guid.NewGuid();
+}
+```
+
+The handler applies the populated traits to the EF Core `IQueryable<T>` with `ApplyQueryTo()` (extension method in the `Minded.Framework.CQRS.Query` namespace, shipped by `Minded.Extensions.CQRS.EntityFrameworkCore`):
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+using Minded.Framework.CQRS.Query;
+
+public class GetProductsQueryHandler : IQueryHandler<GetProductsQuery, IQueryResponse<IEnumerable<Product>>>
 {
     private readonly ApplicationDbContext _context;
 
-    public GetProductsODataQueryHandler(ApplicationDbContext context)
+    public GetProductsQueryHandler(ApplicationDbContext context)
     {
         _context = context;
     }
 
-    public async Task<QueryResponse<IQueryable<Product>>> HandleAsync(
-        GetProductsODataQuery query,
-        CancellationToken cancellationToken)
+    public async Task<IQueryResponse<IEnumerable<Product>>> HandleAsync(
+        GetProductsQuery query,
+        CancellationToken cancellationToken = default)
     {
-        IQueryable<Product> products = _context.Products;
+        // ApplyQueryTo applies OrderBy, Expand, Filter, Count, Skip and Top
+        var result = await query
+            .ApplyQueryTo(_context.Products.AsNoTracking())
+            .ToListAsync(cancellationToken);
 
-        // Apply OData query options
-        if (query.QueryOptions != null)
-        {
-            products = (IQueryable<Product>)query.QueryOptions.ApplyTo(products);
-        }
-
-        return QueryResponse<IQueryable<Product>>.Success(products);
+        return new QueryResponse<IEnumerable<Product>>(result);
     }
 }
 ```
 
-### 3. Create an OData Controller
+### 3. Create the Controller
+
+The controller maps the incoming OData options onto the query traits with `ApplyODataQueryOptions()` and dispatches through the mediator:
 
 ```csharp
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
-using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Minded.Extensions.CQRS.OData;
 using Minded.Extensions.WebApi;
 
-[Route("odata/[controller]")]
-public class ProductsController : ODataController
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
 {
-    private readonly IRestMediator _mediator;
+    private readonly IRestMediator _restMediator;
 
-    public ProductsController(IRestMediator mediator)
+    public ProductsController(IRestMediator restMediator)
     {
-        _mediator = mediator;
+        _restMediator = restMediator;
     }
 
     [HttpGet]
-    [EnableQuery(MaxTop = 100, AllowedQueryOptions = AllowedQueryOptions.All)]
-    public async Task<IActionResult> Get(ODataQueryOptions<Product> queryOptions)
+    public async Task<IActionResult> Get(
+        ODataQueryOptions<Product> queryOptions,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetProductsODataQuery { QueryOptions = queryOptions };
-        var result = await _mediator.ProcessQueryAsync(query);
+        var query = new GetProductsQuery();
 
-        if (result is OkObjectResult okResult && okResult.Value is IQueryable<Product> products)
-        {
-            return Ok(products);
-        }
+        // Populates Filter, OrderBy, Top, Skip, Count and Expand
+        // from $filter, $orderby, $top, $skip, $count and $expand
+        query.ApplyODataQueryOptions(queryOptions);
 
-        return result;
-    }
-
-    [HttpGet("{key}")]
-    [EnableQuery]
-    public async Task<IActionResult> Get(int key)
-    {
-        var query = new GetProductByIdQuery { ProductId = key };
-        return await _mediator.ProcessQueryAsync(query);
+        return await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query, cancellationToken);
     }
 }
 ```
+
+> If you do not use `Minded.Extensions.WebApi`, inject `IMediator` instead and call `var response = await _mediator.ProcessQueryAsync(query, cancellationToken); return Ok(response.Result);`.
 
 ## OData Query Examples
 
@@ -171,6 +197,8 @@ GET /odata/Products?$select=Id,Name,Price
 GET /odata/Products?$select=Name,Category
 ```
 
+> `$select` is **not** mapped to a query trait by `ApplyODataQueryOptions(query, options)`. It is only honoured by the low-level `IQueryable<T>.ApplyODataQueryOptions(options)` helper (see [Low-Level Utilities](#low-level-utilities-this-package)).
+
 ### Expanding Related Data ($expand)
 
 ```http
@@ -196,74 +224,81 @@ GET /odata/Orders?$expand=Customer,OrderItems($expand=Product)&$filter=Status eq
 
 ## Advanced Usage
 
-### Custom OData Query Handler
+### Low-Level Utilities (this package)
+
+`Minded.Extensions.OData` ships the `ODataQueryOptionExtensions` class (namespace `Minded.Extensions.OData`) with two helpers that work without the trait system:
 
 ```csharp
-public class SearchProductsODataQuery : IQuery<ODataResult<Product>>
+// Converts an OData $filter into a LINQ expression that can be applied to any IQueryable<TEntity>
+public static Expression<Func<TEntity, bool>> GetFilterExpression<TEntity>(this FilterQueryOption filter)
+
+// Applies the OData query options to the queryable and materialises the results,
+// unwrapping the $select/$expand wrapper objects back into plain T instances.
+// T must have a public parameterless constructor.
+public static IEnumerable<T> ApplyODataQueryOptions<T>(this IQueryable<T> query, ODataQueryOptions options) where T : class, new()
+```
+
+Use these when the query intentionally carries the raw `ODataQueryOptions` (note: this couples the application layer to ASP.NET Core OData — prefer the trait-based flow above where possible):
+
+```csharp
+using Minded.Extensions.OData;
+
+public class SearchProductsQuery : IQuery<List<Product>>
 {
-    public ODataQueryOptions<Product> QueryOptions { get; set; }
+    public ODataQueryOptions<Product> Options { get; set; }
     public string SearchTerm { get; set; }
+    public Guid TraceId { get; } = Guid.NewGuid();
 }
 
-public class SearchProductsODataQueryHandler : IQueryHandler<SearchProductsODataQuery, ODataResult<Product>>
+public class SearchProductsQueryHandler : IQueryHandler<SearchProductsQuery, List<Product>>
 {
     private readonly ApplicationDbContext _context;
 
-    public async Task<QueryResponse<ODataResult<Product>>> HandleAsync(
-        SearchProductsODataQuery query,
-        CancellationToken cancellationToken)
+    public SearchProductsQueryHandler(ApplicationDbContext context)
     {
-        IQueryable<Product> products = _context.Products;
+        _context = context;
+    }
 
-        // Apply custom filtering
+    public Task<List<Product>> HandleAsync(
+        SearchProductsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Product> products = _context.Products.AsNoTracking();
+
+        // Apply custom filtering before the OData options
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
-            products = products.Where(p =>
-                p.Name.Contains(query.SearchTerm) ||
-                p.Description.Contains(query.SearchTerm));
+            products = products.Where(p => p.Name.Contains(query.SearchTerm));
         }
 
-        // Apply OData query options
-        if (query.QueryOptions != null)
-        {
-            var settings = new ODataQuerySettings
-            {
-                PageSize = 20,
-                EnableConstantParameterization = true
-            };
-
-            products = (IQueryable<Product>)query.QueryOptions.ApplyTo(products, settings);
-        }
-
-        var count = await products.CountAsync(cancellationToken);
-        var items = await products.ToListAsync(cancellationToken);
-
-        var result = new ODataResult<Product>
-        {
-            Items = items,
-            Count = count
-        };
-
-        return QueryResponse<ODataResult<Product>>.Success(result);
+        // ApplyODataQueryOptions materialises the results (returns IEnumerable<Product>)
+        // and unwraps $select/$expand projections
+        List<Product> result = products.ApplyODataQueryOptions(query.Options).ToList();
+        return Task.FromResult(result);
     }
 }
 ```
 
+When `options` is `null` the original queryable is returned unchanged.
+
 ### OData with Caching
 
+Caching uses `[MemoryCache]` together with `IGenerateCacheKey` (both required, from `Minded.Extensions.Caching.Memory`). The cache key must uniquely encode **all** discriminating properties of the query — queries whose traits are populated from OData options (expression filters, ordering, paging) are poor caching candidates because those values are hard to encode reliably in a key. Prefer caching simple, explicitly-parameterised queries:
+
 ```csharp
-public class GetProductsODataQuery : IQuery<IQueryable<Product>>, ICacheConfiguration, IGenerateCacheKey
+using Minded.Extensions.Caching.Decorator;            // IGenerateCacheKey
+using Minded.Extensions.Caching.Memory.Decorator;     // MemoryCacheAttribute
+
+[MemoryCache(ExpirationInSeconds = 300)]
+public class GetProductByIdQuery : IQuery<Product>, IGenerateCacheKey
 {
-    public ODataQueryOptions<Product> QueryOptions { get; set; }
+    public GetProductByIdQuery(int id) => Id = id;
 
-    public TimeSpan CacheDuration => TimeSpan.FromMinutes(5);
+    public int Id { get; }
+    public Guid TraceId { get; } = Guid.NewGuid();
 
-    public string GenerateCacheKey()
-    {
-        // Generate cache key from OData query string
-        var queryString = QueryOptions?.Request?.QueryString.Value ?? string.Empty;
-        return $"Products:OData:{queryString}";
-    }
+    // Must include ALL discriminating properties
+    public string GetCacheKey() => $"Product_{Id}";
 }
 ```
 
@@ -271,21 +306,25 @@ public class GetProductsODataQuery : IQuery<IQueryable<Product>>, ICacheConfigur
 
 ### 1. Set Maximum Limits
 
+Validate the incoming options before applying them to the query:
+
 ```csharp
-[EnableQuery(MaxTop = 100, PageSize = 20)]
-public async Task<IActionResult> Get(ODataQueryOptions<Product> queryOptions)
-{
-    // Prevents clients from requesting too much data
-}
+queryOptions.Validate(new ODataValidationSettings { MaxTop = 100 });
 ```
+
+Note that the trait-based `ApplyQueryTo()` (from `Minded.Extensions.CQRS.EntityFrameworkCore`) already caps collection results at 100 records when `$top` is not provided.
 
 ### 2. Use AsNoTracking for Read-Only Queries
 
 ```csharp
-public async Task<QueryResponse<IQueryable<Product>>> HandleAsync(...)
+public async Task<IQueryResponse<IEnumerable<Product>>> HandleAsync(
+    GetProductsQuery query, CancellationToken cancellationToken = default)
 {
-    IQueryable<Product> products = _context.Products.AsNoTracking();
-    // Apply OData options...
+    var result = await query
+        .ApplyQueryTo(_context.Products.AsNoTracking())
+        .ToListAsync(cancellationToken);
+
+    return new QueryResponse<IEnumerable<Product>>(result);
 }
 ```
 
@@ -314,13 +353,14 @@ public async Task<IActionResult> Get(ODataQueryOptions<Product> queryOptions)
 
 ### 4. Secure Sensitive Data
 
+Restrict which query options clients may use via validation:
+
 ```csharp
-[EnableQuery(AllowedQueryOptions = AllowedQueryOptions.Filter | AllowedQueryOptions.OrderBy)]
-public async Task<IActionResult> Get()
+queryOptions.Validate(new ODataValidationSettings
 {
-    // Don't allow $select to prevent exposing sensitive fields
-    // Or use [IgnoreDataMember] on sensitive properties
-}
+    AllowedQueryOptions = AllowedQueryOptions.Filter | AllowedQueryOptions.OrderBy
+});
+// Or use [IgnoreDataMember] on sensitive properties
 ```
 
 ## Troubleshooting
@@ -337,18 +377,17 @@ services.AddControllers()
 
 ### Query Options Not Applied
 
-Check that `EnableQuery` attribute is present:
+In the trait-based flow the options are applied manually, not by `[EnableQuery]`. Check that:
 
-```csharp
-[EnableQuery]
-public async Task<IActionResult> Get(ODataQueryOptions<Product> queryOptions)
-```
+1. The controller calls `query.ApplyODataQueryOptions(queryOptions)` before dispatching the query.
+2. The query class implements the trait interface matching the OData option (`$filter` → `ICanFilterExpression<T>`, `$orderby` → `ICanOrderBy`, `$top` → `ICanTop`, `$skip` → `ICanSkip`, `$count` → `ICanCount`, `$expand` → `ICanExpand`). Options without a matching trait are silently ignored.
+3. The handler applies the traits, e.g. with `query.ApplyQueryTo(...)`.
 
 ### Performance Issues
 
-1. Set appropriate limits:
+1. Validate limits before applying the options:
    ```csharp
-   [EnableQuery(MaxTop = 100, PageSize = 20)]
+   queryOptions.Validate(new ODataValidationSettings { MaxTop = 100 });
    ```
 
 2. Use AsNoTracking:

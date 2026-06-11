@@ -28,7 +28,7 @@ Register the authorization decorators when configuring Minded. Typical registrat
 
 ```csharp
 // Example: register command + query authorization decorators
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Ensure context decorators are registered if you use RequireResourceAccess
     builder.AddCommandContextDecorator();
@@ -57,6 +57,7 @@ Notes
 -----
 - Decorators are applied in the order they are registered (innermost first). The execution order is therefore the reverse: last-registered decorator executes first. Register authorization decorators in the pipeline at the appropriate place (usually after context decorators and before exception/logging decorators where you want checks to happen).
 - AddCommandAuthorizationDecorator and AddQueryAuthorizationDecorator will eagerly validate RBAC attributes found on discovered request types during startup and throw on invalid attribute configurations.
+- AddCommandAuthorizationDecorator and AddQueryAuthorizationDecorator also auto-register a singleton IMindedContextAccessor (via TryAddSingleton) if one is not already registered, alongside the default IRequestAuthorizationEvaluator.
 
 Attributes and examples
 -----------------------
@@ -71,6 +72,8 @@ public class CreateTransactionCommand : ICommand<Transaction>
     public decimal Amount { get; set; }
 }
 ```
+
+`Match` defaults to `AuthorizationMatch.All`, meaning the caller must hold every listed permission. Set `Match = AuthorizationMatch.Any` when holding any one of the listed permissions is sufficient.
 
 Require a role:
 

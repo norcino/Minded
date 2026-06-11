@@ -4,7 +4,8 @@ Base classes and utilities for implementing the Decorator pattern in CQRS pipeli
 
 ## Features
 
-- **CommandHandlerDecoratorBase<TCommand>** - Base class for command decorators
+- **CommandHandlerDecoratorBase<TCommand>** - Base class for decorators of commands without a result
+- **CommandHandlerDecoratorBase<TCommand, TResult>** - Base class for decorators of commands returning a result
 - **QueryHandlerDecoratorBase<TQuery, TResult>** - Base class for query decorators
 - **IDecoratingAttributeValidator** - Interface for validating decorator attribute usage
 - Pipeline composition support
@@ -20,20 +21,21 @@ dotnet add package Minded.Framework.Decorator
 
 ### CommandHandlerDecoratorBase<TCommand>
 
-Base class for creating command decorators. Provides access to the next handler in the decorator chain.
+Base class for creating decorators of commands without a result. Provides access to the next handler in the decorator chain.
 
 **Constructor:**
 ```csharp
 protected CommandHandlerDecoratorBase(ICommandHandler<TCommand> commandHandler)
 ```
 
-**Properties:**
-- `DecoratedCommmandHandler` - The next command handler in the chain (note: typo is intentional for backward compatibility)
+**Members:**
+- `InnerCommandHandler` - Public property exposing the next command handler in the chain. **This correctly-spelled alias is the preferred accessor.**
+- `DecoratedCommmandHandler` - Protected field holding the same handler (note: the typo is intentional and kept for backward compatibility; `InnerCommandHandler` simply returns it)
 
 **Example:**
 ```csharp
 using Minded.Framework.Decorator;
-using Minded.Framework.CQRS.Abstractions.Command;
+using Minded.Framework.CQRS.Command;
 
 public class MyCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
     where TCommand : ICommand
@@ -51,10 +53,45 @@ public class MyCommandDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand
     {
         _logger.LogInformation("Executing command {CommandType}", typeof(TCommand).Name);
 
-        var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+        var response = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
         _logger.LogInformation("Command {CommandType} completed", typeof(TCommand).Name);
 
+        return response;
+    }
+}
+```
+
+### CommandHandlerDecoratorBase<TCommand, TResult>
+
+Base class for creating decorators of commands that return a result (`ICommand<TResult>`). It exposes the same member pair as the void variant, typed for result-returning handlers.
+
+**Constructor:**
+```csharp
+protected CommandHandlerDecoratorBase(ICommandHandler<TCommand, TResult> commandHandler)
+```
+
+**Members:**
+- `InnerCommandHandler` - Public `ICommandHandler<TCommand, TResult>` property exposing the next handler in the chain (preferred accessor)
+- `DecoratedCommmandHandler` - Protected field holding the same handler (intentional historical typo)
+
+**Example:**
+```csharp
+using Minded.Framework.Decorator;
+using Minded.Framework.CQRS.Command;
+
+public class MyCommandDecorator<TCommand, TResult> : CommandHandlerDecoratorBase<TCommand, TResult>, ICommandHandler<TCommand, TResult>
+    where TCommand : ICommand<TResult>
+{
+    public MyCommandDecorator(ICommandHandler<TCommand, TResult> commandHandler) : base(commandHandler)
+    {
+    }
+
+    public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
+    {
+        // pre-processing ...
+        var response = await InnerCommandHandler.HandleAsync(command, cancellationToken);
+        // post-processing ...
         return response;
     }
 }
@@ -66,16 +103,17 @@ Base class for creating query decorators. Provides access to the next handler in
 
 **Constructor:**
 ```csharp
-protected QueryHandlerDecoratorBase(IQueryHandler<TQuery, TResult> queryHandler)
+public QueryHandlerDecoratorBase(IQueryHandler<TQuery, TResult> queryHandler)
 ```
 
-**Properties:**
-- `InnerQueryHandler` - The next query handler in the chain
+**Members:**
+- `InnerQueryHandler` - Public property exposing the next query handler in the chain (preferred accessor)
+- `DecoratedQueryHandler` - Protected field holding the same handler
 
 **Example:**
 ```csharp
 using Minded.Framework.Decorator;
-using Minded.Framework.CQRS.Abstractions.Query;
+using Minded.Framework.CQRS.Query;
 
 public class MyQueryDecorator<TQuery, TResult> : QueryHandlerDecoratorBase<TQuery, TResult>, IQueryHandler<TQuery, TResult>
     where TQuery : IQuery<TResult>
@@ -159,7 +197,7 @@ public class TimingDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, 
     {
         var stopwatch = Stopwatch.StartNew();
 
-        var response = await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+        var response = await InnerCommandHandler.HandleAsync(command, cancellationToken);
 
         stopwatch.Stop();
         _logger.LogInformation("Command {CommandType} took {ElapsedMs}ms",
@@ -171,6 +209,8 @@ public class TimingDecorator<TCommand> : CommandHandlerDecoratorBase<TCommand>, 
 ```
 
 ### Step 2: Create Extension Method for Registration
+
+The following extension method is example code that you write in your own project — it is not part of this package. It uses the `MindedBuilder` from `Minded.Extensions.Configuration` to queue the decorator registration:
 
 ```csharp
 using Minded.Extensions.Configuration;
@@ -190,28 +230,36 @@ public static class TimingDecoratorExtensions
 ### Step 3: Register the Decorator
 
 ```csharp
-services.AddMinded(builder =>
-{
-    builder.AddCommandValidationDecorator()
-           .AddCommandTimingDecorator()      // Your custom decorator
-           .AddCommandExceptionDecorator()
-           .AddCommandHandlers();
-});
+services.AddMinded(
+    configuration,
+    assembly => assembly.FullName.StartsWith("YourApp"),
+    builder =>
+    {
+        builder.AddCommandValidationDecorator()
+               .AddCommandTimingDecorator()      // Your custom decorator
+               .AddCommandExceptionDecorator()
+               .AddCommandHandlers();
+    });
 ```
 
 ## Decorator Execution Order
 
-Decorators are registered from **innermost to outermost**, but execute in **reverse order**:
+The registration order maps directly onto the position in the chain:
+
+- **First registered = innermost** — closest to the handler, it runs last, right before the handler.
+- **Last registered = outermost** — it runs first, intercepting the call earliest.
 
 ```csharp
-builder.AddCommandValidationDecorator()    // 1. Registered first (innermost)
-       .AddCommandLoggingDecorator()        // 2. Registered second
-       .AddCommandExceptionDecorator()      // 3. Registered last (outermost)
-       .AddCommandHandlers();
+builder.AddCommandValidationDecorator()    // 1. Registered first  = innermost (runs last, right before the handler)
+       .AddCommandLoggingDecorator()        // 2. Registered second = in between
+       .AddCommandExceptionDecorator()      // 3. Registered last   = outermost (runs first)
+       .AddCommandHandlers();               // Handlers are always the innermost element
 
 // Execution order:
-// Exception → Logging → Validation → Handler → Validation → Logging → Exception
+// Exception → Logging → Validation → Handler
 ```
+
+With Validation registered first and Exception registered last, a command first enters the Exception decorator, then Logging, then Validation, and finally reaches the handler. The response then flows back outward through the same decorators in reverse (Validation, Logging, Exception). This is why the exception decorator must be registered last: being outermost, it wraps everything and can catch errors thrown anywhere in the chain.
 
 ## Best Practices
 

@@ -35,8 +35,8 @@ Detailed rules load automatically when you edit files in these areas:
 - `[RetryCommand]` applies **only** to idempotent operations (never financial debits, email sends, etc.).
 - Exception decorator must be **last registered** (outermost) to catch all errors.
 - No validation inside handlers — use `[ValidateCommand]` + `ICommandValidator<T>`.
-- No `IMediator` calls inside read only OData controllers.
-- Inside handlers use `IMediator` to call other command handlers or query handlers to respect single responsibility principle.
-- Entities loaded inside Validators are available inside Handlers through `IMindedContextAccessor` and `ICurrentContext.Items` dictionary.
+- No `IMediator` calls inside read-only OData controllers — those controllers inject the `DbContext` directly and expose `IQueryable`.
+- Keep handlers thin and single-responsibility. When a handler must trigger other commands or queries (orchestration), dispatch them through `IMediator` — never invoke another handler class directly.
+- Entities loaded inside Validators are available inside Handlers through `IMindedContextAccessor` and the `IMindedContext.Items` dictionary.
 - All public APIs in `Framework/` and `Extensions/` require XML documentation (`/// <summary>`).
 - All I/O via `async/await`; never `.Result` or `.Wait()`.

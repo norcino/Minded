@@ -65,6 +65,14 @@ namespace Minded.Framework.CQRS.Query
                 queryable = queryable.Where(f.Filter);
             }
 
+            // Count must reflect all rows matching the query criteria, so it is taken before pagination
+            if (query is ICanCount c && c.Count)
+            {
+                c.CountValue = queryable.Count();
+                if (c.CountOnly)
+                    return queryable.Take(0);
+            }
+
             if (query is ICanSkip s && s.Skip.HasValue)
             {
                 queryable = queryable.Skip(s.Skip.Value);
@@ -77,13 +85,6 @@ namespace Minded.Framework.CQRS.Query
             else
             {
                 queryable = queryable.Take(100);
-            }
-
-            if (query is ICanCount c && c.Count)
-            {
-                c.CountValue = queryable.Count();
-                if (c.CountOnly)
-                    queryable.Take(0);
             }
 
             return queryable;
@@ -138,6 +139,14 @@ namespace Minded.Framework.CQRS.Query
                 queryable = queryable.Where(f.Filter);
             }
 
+            // Count must reflect all rows matching the query criteria, so it is taken before pagination
+            if (query is ICanCount c && c.Count)
+            {
+                c.CountValue = queryable.Count();
+                if (c.CountOnly)
+                    return queryable.Take(0);
+            }
+
             if (query is ICanSkip s && s.Skip.HasValue)
             {
                 queryable = queryable.Skip(s.Skip.Value);
@@ -150,13 +159,6 @@ namespace Minded.Framework.CQRS.Query
             else
             {
                 queryable = queryable.Take(100);
-            }
-
-            if (query is ICanCount c && c.Count)
-            {
-                c.CountValue = queryable.Count();
-                if (c.CountOnly)
-                    queryable.Take(0);
             }
 
             return queryable;
@@ -184,27 +186,14 @@ namespace Minded.Framework.CQRS.Query
                 queryable = queryable.Where(f.Filter);
             }
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS8603 // Possible null reference return.
-
-            //var result = await queryable.FirstOrDefaultAsync();
-
-            //if (typeof(IQueryResponse<>).MakeGenericType(typeof(T)).IsAssignableFrom(typeof(T)))
-            //{
-            //    var response = (IQueryResponse<T>)Activator.CreateInstance(typeof(T), result);
-            //    return (T)response;
-            //}
-
-            //return result;
-
-            return ((T) await queryable.FirstOrDefaultAsync());
+            return await queryable.FirstOrDefaultAsync();
 #pragma warning restore CS8603 // Possible null reference return.
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
 
         /// <summary>
         /// Applies filter and expand traits to the queryable and returns the first matching entity
-        /// wrapped in an <see cref="IQueryResponse{TResult}"/>, or an empty response when no match is found.
+        /// wrapped in a successful <see cref="IQueryResponse{TResult}"/>; the response result is <c>null</c> when no match is found.
         /// Note: <see cref="ICanCount"/>, <see cref="ICanTop"/>, <see cref="ICanSkip"/> and <see cref="ICanOrderBy"/> traits
         /// are intentionally ignored because they are not meaningful for single-entity queries.
         /// </summary>
@@ -225,16 +214,10 @@ namespace Minded.Framework.CQRS.Query
             }
 
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8603 // Possible null reference return.
-
             T result = await queryable.FirstOrDefaultAsync();
-
-            var response = (IQueryResponse<T>)Activator.CreateInstance(typeof(T), result);
-            return (IQueryResponse<T>)response;
-
-            //return ((T) await queryable.FirstOrDefaultAsync());
-#pragma warning restore CS8603 // Possible null reference return.
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+
+            return new QueryResponse<T>(result);
         }
 
         #region Private methods

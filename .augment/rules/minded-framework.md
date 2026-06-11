@@ -153,7 +153,7 @@ public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryComman
         await _context.Categories.AddAsync(command.Category, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new CommandResponse<Category>(true, command.Category);
+        return CommandResponse<Category>.Success(command.Category);
     }
 }
 ```
@@ -227,8 +227,8 @@ public class GetCategoriesQueryHandler :
 
 **Rules:**
 - One handler per query
-- Can invoke other query handlers (composition)
-- Should NOT invoke command handlers
+- Can dispatch other queries through `IMediator` (composition) — never invoke another handler class directly
+- Should NOT trigger commands
 - Use `.AsNoTracking()` for read-only when appropriate
 - Apply query traits using `.ApplyQueryTo()`
 - Navigation properties NOT loaded by default - require explicit `$expand`
@@ -251,8 +251,9 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
                 new OutcomeEntry(
                     nameof(command.Category), 
                     "{0} is mandatory", 
-                    GenericErrorCodes.ValidationFailed, 
-                    Severity.Error));
+                    attemptedValue: null, 
+                    Severity.Error, 
+                    GenericErrorCodes.ValidationFailed));
             return validationResult;
         }
 
@@ -321,8 +322,8 @@ Use memory cache decorator for queries that benefit from caching:
 
 ```csharp
 [ValidateQuery]
-[CacheQuery(DurationSeconds = 300)]
-public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>
+[MemoryCache(ExpirationInSeconds = 300)]  // must pair with IGenerateCacheKey
+public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>, IGenerateCacheKey
 ```
 
 ## Startup Configuration
@@ -505,7 +506,7 @@ When receiving requirements, ask:
 - [ ] Use `[ValidateCommand]` or `[ValidateQuery]`
 - [ ] Use `[RetryCommand]` for transient failures
 - [ ] Use `[TransactionalCommand]` for multi-entity operations
-- [ ] Consider `[CacheQuery]` for frequently accessed data
+- [ ] Consider `[MemoryCache]` + `IGenerateCacheKey` for frequently accessed data
 - [ ] Implement ILoggable for structured logging
 - [ ] Ensure navigation properties only load via `$expand`
 - [ ] Add XML documentation

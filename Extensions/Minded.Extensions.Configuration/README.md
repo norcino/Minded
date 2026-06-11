@@ -26,9 +26,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 public class Startup
 {
+    public IConfiguration Configuration { get; }
+
+    public Startup(IConfiguration configuration) => Configuration = configuration;
+
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddMinded(builder =>
+        services.AddMinded(Configuration, mindedBuilderConfiguration: builder =>
         {
             // Fluent API for decorator registration
             builder.AddCommandValidationDecorator();
@@ -49,7 +53,7 @@ public class Startup
 services.AddMinded(
     configuration: Configuration,
     assemblyFilter: assembly => assembly.Name.StartsWith("MyApp."),
-    configure: builder =>
+    mindedBuilderConfiguration: builder =>
     {
         builder.AddCommandValidationDecorator();
         builder.AddCommandLoggingDecorator();
@@ -59,7 +63,7 @@ services.AddMinded(
 ### Configuration with Options
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Configure with options
     builder.AddDataProtection(options =>
@@ -78,21 +82,23 @@ The `MindedBuilder` provides a fluent API for configuring the Minded framework:
 ### Command Decorators
 
 ```csharp
-builder.AddCommandValidationDecorator();      // Validation
-builder.AddCommandLoggingDecorator();         // Logging
-builder.AddCommandExceptionDecorator();       // Exception handling
-builder.AddCommandRetryDecorator();           // Retry logic
-builder.AddCommandCachingDecorator();         // Caching (not typical for commands)
+builder.AddCommandValidationDecorator();      // Validation (Minded.Extensions.Validation)
+builder.AddCommandLoggingDecorator();         // Logging (Minded.Extensions.Logging)
+builder.AddCommandExceptionDecorator();       // Exception handling (Minded.Extensions.Exception)
+builder.AddCommandRetryDecorator();           // Retry logic (Minded.Extensions.Retry)
+builder.AddCommandTransactionDecorator();     // Transactions (Minded.Extensions.Transaction)
 ```
+
+> There is no command caching decorator — caching is supported for queries only.
 
 ### Query Decorators
 
 ```csharp
-builder.AddQueryValidationDecorator();        // Validation
-builder.AddQueryLoggingDecorator();           // Logging
-builder.AddQueryExceptionDecorator();         // Exception handling
-builder.AddQueryRetryDecorator();             // Retry logic
-builder.AddQueryCachingDecorator();           // Caching
+builder.AddQueryValidationDecorator();        // Validation (Minded.Extensions.Validation)
+builder.AddQueryLoggingDecorator();           // Logging (Minded.Extensions.Logging)
+builder.AddQueryExceptionDecorator();         // Exception handling (Minded.Extensions.Exception)
+builder.AddQueryRetryDecorator();             // Retry logic (Minded.Extensions.Retry)
+builder.AddQueryMemoryCacheDecorator();       // In-memory caching (Minded.Extensions.Caching.Memory)
 ```
 
 ### Data Protection
@@ -115,7 +121,7 @@ The configuration system automatically scans assemblies to register:
 
 ```csharp
 // Scans all assemblies in the application domain
-services.AddMinded(builder => { });
+services.AddMinded(configuration);
 ```
 
 ### Filtered Scanning
@@ -123,44 +129,42 @@ services.AddMinded(builder => { });
 ```csharp
 // Scan only assemblies matching the filter
 services.AddMinded(
-    assemblyFilter: assembly => assembly.Name.StartsWith("MyApp."),
-    configure: builder => { });
+    configuration,
+    assemblyFilter: assembly => assembly.Name.StartsWith("MyApp."));
 ```
 
 ### Explicit Assembly Registration
 
 ```csharp
-// Register handlers from specific assemblies
-services.AddMinded(builder =>
+// Register handlers from specific assemblies using a per-call filter
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
-    builder.RegisterHandlersFromAssembly(typeof(CreateUserCommand).Assembly);
-    builder.RegisterValidatorsFromAssembly(typeof(CreateUserCommandValidator).Assembly);
+    builder.AddCommandHandlers(assemblyFilter: assembly => assembly.Name.StartsWith("MyApp.Application"));
+    builder.AddQueryHandlers(assemblyFilter: assembly => assembly.Name.StartsWith("MyApp.Application"));
 });
 ```
 
 ## Decorator Order
 
-Decorators are executed in the order they are registered. The recommended order is:
+Registration order determines nesting: **first registered = innermost** (runs last, right before the handler); **last registered = outermost** (runs first). The exception decorator must be registered last so it is outermost and catches errors from every other decorator. The recommended order is:
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
-    // 1. Exception handling (outermost - catches all exceptions)
-    builder.AddCommandExceptionDecorator();
-
-    // 2. Logging (logs all requests/responses)
-    builder.AddCommandLoggingDecorator();
-
-    // 3. Validation (validates before processing)
+    // 1. Validation (innermost - validates right before the handler)
     builder.AddCommandValidationDecorator();
 
-    // 4. Retry (retries on transient failures)
+    // 2. Retry (retries handler + validation on transient failures)
     builder.AddCommandRetryDecorator();
 
-    // 5. Caching (innermost - caches results)
-    builder.AddCommandCachingDecorator();
+    // 3. Logging (logs each attempt)
+    builder.AddCommandLoggingDecorator();
 
-    // Handler executes last
+    // 4. Exception handling (outermost - catches all unhandled exceptions)
+    builder.AddCommandExceptionDecorator();
+
+    // Actual handlers - always innermost regardless of registration position
+    builder.AddCommandHandlers();
 });
 ```
 
@@ -207,21 +211,19 @@ public class Startup
 ### Custom Service Lifetimes
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
-    // Handlers are registered as Scoped by default
-    // You can override this for specific handlers
-    services.AddScoped<ICommandHandler<CreateUserCommand, User>, CreateUserCommandHandler>();
-
-    // Or register as Transient
-    services.AddTransient<IQueryHandler<GetUserQuery, User>, GetUserQueryHandler>();
+    // Handlers are registered as Transient by default.
+    // Override the lifetime for all handlers via the lifeTime parameter:
+    builder.AddCommandHandlers(lifeTime: ServiceLifetime.Scoped);
+    builder.AddQueryHandlers(lifeTime: ServiceLifetime.Scoped);
 });
 ```
 
 ### Conditional Decorator Registration
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Register decorators conditionally
     if (_environment.IsDevelopment())
@@ -241,15 +243,17 @@ services.AddMinded(builder =>
 ### 1. Register Decorators in Logical Order
 
 ```csharp
-// Good - logical order
-builder.AddCommandExceptionDecorator();   // Catch exceptions
+// Good - exception decorator registered last (outermost), so it catches
+// errors from validation, logging and the handler
+builder.AddCommandValidationDecorator();  // Innermost - validate right before the handler
 builder.AddCommandLoggingDecorator();     // Log everything
-builder.AddCommandValidationDecorator();  // Validate input
+builder.AddCommandExceptionDecorator();   // Outermost - catch all exceptions
 
-// Avoid - illogical order
-builder.AddCommandValidationDecorator();  // Validation exceptions won't be logged
-builder.AddCommandLoggingDecorator();
+// Avoid - exception decorator registered first becomes innermost and
+// misses errors thrown by the other decorators
 builder.AddCommandExceptionDecorator();
+builder.AddCommandLoggingDecorator();
+builder.AddCommandValidationDecorator();
 ```
 
 ### 2. Use Assembly Filtering
@@ -257,11 +261,11 @@ builder.AddCommandExceptionDecorator();
 ```csharp
 // Good - scan only your assemblies
 services.AddMinded(
-    assemblyFilter: assembly => assembly.Name.StartsWith("MyApp."),
-    configure: builder => { });
+    configuration,
+    assemblyFilter: assembly => assembly.Name.StartsWith("MyApp."));
 
 // Avoid - scanning all assemblies (slow startup)
-services.AddMinded(builder => { });
+services.AddMinded(configuration);
 ```
 
 ### 3. Configure Options from appsettings.json
@@ -298,7 +302,7 @@ If handlers are not being discovered:
    public class MyHandler : ICommandHandler<MyCommand, MyResult> { }
    ```
 
-s## License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/norcino/Minded/blob/master/LICENSE) file for details.
 

@@ -63,14 +63,14 @@ public class CreateEntityCommandHandler : ICommandHandler<CreateEntityCommand, E
         CreateEntityCommand command, CancellationToken cancellationToken = default)
     {
         var entity = await _repository.CreateAsync(command.Entity, cancellationToken);
-        return command.Succeed(entity);
+        return CommandResponse<Entity>.Success(entity);
     }
 }
 ```
 
 - One responsibility: execute the business action only.
 - No validation, no `IMediator` calls (standard CRUD handlers).
-- Return `command.Succeed(result)` or `command.Fail(new OutcomeEntry(...))`.
+- Return `CommandResponse<TResult>.Success(result)` or `CommandResponse<TResult>.Error(new OutcomeEntry(...))` (`new CommandResponse<TResult>(result)` also sets `Successful = true`).
 
 ## Queries (OData collection example)
 
@@ -108,7 +108,7 @@ public class CreateEntityCommandValidator : ICommandValidator<CreateEntityComman
         {
             result.OutcomeEntries.Add(new OutcomeEntry(
                 nameof(command.Entity), "{0} is required",
-                GenericErrorCodes.ValidationFailed, Severity.Error));
+                attemptedValue: null, Severity.Error, GenericErrorCodes.ValidationFailed));
             return result;
         }
         // further checks ...

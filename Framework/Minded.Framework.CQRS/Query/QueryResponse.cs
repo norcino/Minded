@@ -89,7 +89,7 @@ namespace Minded.Framework.CQRS.Query
         /// <example>
         /// <code>
         /// return QueryResponse&lt;Category&gt;.Error(
-        ///     OutcomeEntry.NotFound("Category not found", nameof(categoryId))
+        ///     new OutcomeEntry(nameof(categoryId), "Category not found")
         /// );
         /// </code>
         /// </example>

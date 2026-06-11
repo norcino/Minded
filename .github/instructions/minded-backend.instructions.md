@@ -102,7 +102,7 @@ public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>,
 - A command handler does exactly one thing: execute the business action.
 - Inject only what is directly needed (e.g. `DbContext`, domain services).
 - Do **not** perform validation inside a handler — validation belongs in a validator.
-- Do **not** invoke another mediator inside a handler — decompose the action instead.
+- Do **not** invoke another handler class directly. When a handler must trigger other commands/queries (orchestration), dispatch them through `IMediator`; standard CRUD handlers should not need `IMediator`.
 
 ```csharp
 public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryCommand, Data.Entity.Category>
@@ -116,7 +116,7 @@ public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryComman
     {
         await _context.Categories.AddAsync(command.Category, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
-        return command.Succeed(command.Category);
+        return CommandResponse<Data.Entity.Category>.Success(command.Category);
     }
 }
 ```
@@ -151,7 +151,7 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
         {
             result.OutcomeEntries.Add(new OutcomeEntry(
                 nameof(command.Category), "{0} is mandatory",
-                GenericErrorCodes.ValidationFailed, Severity.Error));
+                attemptedValue: null, Severity.Error, GenericErrorCodes.ValidationFailed));
             return result;
         }
 
@@ -174,7 +174,7 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
 - For OData-enabled collection endpoints inject `ODataQueryOptions<TEntity>` and call `query.ApplyODataQueryOptions(queryOptions)`.
 - Always accept `CancellationToken cancellationToken = default` in controller actions.
 - Inject `IRestMediator` only — never `IMediator` or any handler directly.
-- Do not inject `IMindedExampleContext` (or any DbContext) in controllers.
+- Do not inject `IMindedExampleContext` (or any DbContext) in controllers — except read-only OData controllers, which inject the DbContext directly and expose `IQueryable` (no `IMediator`/`IRestMediator` calls in those controllers).
 - Do not execute LINQ/data access inside controllers.
 - Controllers are transport adapters only: map HTTP request to command/query and delegate to `IRestMediator`.
 - Non-trivial authorization checks must be implemented with ASP.NET authorization policies, decorators, or handlers, not with inline controller business logic.
@@ -223,17 +223,17 @@ Before considering backend work complete, verify all these conditions:
 1. Every endpoint with business behavior has a dedicated command/query.
 2. Business logic lives in handlers, not in controllers.
 3. Controller actions contain only: input mapping, `RestOperation` selection, mediator delegation.
-4. No direct persistence dependencies (`IMindedExampleContext`, EF query APIs) in controllers.
+4. No direct persistence dependencies (`IMindedExampleContext`, EF query APIs) in controllers (read-only OData controllers excepted).
 5. Any controller-level exception handling must be transport-only and not business orchestration.
 
 ---
 
 ## 8. Decorator Registration (DI)
 
-Register decorators in Program.cs / Startup.cs via `services.AddMinded(builder => { ... })`. **Decorators are registered from innermost to outermost**: the first decorator registered is innermost (runs last, right before the handler); the last registered is outermost (runs first, earliest interception). `AddCommandHandlers()` / `AddQueryHandlers()` register the actual handlers and are always innermost regardless of call order.
+Register decorators in Program.cs / Startup.cs via `services.AddMinded(configuration, mindedBuilderConfiguration: builder => { ... })`. **Decorators are registered from innermost to outermost**: the first decorator registered is innermost (runs last, right before the handler); the last registered is outermost (runs first, earliest interception). `AddCommandHandlers()` / `AddQueryHandlers()` register the actual handlers and are always innermost regardless of call order.
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     builder.AddCommandValidationDecorator()   // innermost decorator: validates right before handler
            .AddCommandRetryDecorator()        // wraps validation + handler; retries on exception

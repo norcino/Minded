@@ -1,13 +1,14 @@
 # Minded.Extensions.Validation.Abstractions
 
-Validation abstractions including IValidator interface, validation attributes, and result types for the Minded Framework.
+Validation abstractions for the Minded Framework: validator interfaces, the validation result contract and the opt-in attributes used by the validation decorators.
 
 ## Features
 
-- **IValidator Interface** - Contract for implementing custom validators
-- **Validation Attributes** - Attributes for marking validatable properties
-- **Validation Result Types** - Standard validation result structures
-- **Zero Dependencies** - Pure abstractions with no implementation dependencies
+- **`IValidator<T>`** - Contract for reusable entity/object validators
+- **`ICommandValidator<TCommand>` / `IQueryValidator<TQuery, TResult>`** - Contracts resolved by the validation decorators
+- **`IValidationResult`** - Standard validation result contract with outcome entries and merging
+- **`[ValidateCommand]` / `[ValidateQuery]`** - Opt-in attributes that activate the validation decorators
+- **Minimal Dependencies** - Pure abstractions; depends only on the Minded CQRS abstractions
 
 ## Installation
 
@@ -15,276 +16,175 @@ Validation abstractions including IValidator interface, validation attributes, a
 dotnet add package Minded.Extensions.Validation.Abstractions
 ```
 
+> This package contains only abstractions. The validation decorators, the concrete `ValidationResult` type and the DI registration methods (`AddCommandValidationDecorator()` / `AddQueryValidationDecorator()`) live in **Minded.Extensions.Validation**.
+
 ## Interfaces
 
-### IValidator<T>
+### IValidator&lt;T&gt;
 
-The core validation interface for implementing custom validators:
+The generic validation contract for entities or any other class (namespace `Minded.Extensions.Validation`):
 
 ```csharp
-public interface IValidator<in T>
+public interface IValidator<in T> where T : class
 {
-    /// <summary>
-    /// Validates the specified instance
-    /// </summary>
-    ValidationResult Validate(T instance);
-
-    /// <summary>
-    /// Validates the specified instance asynchronously
-    /// </summary>
-    Task<ValidationResult> ValidateAsync(T instance, CancellationToken cancellationToken = default);
+    Task<IValidationResult> ValidateAsync(T subject);
 }
 ```
+
+### ICommandValidator&lt;TCommand&gt; and IQueryValidator&lt;TQuery, TResult&gt;
+
+The contracts the validation decorators resolve from DI (namespace `Minded.Extensions.Validation.Decorator`):
+
+```csharp
+public interface ICommandValidator<TCommand> where TCommand : ICommand
+{
+    Task<IValidationResult> ValidateAsync(TCommand command);
+}
+
+public interface IQueryValidator<TQuery, TResult> where TQuery : IQuery<TResult>
+{
+    Task<IValidationResult> ValidateAsync(TQuery query);
+}
+```
+
+### IValidationResult
+
+```csharp
+public interface IValidationResult
+{
+    // True when validation passed without errors (Warning and Info entries do not fail validation)
+    bool IsValid { get; }
+
+    // All outcome entries produced by the validation
+    IList<IOutcomeEntry> OutcomeEntries { get; }
+
+    // Merges two validation results; the merged result is invalid if either source is invalid
+    IValidationResult Merge(IValidationResult validationResult);
+}
+```
+
+Outcome entries are `IOutcomeEntry` instances from `Minded.Framework.CQRS.Abstractions`; the concrete `OutcomeEntry` type (shipped in the **Minded.Framework.CQRS** package, declared in the `Minded.Framework.CQRS.Abstractions` namespace) provides constructors `(propertyName, message)`, `(propertyName, message, attemptedValue)` and `(propertyName, message, attemptedValue, Severity severity, string errorCode)`. Severity values are `Error`, `Warning` and `Info`; the constructors without a severity parameter leave it at the enum default, `Error`, so such entries fail validation.
+
+### Opt-in attributes
+
+```csharp
+[ValidateCommand]   // command is validated by its ICommandValidator<TCommand> before the handler runs
+[ValidateQuery]     // query is validated by its IQueryValidator<TQuery, TResult> before the handler runs
+```
+
+The attributes are markers: the corresponding decorator (from **Minded.Extensions.Validation**) only validates commands/queries carrying the attribute. Every decorated command/query **must** have a registered validator — the decorator takes it as a constructor dependency, so a missing validator fails at dispatch time with a DI resolution error.
 
 ## Usage Examples
 
-### Implementing a Custom Validator
+### Command validator
 
 ```csharp
-using Minded.Extensions.Validation.Abstractions;
+using System.Threading.Tasks;
+using Minded.Extensions.Validation;
+using Minded.Extensions.Validation.Decorator;
+using Minded.Framework.CQRS.Abstractions;
 
-public class CreateUserCommand
+public class CreateUserCommandValidator : ICommandValidator<CreateUserCommand>
 {
-    public string Username { get; set; }
-    public string Email { get; set; }
-    public string Password { get; set; }
-    public int Age { get; set; }
-}
+    private readonly IValidator<User> _userValidator;
 
-public class CreateUserCommandValidator : IValidator<CreateUserCommand>
-{
-    public ValidationResult Validate(CreateUserCommand instance)
+    public CreateUserCommandValidator(IValidator<User> userValidator)
+        => _userValidator = userValidator;
+
+    public async Task<IValidationResult> ValidateAsync(CreateUserCommand command)
     {
-        var errors = new List<ValidationError>();
+        var result = new ValidationResult();   // concrete type from Minded.Extensions.Validation
 
-        if (string.IsNullOrWhiteSpace(instance.Username))
-            errors.Add(new ValidationError("Username", "Username is required"));
-        else if (instance.Username.Length < 3)
-            errors.Add(new ValidationError("Username", "Username must be at least 3 characters"));
-
-        if (string.IsNullOrWhiteSpace(instance.Email))
-            errors.Add(new ValidationError("Email", "Email is required"));
-        else if (!IsValidEmail(instance.Email))
-            errors.Add(new ValidationError("Email", "Email must be a valid email address"));
-
-        if (string.IsNullOrWhiteSpace(instance.Password))
-            errors.Add(new ValidationError("Password", "Password is required"));
-        else if (instance.Password.Length < 8)
-            errors.Add(new ValidationError("Password", "Password must be at least 8 characters"));
-
-        if (instance.Age < 18)
-            errors.Add(new ValidationError("Age", "User must be at least 18 years old"));
-
-        return errors.Any()
-            ? ValidationResult.Failure(errors)
-            : ValidationResult.Success();
-    }
-
-    public Task<ValidationResult> ValidateAsync(
-        CreateUserCommand instance,
-        CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(Validate(instance));
-    }
-
-    private bool IsValidEmail(string email)
-    {
-        try
+        if (command.User == null)
         {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return addr.Address == email;
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.User), "{0} is required"));
+            return result;   // early return - avoid null-reference cascade
         }
-        catch
-        {
-            return false;
-        }
+
+        // Reuse the entity validator and merge its outcome into this result
+        return (await _userValidator.ValidateAsync(command.User)).Merge(result);
     }
 }
 ```
 
-### Async Validation with Database Checks
+### Entity validator
 
 ```csharp
-public class CreateUserCommandValidator : IValidator<CreateUserCommand>
+public class UserValidator : IValidator<User>
 {
-    private readonly IUserRepository _userRepository;
-
-    public CreateUserCommandValidator(IUserRepository userRepository)
+    public Task<IValidationResult> ValidateAsync(User user)
     {
-        _userRepository = userRepository;
-    }
+        var result = new ValidationResult();
 
-    public ValidationResult Validate(CreateUserCommand instance)
-    {
-        // Synchronous validation only
-        var errors = new List<ValidationError>();
+        if (string.IsNullOrWhiteSpace(user.Username))
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(user.Username), "{0} is required",
+                user.Username, Severity.Error));
+        else if (user.Username.Length < 3)
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(user.Username), "{0} must be at least 3 characters",
+                user.Username, Severity.Error));
 
-        if (string.IsNullOrWhiteSpace(instance.Username))
-            errors.Add(new ValidationError("Username", "Username is required"));
+        if (user.Age < 18)
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(user.Age), "User must be at least 18 years old",
+                user.Age, Severity.Error));
 
-        return errors.Any()
-            ? ValidationResult.Failure(errors)
-            : ValidationResult.Success();
-    }
-
-    public async Task<ValidationResult> ValidateAsync(
-        CreateUserCommand instance,
-        CancellationToken cancellationToken = default)
-    {
-        var errors = new List<ValidationError>();
-
-        // Synchronous validations
-        if (string.IsNullOrWhiteSpace(instance.Username))
-        {
-            errors.Add(new ValidationError("Username", "Username is required"));
-        }
-        else
-        {
-            // Async validation - check database
-            var usernameExists = await _userRepository.UsernameExistsAsync(
-                instance.Username,
-                cancellationToken);
-
-            if (usernameExists)
-                errors.Add(new ValidationError("Username", "Username is already taken"));
-        }
-
-        if (!string.IsNullOrWhiteSpace(instance.Email))
-        {
-            var emailExists = await _userRepository.EmailExistsAsync(
-                instance.Email,
-                cancellationToken);
-
-            if (emailExists)
-                errors.Add(new ValidationError("Email", "Email is already registered"));
-        }
-
-        return errors.Any()
-            ? ValidationResult.Failure(errors)
-            : ValidationResult.Success();
-    }
-}
-```
-
-### Validation Result
-
-```csharp
-public class ValidationResult
-{
-    public bool IsValid { get; set; }
-    public List<ValidationError> Errors { get; set; }
-
-    public static ValidationResult Success() => new ValidationResult
-    {
-        IsValid = true,
-        Errors = new List<ValidationError>()
-    };
-
-    public static ValidationResult Failure(List<ValidationError> errors) => new ValidationResult
-    {
-        IsValid = false,
-        Errors = errors
-    };
-}
-
-public class ValidationError
-{
-    public string PropertyName { get; set; }
-    public string ErrorMessage { get; set; }
-
-    public ValidationError(string propertyName, string errorMessage)
-    {
-        PropertyName = propertyName;
-        ErrorMessage = errorMessage;
+        return Task.FromResult<IValidationResult>(result);
     }
 }
 ```
 
 ## Best Practices
 
-### 1. Separate Sync and Async Validation
+### 1. Implement the Minded interfaces, use any validation library inside
+
+The validation logic inside a validator may use any library (FluentValidation, DataAnnotations, plain code) — what matters is that the class implements `ICommandValidator<T>` / `IQueryValidator<TQuery, TResult>` / `IValidator<T>` so the decorator can resolve and invoke it.
+
+### 2. Return early after null guards
 
 ```csharp
-public ValidationResult Validate(CreateUserCommand instance)
+if (command.Entity == null)
 {
-    // Only synchronous validations here
-    // Don't call async methods or .Result
-}
-
-public async Task<ValidationResult> ValidateAsync(...)
-{
-    // Both synchronous and asynchronous validations
-    // Call Validate() first, then add async validations
+    result.OutcomeEntries.Add(new OutcomeEntry(nameof(command.Entity), "{0} is required"));
+    return result;   // avoid null-reference cascades in later rules
 }
 ```
 
-### 2. Validate Early, Fail Fast
+### 3. Reuse entity validators
 
-```csharp
-public ValidationResult Validate(CreateUserCommand instance)
-{
-    var errors = new List<ValidationError>();
+Inject `IValidator<TEntity>` implementations into command validators and combine results with `Merge()` instead of duplicating rules.
 
-    // Check required fields first
-    if (string.IsNullOrWhiteSpace(instance.Username))
-    {
-        errors.Add(new ValidationError("Username", "Username is required"));
-        return ValidationResult.Failure(errors);  // Fail fast
-    }
+### 4. Use severities deliberately
 
-    // Then validate format/rules
-    if (instance.Username.Length < 3)
-        errors.Add(new ValidationError("Username", "Username must be at least 3 characters"));
+`Severity.Error` fails validation; `Severity.Warning` and `Severity.Info` are reported in the outcome entries without failing it.
 
-    return errors.Any()
-        ? ValidationResult.Failure(errors)
-        : ValidationResult.Success();
-}
-```
+### 5. Keep validators pure
 
-### 3. Use Dependency Injection
+Do not access the database or call `IMediator` from within a validator. Validators check the input; data-dependent checks belong to the handler or to dedicated guards.
 
-```csharp
-public class CreateUserCommandValidator : IValidator<CreateUserCommand>
-{
-    private readonly IUserRepository _userRepository;
-    private readonly IPasswordPolicy _passwordPolicy;
-
-    public CreateUserCommandValidator(
-        IUserRepository userRepository,
-        IPasswordPolicy passwordPolicy)
-    {
-        _userRepository = userRepository;
-        _passwordPolicy = passwordPolicy;
-    }
-
-    // Use injected dependencies in validation
-}
-```
-
-### 4. Provide Clear Error Messages
+### 6. Provide clear error messages
 
 ```csharp
 // Good - clear, actionable messages
-errors.Add(new ValidationError("Email", "Email must be a valid email address"));
-errors.Add(new ValidationError("Password", "Password must be at least 8 characters and contain uppercase, lowercase, and numbers"));
+new OutcomeEntry(nameof(user.Email), "{0} must be a valid email address", user.Email, Severity.Error);
 
 // Avoid - vague messages
-errors.Add(new ValidationError("Email", "Invalid"));
-errors.Add(new ValidationError("Password", "Bad password"));
+new OutcomeEntry(nameof(user.Email), "Invalid", user.Email, Severity.Error);
 ```
 
 ## Integration
 
-This package provides only abstractions. For actual validation implementation, use:
+This package provides only abstractions. For the working pipeline, use:
 
-- **Minded.Extensions.Validation** - FluentValidation integration
-- **FluentValidation** - Powerful, fluent validation library
+- **Minded.Extensions.Validation** - validation decorators, concrete `ValidationResult`, validator auto-registration via `AddCommandValidationDecorator()` / `AddQueryValidationDecorator()`
 
 ## Related Packages
 
-- **Minded.Extensions.Validation** - FluentValidation integration and validation decorator
-- **FluentValidation** - Validation library with fluent API
+- **Minded.Extensions.Validation** - Validation decorators and concrete result types
+- **Minded.Framework.CQRS.Abstractions** - `IOutcomeEntry`, `Severity` and the command/query contracts
+- **Minded.Framework.CQRS** - Concrete `OutcomeEntry` implementation used in the examples above
 
 ## License
 
@@ -295,6 +195,5 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 - [GitHub Repository](https://github.com/norcino/Minded)
 - [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.Validation.Abstractions)
 - [Minded.Extensions.Validation](https://www.nuget.org/packages/Minded.Extensions.Validation)
-- [FluentValidation](https://www.nuget.org/packages/FluentValidation)
 - [Main Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)
