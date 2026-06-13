@@ -24,8 +24,21 @@
      "TestingProfile": "E2ELive",
      "DatabaseType": "SQLiteInMemory",
      "ConnectionStrings": {
-       "MindedExample": ""
+       "MindedExample": "",
+       // Used by the PostgreSQL E2E profile; each run targets a unique database derived
+       // from this name (minded_apitests_<runid>), created and dropped automatically.
+       "MindedExamplePostgreSQL": "Host=localhost;Port=5433;Database=minded_apitests;Username=minded;Password=minded"
      }
+
+    // ************************************
+    // E2E Testing PostgreSQL (docker-compose.tests.yml)
+    // Preferred way to select this profile WITHOUT editing this file - set environment
+    // variables before running dotnet test (the test.ps1 -ApiDatabase postgres flag does this):
+    //   MINDEDTEST_TestingProfile = E2E
+    //   MINDEDTEST_DatabaseType   = PostgreSQL
+    // ************************************
+    //"TestingProfile": "E2E",
+    //"DatabaseType": "PostgreSQL",
 
     // ************************************
     // Integration Testing using LocalDb

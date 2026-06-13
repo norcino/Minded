@@ -1,6 +1,5 @@
 using System;
 using Minded.Extensions.Logging;
-using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Query;
 using MindedExample.Domain;
 
@@ -8,9 +7,10 @@ namespace MindedExample.Application.Configuration.Query
 {
     /// <summary>
     /// Query to retrieve a specific configuration entry by key.
-    /// Returns the configuration with current value and metadata.
+    /// Returns the configuration with current value and metadata, or null for an unknown key
+    /// (mapped to 404 by the REST rules). [ValidateQuery] cannot be used here: query validation
+    /// requires the IQuery&lt;IQueryResponse&lt;T&gt;&gt; envelope shape.
     /// </summary>
-    [ValidateQuery]
     public class GetConfigurationByKeyQuery : IQuery<ConfigurationEntry>, ILoggable
     {
         public string Key { get; }

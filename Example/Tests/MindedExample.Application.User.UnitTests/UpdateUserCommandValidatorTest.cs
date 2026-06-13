@@ -18,6 +18,7 @@ namespace MindedExample.Application.User.UnitTests
         private UpdateUserCommandValidator _sut;
         private Mock<IMindedExampleContext> _contextMock;
         private Mock<DbSet<MindedExample.Domain.User>> _userDbSetMock;
+        private Mock<ICurrentUserAccessor> _currentUserAccessorMock;
 
         [TestInitialize]
         public void TestInitialize()
@@ -25,7 +26,9 @@ namespace MindedExample.Application.User.UnitTests
             _contextMock = new Mock<IMindedExampleContext>();
             _userDbSetMock = new Mock<DbSet<MindedExample.Domain.User>>();
             _contextMock.Setup(c => c.Users).Returns(_userDbSetMock.Object);
-            _sut = new UpdateUserCommandValidator(new UserValidator(), _contextMock.Object);
+            _currentUserAccessorMock = new Mock<ICurrentUserAccessor>();
+            _currentUserAccessorMock.SetupGet(a => a.TenantId).Returns(7);
+            _sut = new UpdateUserCommandValidator(new UserValidator(), _contextMock.Object, _currentUserAccessorMock.Object);
         }
 
         [TestMethod]

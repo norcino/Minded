@@ -26,14 +26,19 @@ namespace MindedExample.Application.Transaction.UnitTests
     [TestClass]
     public class DeleteTransactionCommandValidatorTest
     {
+        private const int TestTenantId = 7;
+
         private DeleteTransactionCommandValidator _sut;
         private Mock<IMindedExampleContext> _contextMock;
+        private Mock<ICurrentUserAccessor> _currentUserAccessorMock;
 
         [TestInitialize]
         public void TestInitialize()
         {
             _contextMock = new Mock<IMindedExampleContext>();
-            _sut = new DeleteTransactionCommandValidator(_contextMock.Object);
+            _currentUserAccessorMock = new Mock<ICurrentUserAccessor>();
+            _currentUserAccessorMock.SetupGet(a => a.TenantId).Returns(TestTenantId);
+            _sut = new DeleteTransactionCommandValidator(_contextMock.Object, _currentUserAccessorMock.Object);
         }
 
         /// <summary>
@@ -47,7 +52,7 @@ namespace MindedExample.Application.Transaction.UnitTests
 
             var transactions = new List<MindedExample.Domain.Transaction>
             {
-                new MindedExample.Domain.Transaction { Id = transactionId }
+                new MindedExample.Domain.Transaction { Id = transactionId, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
             };
             Mock<DbSet<MindedExample.Domain.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);
@@ -92,8 +97,8 @@ namespace MindedExample.Application.Transaction.UnitTests
 
             var transactions = new List<MindedExample.Domain.Transaction>
             {
-                new MindedExample.Domain.Transaction { Id = transactionId },
-                new MindedExample.Domain.Transaction { Id = 99 }
+                new MindedExample.Domain.Transaction { Id = transactionId, User = new MindedExample.Domain.User { TenantId = TestTenantId } },
+                new MindedExample.Domain.Transaction { Id = 99, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
             };
             Mock<DbSet<MindedExample.Domain.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);

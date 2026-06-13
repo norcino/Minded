@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MindedExample.Infrastructure.Persistence;
@@ -28,13 +30,24 @@ namespace MindedExample.Application.Role.CommandHandler
             var tenantId = _currentUserAccessor.TenantId.Value;
             if (_context is MindedExampleContext concreteContext)
             {
+                // Mutations go through the shared-type entity sets (not raw SQL) so EF
+                // generates correctly quoted, schema-qualified SQL for every provider.
+
                 // Remove all permission assignments for this role
-                await concreteContext.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM RolePermissions WHERE TenantId = {0} AND RoleName = {1}", tenantId, command.RoleName);
+                var rolePermissions = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
+                var permissionRows = await rolePermissions
+                    .Where(rp => (int)rp["TenantId"] == tenantId && (string)rp["RoleName"] == command.RoleName)
+                    .ToListAsync(cancellationToken);
+                rolePermissions.RemoveRange(permissionRows);
 
                 // Remove all user assignments for this role
-                await concreteContext.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM UserRoles WHERE TenantId = {0} AND RoleName = {1}", tenantId, command.RoleName);
+                var userRoles = concreteContext.Set<Dictionary<string, object>>("UserRoles");
+                var userRoleRows = await userRoles
+                    .Where(ur => (int)ur["TenantId"] == tenantId && (string)ur["RoleName"] == command.RoleName)
+                    .ToListAsync(cancellationToken);
+                userRoles.RemoveRange(userRoleRows);
+
+                await concreteContext.SaveChangesAsync(cancellationToken);
             }
 
             return new CommandResponse { Successful = true };

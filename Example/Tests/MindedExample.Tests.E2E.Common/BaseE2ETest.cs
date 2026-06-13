@@ -33,6 +33,34 @@ namespace MindedExample.Tests.E2E.Common
     public abstract class BaseE2ETest
     {
         protected const int MaxPageItemNumber = 100;
+
+        /// <summary>
+        /// Id of the baseline user every request is authenticated as.
+        /// This user exists in the database (created during test initialization),
+        /// so user-listing endpoints always return at least this record.
+        /// </summary>
+        protected static int AuthenticatedUserId => TestAuthenticationState.UserId;
+
+        /// <summary>Tenant of the baseline authenticated user.</summary>
+        protected static int? AuthenticatedTenantId => TestAuthenticationState.TenantId;
+
+        /// <summary>
+        /// When true (default), every request is authenticated as the baseline user via
+        /// <see cref="TestAuthenticationHandler"/> and Minded authorization is granted by
+        /// <see cref="TestAdminAuthorizationContextAccessor"/>. Override with false to exercise
+        /// the real JWT bearer pipeline (anonymous requests, real tokens) — used by auth tests.
+        /// </summary>
+        protected virtual bool UseTestAuthentication => true;
+
+        /// <summary>
+        /// Direct access to the test database for arranging or asserting state that has no
+        /// API surface (e.g. password-reset tokens, which are normally delivered by email).
+        /// </summary>
+        protected IMindedExampleContext Context => _context;
+
+        /// <summary>Name of the active testing profile (E2ELive, E2E, UnitTesting).</summary>
+        protected static string CurrentTestingProfile => s_currentTestingProfile.ToString();
+
         protected HttpClient _sutClient;
         private IServiceCollection _serviceCollection;
         private DbConnection _connection;
@@ -66,14 +94,60 @@ namespace MindedExample.Tests.E2E.Common
 
             if (_context is MindedExampleContext concreteContext)
             {
-                // Seed all role-permission mappings for Admin role
-                foreach (var permission in DefaultRolesDefinition.AllPermissions)
+                // RolePermissions rows are tenant-scoped (PK and FK include TenantId),
+                // so a tenant must exist to own the seeded mappings.
+                var tenant = concreteContext.Tenants.FirstOrDefault();
+                if (tenant == null)
                 {
-                    await concreteContext.Database.ExecuteSqlRawAsync(
-                        "INSERT INTO RolePermissions (RoleName, PermissionName) VALUES ({0}, {1})",
-                        Roles.Admin, permission);
+                    tenant = new Tenant { Name = "E2E Tenant" };
+                    concreteContext.Tenants.Add(tenant);
+                    await concreteContext.SaveChangesAsync();
                 }
 
+                // Baseline user impersonated by TestAuthenticationHandler. Controllers such as
+                // UsersController verify the caller's user row exists in the current tenant,
+                // so the principal must be backed by a real record.
+                var baselineUser = new User
+                {
+                    Name = "E2E",
+                    Surname = "Admin",
+                    Email = TestAuthenticationState.Email,
+                    PasswordHash = "e2e-test-only",
+                    TenantId = tenant.Id,
+                    TenantRole = TenantMemberRoles.Owner,
+                    IsActive = true,
+                    IsGlobalAdmin = false
+                };
+                concreteContext.Users.Add(baselineUser);
+                await concreteContext.SaveChangesAsync();
+
+                TestAuthenticationState.UserId = baselineUser.Id;
+                TestAuthenticationState.TenantId = tenant.Id;
+                TestAuthenticationState.TenantRole = baselineUser.TenantRole;
+                TestAuthenticationState.IsGlobalAdmin = false;
+
+                // Seed all role-permission mappings for Admin role and grant it to the baseline
+                // user. Inserted through the shared-type entity sets (not raw SQL) so EF
+                // generates correctly quoted, schema-qualified SQL for every database provider.
+                var rolePermissions = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
+                foreach (var permission in DefaultRolesDefinition.AllPermissions)
+                {
+                    rolePermissions.Add(new Dictionary<string, object>
+                    {
+                        ["TenantId"] = tenant.Id,
+                        ["RoleName"] = Roles.Admin,
+                        ["PermissionName"] = permission
+                    });
+                }
+
+                concreteContext.Set<Dictionary<string, object>>("UserRoles").Add(new Dictionary<string, object>
+                {
+                    ["TenantId"] = tenant.Id,
+                    ["UserId"] = baselineUser.Id,
+                    ["RoleName"] = Roles.Admin
+                });
+
+                await concreteContext.SaveChangesAsync();
                 concreteContext.ChangeTracker.Clear();
             }
         }
@@ -108,13 +182,25 @@ namespace MindedExample.Tests.E2E.Common
 
         protected HttpClient CreateTestApplication(Action<IServiceCollection> serviceCollectionSetup = null, Dictionary<string, string> configurationOverride = null)
         {
-            _configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("testappsettings.json", optional: false)
-                .AddInMemoryCollection(configurationOverride)
-                .Build();
+            _configuration = BuildTestConfiguration(configurationOverride);
 
             s_currentTestingProfile = (TestingProfile) Enum.Parse(typeof(TestingProfile), _configuration.GetValue<string>("TestingProfile"));
+
+            // The PostgreSQL E2E profile works against a unique per-run database so runs are
+            // isolated and re-runnable; redirect the connection string before the host starts.
+            if (s_currentTestingProfile == TestingProfile.E2E && GetConfiguredDatabaseType() == DatabaseType.PostgreSQL)
+            {
+                var baseConnectionString =
+                    _configuration.GetConnectionString(Constants.ConfigPostgreSqlConnectionStringName)
+                    ?? _configuration.GetConnectionString(Constants.ConfigConnectionStringName);
+                var runConnectionString = PostgreSqlTestDatabase.GetRunConnectionString(baseConnectionString);
+
+                var overrides = configurationOverride != null
+                    ? new Dictionary<string, string>(configurationOverride)
+                    : new Dictionary<string, string>();
+                overrides[$"ConnectionStrings:{Constants.ConfigPostgreSqlConnectionStringName}"] = runConnectionString;
+                _configuration = BuildTestConfiguration(overrides);
+            }
 
             var mockEnv = new Mock<IWebHostEnvironment>();
             mockEnv.SetupProperty(p => p.EnvironmentName, s_currentTestingProfile.ToString());
@@ -131,8 +217,20 @@ namespace MindedExample.Tests.E2E.Common
                 builder.ConfigureTestServices(services => {
                     ConfigureContext(services);
 
-                    services.AddScoped<Minded.Extensions.Authorization.IAuthorizationContextAccessor>(sp =>
-                        new TestAdminAuthorizationContextAccessor());
+                    if (UseTestAuthentication)
+                    {
+                        // Replace JWT bearer authentication with a scheme that authenticates every
+                        // request as the baseline test user (see TestAuthenticationHandler).
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultAuthenticateScheme = TestAuthenticationHandler.SchemeName;
+                            options.DefaultChallengeScheme = TestAuthenticationHandler.SchemeName;
+                        }).AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                            TestAuthenticationHandler.SchemeName, _ => { });
+
+                        services.AddScoped<Minded.Extensions.Authorization.IAuthorizationContextAccessor>(sp =>
+                            new TestAdminAuthorizationContextAccessor());
+                    }
 
                     serviceCollectionSetup?.Invoke(services);
 
@@ -217,20 +315,177 @@ namespace MindedExample.Tests.E2E.Common
                         services.Remove(descriptorIMindedContextE2E);
                     }
 
+                    // Remove the options registered by Startup as well: AddDbContext uses TryAdd
+                    // internally, so without this the provider configured below would be ignored.
+                    ServiceDescriptor descriptorOptionsE2E = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<MindedExampleContext>));
+                    if (descriptorOptionsE2E != null)
+                    {
+                        services.Remove(descriptorOptionsE2E);
+                    }
+
+                    DatabaseType e2eDatabaseType = GetConfiguredDatabaseType();
                     services.AddDbContext<MindedExampleContext>(options =>
                     {
-                        options.UseSqlServer(_configuration.GetConnectionString(Constants.ConfigConnectionStringName));
-                        options.UseLoggerFactory(Startup.AppLoggerFactory);
+                        if (e2eDatabaseType == DatabaseType.PostgreSQL)
+                        {
+                            options.UseNpgsql(_configuration.GetConnectionString(Constants.ConfigPostgreSqlConnectionStringName));
+                        }
+                        else
+                        {
+                            options.UseSqlServer(_configuration.GetConnectionString(Constants.ConfigConnectionStringName));
+                            options.UseLoggerFactory(Startup.AppLoggerFactory);
+                        }
                     });
 
                     services.AddTransient<IMindedExampleContext>(s =>
                     {
-                        _context = s.GetService<MindedExampleContext>();
-                        _context.Database.EnsureCreated();
-                        _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
-                        return _context;
+                        MindedExampleContext context = s.GetService<MindedExampleContext>();
+                        context.Database.EnsureCreated();
+
+                        // Capture only the first (root-scoped) instance for test-side access:
+                        // request-scoped instances are disposed when their request ends, and
+                        // reassigning here would leave _context pointing at a disposed context.
+                        if (_context == null)
+                        {
+                            _context = context;
+                            _seeder = new Seeder(s_currentTestingProfile, _context, _mockIMindedExampleContext);
+                        }
+
+                        return context;
                     });
                     break;
+            }
+        }
+
+        #region Real-authentication helpers (for suites with UseTestAuthentication = false)
+
+        /// <summary>Default password used by the real-authentication test helpers.</summary>
+        protected const string DefaultTestPassword = "Passw0rd!";
+
+        /// <summary>Attaches a bearer token to every subsequent request of the test client.</summary>
+        protected void UseBearer(string accessToken)
+            => _sutClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        /// <summary>Removes any bearer token so subsequent requests are anonymous.</summary>
+        protected void UseAnonymous()
+            => _sutClient.DefaultRequestHeaders.Authorization = null;
+
+        /// <summary>
+        /// Registers a new tenant through the public API (create-tenant mode) and returns the
+        /// authenticated owner. Leaves the client anonymous.
+        /// </summary>
+        protected async Task<MindedExample.Api.Models.AuthResponse> RegisterTenantOwnerAsync(
+            string email = null, string password = DefaultTestPassword, string tenantName = null)
+        {
+            UseAnonymous();
+            var response = await _sutClient.PostAsync("/api/auth/register", new MindedExample.Api.Models.RegisterRequest
+            {
+                Name = AnonymousData.Any.String(),
+                Surname = AnonymousData.Any.String(),
+                Email = email ?? AnonymousData.Any.Email(),
+                Password = password,
+                TenantName = tenantName ?? $"Tenant {AnonymousData.Any.String()}"
+            });
+
+            response.EnsureSuccessStatusCode();
+            return await MindedExample.Tests.Common.HttpContentExtensions.ReadAsAsync<MindedExample.Api.Models.AuthResponse>(response.Content);
+        }
+
+        /// <summary>Creates a tenant invite as the given owner and returns it. Leaves the bearer set to the owner.</summary>
+        protected async Task<MindedExample.Api.Models.TenantInviteDto> CreateInviteAsync(string ownerAccessToken, string inviteeEmail)
+        {
+            UseBearer(ownerAccessToken);
+            var response = await _sutClient.PostAsync("/api/tenant-admin/invites",
+                new MindedExample.Api.Models.CreateInviteRequest { Email = inviteeEmail });
+
+            response.EnsureSuccessStatusCode();
+            return await MindedExample.Tests.Common.HttpContentExtensions.ReadAsAsync<MindedExample.Api.Models.TenantInviteDto>(response.Content);
+        }
+
+        /// <summary>
+        /// Invites and registers a member into the owner's tenant through the public API
+        /// (invite + accept-invite) and returns the authenticated member. Leaves the client anonymous.
+        /// </summary>
+        protected async Task<MindedExample.Api.Models.AuthResponse> RegisterInvitedMemberAsync(
+            string ownerAccessToken, string memberEmail = null, string password = DefaultTestPassword)
+        {
+            memberEmail ??= AnonymousData.Any.Email();
+            var invite = await CreateInviteAsync(ownerAccessToken, memberEmail);
+
+            UseAnonymous();
+            var accept = await _sutClient.PostAsync("/api/auth/accept-invite", new MindedExample.Api.Models.AcceptInviteRequest
+            {
+                CodeOrToken = invite.Token,
+                Email = memberEmail,
+                Name = AnonymousData.Any.String(),
+                Surname = AnonymousData.Any.String(),
+                Password = password
+            });
+
+            accept.EnsureSuccessStatusCode();
+            return await MindedExample.Tests.Common.HttpContentExtensions.ReadAsAsync<MindedExample.Api.Models.AuthResponse>(accept.Content);
+        }
+
+        /// <summary>
+        /// Creates a global administrator directly in the database (there is no public API for
+        /// this: global admins are provisioned out-of-band) and logs in through the API,
+        /// returning the authenticated admin. Leaves the client anonymous.
+        /// </summary>
+        protected async Task<MindedExample.Api.Models.AuthResponse> CreateGlobalAdminAsync(
+            string email = null, string password = DefaultTestPassword)
+        {
+            email ??= AnonymousData.Any.Email().ToLowerInvariant();
+
+            var admin = new User
+            {
+                Name = "Global",
+                Surname = "Admin",
+                Email = email,
+                TenantId = null,
+                TenantRole = TenantMemberRoles.Member,
+                IsActive = true,
+                IsGlobalAdmin = true
+            };
+            admin.PasswordHash = new Microsoft.AspNetCore.Identity.PasswordHasher<User>().HashPassword(admin, password);
+
+            if (_context is MindedExampleContext concreteContext)
+            {
+                concreteContext.Users.Add(admin);
+                await concreteContext.SaveChangesAsync();
+                concreteContext.ChangeTracker.Clear();
+            }
+
+            UseAnonymous();
+            var login = await _sutClient.PostAsync("/api/auth/login",
+                new MindedExample.Api.Models.LoginRequest { Email = email, Password = password });
+            login.EnsureSuccessStatusCode();
+            return await MindedExample.Tests.Common.HttpContentExtensions.ReadAsAsync<MindedExample.Api.Models.AuthResponse>(login.Content);
+        }
+
+        #endregion
+
+        private static IConfigurationRoot BuildTestConfiguration(Dictionary<string, string> configurationOverride)
+        {
+            // Precedence (last wins): testappsettings.json < MINDEDTEST_* environment
+            // variables (profile selection without editing files) < per-test overrides.
+            return new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("testappsettings.json", optional: false)
+                .AddEnvironmentVariables("MINDEDTEST_")
+                .AddInMemoryCollection(configurationOverride)
+                .Build();
+        }
+
+        private DatabaseType GetConfiguredDatabaseType()
+        {
+            try
+            {
+                return _configuration.GetValue<DatabaseType>("DatabaseType");
+            }
+            catch
+            {
+                return DatabaseType.SQLServer;
             }
         }
 
@@ -253,13 +508,25 @@ namespace MindedExample.Tests.E2E.Common
                     string transactionsTable = concreteContext.Model.FindEntityType(typeof(Transaction))?.GetTableName() ?? "Transactions";
                     string categoriesTable = concreteContext.Model.FindEntityType(typeof(Category))?.GetTableName() ?? "Categories";
                     string usersTable = concreteContext.Model.FindEntityType(typeof(User))?.GetTableName() ?? "Users";
+                    string passwordResetTokensTable = concreteContext.Model.FindEntityType(typeof(PasswordResetToken))?.GetTableName() ?? "PasswordResetTokens";
+                    string tenantInvitesTable = concreteContext.Model.FindEntityType(typeof(TenantInvite))?.GetTableName() ?? "TenantInvites";
+                    string tenantJoinRequestsTable = concreteContext.Model.FindEntityType(typeof(TenantJoinRequest))?.GetTableName() ?? "TenantJoinRequests";
+                    string tenantsTable = concreteContext.Model.FindEntityType(typeof(Tenant))?.GetTableName() ?? "Tenants";
 
 #pragma warning disable EF1002 // Risk of vulnerability to SQL injection.
                     await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {transactionsTable}", cancellationToken);
                     await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {categoriesTable}", cancellationToken);
                     await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM UserRoles", cancellationToken);
                     await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM RolePermissions", cancellationToken);
+                    // Auth-flow tables must go before Users: TenantInvites references users with a Restrict FK
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {passwordResetTokensTable}", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {tenantInvitesTable}", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {tenantJoinRequestsTable}", cancellationToken);
+                    // Tenants reference their legal owner with a Restrict FK: detach before deleting
+                    // users, then remove the tenants themselves (recreated by SeedAuthorizationData)
+                    await concreteContext.Database.ExecuteSqlRawAsync($"UPDATE {tenantsTable} SET LegalOwnerUserId = NULL", cancellationToken);
                     await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {usersTable}", cancellationToken);
+                    await concreteContext.Database.ExecuteSqlRawAsync($"DELETE FROM {tenantsTable}", cancellationToken);
 #pragma warning restore EF1002 // Risk of vulnerability to SQL injection.
 
                     await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM sqlite_sequence", cancellationToken);
@@ -295,6 +562,12 @@ namespace MindedExample.Tests.E2E.Common
                     Permissions.CanDeleteTransaction, Permissions.CanCreateUser,
                     Permissions.CanUpdateUser, Permissions.CanDeleteUser,
                     Permissions.CanManageRoles, Permissions.CanAssignRoles
+                },
+                // Commands/queries decorated with [RequireClaim("is_global_admin", "false")]
+                // are evaluated against these claims.
+                new Dictionary<string, string>
+                {
+                    ["is_global_admin"] = "false"
                 });
 
         public Minded.Extensions.Authorization.AuthorizationContext Current => _adminContext;

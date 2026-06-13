@@ -564,4 +564,88 @@ public class QueryAuthorizationDecoratorTests
             return (result == 77).ToProperty();
         }).QuickCheckThrowOnFailure();
     }
+
+    /// <summary>
+    /// Exception scoping: an exception thrown by the inner handler of an authorized envelope query
+    /// SHALL propagate to the caller (so the Exception decorator can handle it) instead of being
+    /// converted into a NotAuthorized denial by the deny-by-default guard.
+    /// </summary>
+    [TestMethod]
+    public async Task HandlerException_OnAuthorizedEnvelopeQuery_Propagates()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = new Mock<IQueryHandler<ProtectedEnvelopeQuery, IQueryResponse<string>>>();
+        innerHandler.Setup(h => h.HandleAsync(It.IsAny<ProtectedEnvelopeQuery>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("handler failure"));
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var decorator = CreateDecorator(innerHandler.Object, contextAccessor.Object);
+
+        var act = () => decorator.HandleAsync(new ProtectedEnvelopeQuery(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("handler failure");
+    }
+
+    /// <summary>
+    /// Exception scoping (raw): inner-handler exceptions propagate unchanged for raw queries —
+    /// they must not be remapped to SecurityException by the denial path.
+    /// </summary>
+    [TestMethod]
+    public async Task HandlerException_OnAuthorizedRawQuery_Propagates()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = new Mock<IQueryHandler<ProtectedRawQuery, int>>();
+        innerHandler.Setup(h => h.HandleAsync(It.IsAny<ProtectedRawQuery>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("handler failure"));
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var decorator = CreateDecorator(innerHandler.Object, contextAccessor.Object);
+
+        var act = () => decorator.HandleAsync(new ProtectedRawQuery(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("handler failure");
+    }
+
+    /// <summary>
+    /// Deny-by-default: an exception thrown inside the authorization flow itself (here the evaluator)
+    /// SHALL still result in a NotAuthorized envelope denial without invoking the inner handler.
+    /// </summary>
+    [TestMethod]
+    public async Task AuthorizationFlowException_EnvelopeQuery_DeniesWithoutInvokingHandler()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = CreateMockHandler<ProtectedEnvelopeQuery, IQueryResponse<string>>(
+            new QueryResponse<string>("should-not-reach"));
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var evaluator = new Mock<IRequestAuthorizationEvaluator>();
+        evaluator.Setup(e => e.Evaluate(It.IsAny<Type>(), It.IsAny<AuthorizationDescriptor>(), It.IsAny<AuthorizationContext>()))
+            .Throws(new InvalidOperationException("evaluator failure"));
+        var decorator = CreateDecorator(innerHandler.Object, contextAccessor.Object, evaluator.Object);
+
+        var result = await decorator.HandleAsync(new ProtectedEnvelopeQuery(), CancellationToken.None);
+
+        result.Successful.Should().BeFalse();
+        result.OutcomeEntries.Should().HaveCount(1);
+        result.OutcomeEntries[0].ErrorCode.Should().Be(GenericErrorCodes.NotAuthorized);
+        innerHandler.Verify(h => h.HandleAsync(It.IsAny<ProtectedEnvelopeQuery>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
+
+    /// <summary>
+    /// Deny-by-default (raw): authorization-flow exceptions on raw queries surface as
+    /// SecurityException without invoking the inner handler.
+    /// </summary>
+    [TestMethod]
+    public async Task AuthorizationFlowException_RawQuery_ThrowsSecurityExceptionWithoutInvokingHandler()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = CreateMockHandler<ProtectedRawQuery, int>(42);
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var evaluator = new Mock<IRequestAuthorizationEvaluator>();
+        evaluator.Setup(e => e.Evaluate(It.IsAny<Type>(), It.IsAny<AuthorizationDescriptor>(), It.IsAny<AuthorizationContext>()))
+            .Throws(new InvalidOperationException("evaluator failure"));
+        var decorator = CreateDecorator(innerHandler.Object, contextAccessor.Object, evaluator.Object);
+
+        var act = () => decorator.HandleAsync(new ProtectedRawQuery(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<SecurityException>();
+        innerHandler.Verify(h => h.HandleAsync(It.IsAny<ProtectedRawQuery>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
 }

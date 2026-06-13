@@ -57,6 +57,23 @@ namespace Minded.Extensions.Authorization.Decorator
 
         public async Task<ICommandResponse> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
+            var denial = await EvaluateAuthorizationAsync(command, cancellationToken);
+            if (denial != null)
+            {
+                return denial;
+            }
+
+            // Outside the deny-by-default guard: exceptions thrown by validators, the handler
+            // or the data layer must propagate to the Exception decorator, not degrade to a 403.
+            return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+        }
+
+        /// <summary>
+        /// Runs the authorization flow under the deny-by-default guard.
+        /// Returns null when the command is allowed to proceed, or the denial response otherwise.
+        /// </summary>
+        private async Task<ICommandResponse> EvaluateAuthorizationAsync(TCommand command, CancellationToken cancellationToken)
+        {
             var stopwatch = Stopwatch.StartNew();
 
             try
@@ -64,7 +81,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 var mindedContext = _mindedContextAccessor.Current;
                 if (mindedContext.TryGetScoped<AuthorizationBypass>(out _))
                 {
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 var descriptor = AuthorizationDescriptorCache.GetOrCreate(typeof(TCommand));
@@ -72,7 +89,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 // AllowUnauthenticated always passes through
                 if (descriptor.AllowUnauthenticated)
                 {
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // Determine if authorization checks are needed
@@ -81,7 +98,7 @@ namespace Minded.Extensions.Authorization.Decorator
 
                 if (!needsAuth)
                 {
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // Get authorization context
@@ -103,7 +120,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogAllowed(command, stopwatch.Elapsed);
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // If enforce-auth brought us here but there are no RBAC clauses, just check principal
@@ -111,7 +128,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogAllowed(command, stopwatch.Elapsed);
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // Evaluate RBAC
@@ -140,7 +157,7 @@ namespace Minded.Extensions.Authorization.Decorator
 
                 stopwatch.Stop();
                 LogAllowed(command, stopwatch.Elapsed);
-                return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                return null;
             }
             catch (MindedContextRequiredException)
             {
@@ -149,7 +166,7 @@ namespace Minded.Extensions.Authorization.Decorator
             }
             catch (System.Exception)
             {
-                // Deny-by-default: any exception in the auth flow results in denial
+                // Deny-by-default: any exception in the authorization flow results in denial
                 stopwatch.Stop();
                 LogDenied(command, stopwatch.Elapsed, isUnauthenticated: false);
                 return CommandResponse.Error(CreateUnauthorizedOutcomeEntry());
@@ -391,6 +408,23 @@ namespace Minded.Extensions.Authorization.Decorator
 
         public async Task<ICommandResponse<TResult>> HandleAsync(TCommand command, CancellationToken cancellationToken = default)
         {
+            var denial = await EvaluateAuthorizationAsync(command, cancellationToken);
+            if (denial != null)
+            {
+                return denial;
+            }
+
+            // Outside the deny-by-default guard: exceptions thrown by validators, the handler
+            // or the data layer must propagate to the Exception decorator, not degrade to a 403.
+            return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+        }
+
+        /// <summary>
+        /// Runs the authorization flow under the deny-by-default guard.
+        /// Returns null when the command is allowed to proceed, or the denial response otherwise.
+        /// </summary>
+        private async Task<ICommandResponse<TResult>> EvaluateAuthorizationAsync(TCommand command, CancellationToken cancellationToken)
+        {
             var stopwatch = Stopwatch.StartNew();
 
             try
@@ -398,7 +432,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 var mindedContext = _mindedContextAccessor.Current;
                 if (mindedContext.TryGetScoped<AuthorizationBypass>(out _))
                 {
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 var descriptor = AuthorizationDescriptorCache.GetOrCreate(typeof(TCommand));
@@ -406,7 +440,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 // AllowUnauthenticated always passes through
                 if (descriptor.AllowUnauthenticated)
                 {
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // Determine if authorization checks are needed
@@ -415,7 +449,7 @@ namespace Minded.Extensions.Authorization.Decorator
 
                 if (!needsAuth)
                 {
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // Get authorization context
@@ -437,7 +471,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogAllowed(command, stopwatch.Elapsed);
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // If enforce-auth brought us here but there are no RBAC clauses, just check principal
@@ -445,7 +479,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogAllowed(command, stopwatch.Elapsed);
-                    return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                    return null;
                 }
 
                 // Evaluate RBAC
@@ -474,7 +508,7 @@ namespace Minded.Extensions.Authorization.Decorator
 
                 stopwatch.Stop();
                 LogAllowed(command, stopwatch.Elapsed);
-                return await DecoratedCommmandHandler.HandleAsync(command, cancellationToken);
+                return null;
             }
             catch (MindedContextRequiredException)
             {
@@ -483,7 +517,7 @@ namespace Minded.Extensions.Authorization.Decorator
             }
             catch (System.Exception)
             {
-                // Deny-by-default: any exception in the auth flow results in denial
+                // Deny-by-default: any exception in the authorization flow results in denial
                 stopwatch.Stop();
                 LogDenied(command, stopwatch.Elapsed, isUnauthenticated: false);
                 return CommandResponse<TResult>.Error(CreateUnauthorizedOutcomeEntry());

@@ -17,15 +17,19 @@ namespace MindedExample.Application.Transaction.Validator
     public class DeleteTransactionCommandValidator : ICommandValidator<DeleteTransactionCommand>
     {
         private readonly IMindedExampleContext _context;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public DeleteTransactionCommandValidator(IMindedExampleContext context)
+        public DeleteTransactionCommandValidator(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         /// <summary>
         /// Validates the delete command.
-        /// Checks if the transaction exists in the database.
+        /// Checks if the transaction exists within the caller's tenant. The check must be
+        /// tenant-scoped: an unscoped check would answer differently for foreign-tenant ids
+        /// and nonexistent ids, leaking which ids exist in other tenants.
         /// </summary>
         /// <param name="command">The delete command to validate</param>
         /// <returns>Validation result with 404 error code if transaction not found</returns>
@@ -33,8 +37,10 @@ namespace MindedExample.Application.Transaction.Validator
         {
             var validationResult = new ValidationResult();
 
-            // Check if the category exists
-            var exists = await _context.Transactions.AnyAsync(c => c.Id == command.TransactionId);
+            // Check if the transaction exists in the caller's tenant
+            var tenantId = _currentUserAccessor.TenantId;
+            var exists = tenantId.HasValue && await _context.Transactions
+                .AnyAsync(t => t.Id == command.TransactionId && t.User.TenantId == tenantId.Value);
             if (!exists)
             {
                 validationResult.OutcomeEntries.Add(new OutcomeEntry(

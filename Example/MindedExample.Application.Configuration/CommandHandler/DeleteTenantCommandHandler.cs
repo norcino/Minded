@@ -51,8 +51,23 @@ namespace MindedExample.Application.Configuration.CommandHandler
 
             if (_context is MindedExampleContext concreteContext)
             {
-                await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM UserRoles WHERE TenantId = {0}", command.TenantId);
-                await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM RolePermissions WHERE TenantId = {0}", command.TenantId);
+                // Deletes go through the shared-type entity sets (not raw SQL) so EF
+                // generates correctly quoted, schema-qualified SQL for every provider.
+                // Loaded and removed via the change tracker: ExecuteDelete cannot translate
+                // the shared-type dictionary indexer access.
+                var userRoles = concreteContext.Set<Dictionary<string, object>>("UserRoles");
+                var userRoleRows = await userRoles
+                    .Where(ur => (int)ur["TenantId"] == command.TenantId)
+                    .ToListAsync(cancellationToken);
+                userRoles.RemoveRange(userRoleRows);
+
+                var rolePermissions = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
+                var rolePermissionRows = await rolePermissions
+                    .Where(rp => (int)rp["TenantId"] == command.TenantId)
+                    .ToListAsync(cancellationToken);
+                rolePermissions.RemoveRange(rolePermissionRows);
+
+                await concreteContext.SaveChangesAsync(cancellationToken);
             }
 
             await _context.TenantInvites.Where(i => i.TenantId == command.TenantId).ExecuteDeleteAsync(cancellationToken);
@@ -63,6 +78,12 @@ namespace MindedExample.Application.Configuration.CommandHandler
             if (tenantUserIds.Count > 0)
             {
                 await _context.PasswordResetTokens.Where(t => tenantUserIds.Contains(t.UserId)).ExecuteDeleteAsync(cancellationToken);
+
+                // The tenant references its legal owner with a Restrict foreign key;
+                // detach it before the users can be deleted.
+                await _context.Tenants.Where(t => t.Id == command.TenantId)
+                    .ExecuteUpdateAsync(t => t.SetProperty(x => x.LegalOwnerUserId, (int?)null), cancellationToken);
+
                 await _context.Users.Where(u => tenantUserIds.Contains(u.Id)).ExecuteDeleteAsync(cancellationToken);
             }
 

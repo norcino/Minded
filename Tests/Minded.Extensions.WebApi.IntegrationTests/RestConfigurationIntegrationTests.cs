@@ -482,10 +482,10 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         #region Generic Results Tests
 
         /// <summary>
-        /// Generic results - Authorization error: 401 Unauthorized (Command)
+        /// Generic results - Authorization error: 403 Forbidden (Command)
         /// </summary>
         [TestMethod]
-        public async Task Command_NotAuthorized_Returns401Unauthorized()
+        public async Task Command_NotAuthorized_Returns403Forbidden()
         {
             var command = new CreateEntityCommand { Id = 1, Name = "Test", ShouldSucceed = false, IsNotAuthorized = true };
 
@@ -493,7 +493,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
-            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Unauthorized);
+            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Forbidden);
             objectResult.Value.Should().BeOfType<CommandResponse<Entity>>();
             var response = objectResult.Value as CommandResponse<Entity>;
             response.Successful.Should().BeFalse();
@@ -501,10 +501,10 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         }
 
         /// <summary>
-        /// Generic results - Authentication error: 403 Forbidden (Command)
+        /// Generic results - Authentication error: 401 Unauthorized (Command)
         /// </summary>
         [TestMethod]
-        public async Task Command_NotAuthenticated_Returns403Forbidden()
+        public async Task Command_NotAuthenticated_Returns401Unauthorized()
         {
             var command = new CreateEntityCommand { Id = 1, Name = "Test", ShouldSucceed = false, IsNotAuthenticated = true };
 
@@ -512,7 +512,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
-            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Forbidden);
+            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Unauthorized);
             objectResult.Value.Should().BeOfType<CommandResponse<Entity>>();
             var response = objectResult.Value as CommandResponse<Entity>;
             response.Successful.Should().BeFalse();
@@ -520,10 +520,10 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         }
 
         /// <summary>
-        /// Generic results - Authorization error: 401 Unauthorized (Query)
+        /// Generic results - Authorization error: 403 Forbidden (Query)
         /// </summary>
         [TestMethod]
-        public async Task Query_NotAuthorized_Returns401Unauthorized()
+        public async Task Query_NotAuthorized_Returns403Forbidden()
         {
             var query = new GetEntityByIdQuery { Id = 1, EntityExists = true, IsNotAuthorized = true };
 
@@ -531,7 +531,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
-            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Unauthorized);
+            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Forbidden);
             objectResult.Value.Should().BeOfType<QueryResponse<Entity>>();
             var response = objectResult.Value as QueryResponse<Entity>;
             response.Successful.Should().BeFalse();
@@ -539,10 +539,10 @@ namespace Minded.Extensions.WebApi.IntegrationTests
         }
 
         /// <summary>
-        /// Generic results - Authentication error: 403 Forbidden (Query)
+        /// Generic results - Authentication error: 401 Unauthorized (Query)
         /// </summary>
         [TestMethod]
-        public async Task Query_NotAuthenticated_Returns403Forbidden()
+        public async Task Query_NotAuthenticated_Returns401Unauthorized()
         {
             var query = new GetEntityByIdQuery { Id = 1, EntityExists = true, IsNotAuthenticated = true };
 
@@ -550,7 +550,7 @@ namespace Minded.Extensions.WebApi.IntegrationTests
 
             result.Should().BeOfType<ObjectResult>();
             var objectResult = result as ObjectResult;
-            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Forbidden);
+            objectResult.StatusCode.Should().Be((int)HttpStatusCode.Unauthorized);
             objectResult.Value.Should().BeOfType<QueryResponse<Entity>>();
             var response = objectResult.Value as QueryResponse<Entity>;
             response.Successful.Should().BeFalse();

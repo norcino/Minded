@@ -93,17 +93,23 @@ namespace MindedExample.Application.Configuration.CommandHandler
                 return;
             }
 
+            // Inserted through the shared-type entity set (not raw SQL) so EF generates
+            // correctly quoted, schema-qualified SQL for every database provider.
+            var rolePermissionsSet = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
             foreach (var rolePermissions in DefaultRolesDefinition.RolePermissions)
             {
                 foreach (var permission in rolePermissions.Value)
                 {
-                    await concreteContext.Database.ExecuteSqlRawAsync(
-                        "INSERT INTO RolePermissions (TenantId, RoleName, PermissionName) VALUES ({0}, {1}, {2})",
-                        tenantId,
-                        rolePermissions.Key,
-                        permission);
+                    rolePermissionsSet.Add(new Dictionary<string, object>
+                    {
+                        ["TenantId"] = tenantId,
+                        ["RoleName"] = rolePermissions.Key,
+                        ["PermissionName"] = permission
+                    });
                 }
             }
+
+            await concreteContext.SaveChangesAsync(cancellationToken);
         }
 
         private async Task AssignUserRoleAsync(int tenantId, int userId, string roleName)
@@ -124,11 +130,13 @@ namespace MindedExample.Application.Configuration.CommandHandler
                 return;
             }
 
-            await concreteContext.Database.ExecuteSqlRawAsync(
-                "INSERT INTO UserRoles (TenantId, UserId, RoleName) VALUES ({0}, {1}, {2})",
-                tenantId,
-                userId,
-                roleName);
+            concreteContext.Set<Dictionary<string, object>>("UserRoles").Add(new Dictionary<string, object>
+            {
+                ["TenantId"] = tenantId,
+                ["UserId"] = userId,
+                ["RoleName"] = roleName
+            });
+            await concreteContext.SaveChangesAsync();
         }
     }
 }

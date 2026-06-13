@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MindedExample.Domain;
@@ -29,19 +31,32 @@ namespace MindedExample.Application.Role.CommandHandler
             var tenantId = _currentUserAccessor.TenantId.Value;
             if (_context is MindedExampleContext concreteContext)
             {
+                // Mutations go through the shared-type entity set (not raw SQL) so EF
+                // generates correctly quoted, schema-qualified SQL for every provider.
+                var rolePermissions = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
+
                 // Clear all existing role-permission mappings
-                await concreteContext.Database.ExecuteSqlRawAsync("DELETE FROM RolePermissions WHERE TenantId = {0}", tenantId);
+                var existingPermissions = await rolePermissions
+                    .Where(rp => (int)rp["TenantId"] == tenantId)
+                    .ToListAsync(cancellationToken);
+                rolePermissions.RemoveRange(existingPermissions);
+                await concreteContext.SaveChangesAsync(cancellationToken);
 
                 // Re-insert defaults from DefaultRolesDefinition
                 foreach (var kvp in DefaultRolesDefinition.RolePermissions)
                 {
                     foreach (var permission in kvp.Value)
                     {
-                        await concreteContext.Database.ExecuteSqlRawAsync(
-                            "INSERT INTO RolePermissions (TenantId, RoleName, PermissionName) VALUES ({0}, {1}, {2})",
-                            tenantId, kvp.Key, permission);
+                        rolePermissions.Add(new Dictionary<string, object>
+                        {
+                            ["TenantId"] = tenantId,
+                            ["RoleName"] = kvp.Key,
+                            ["PermissionName"] = permission
+                        });
                     }
                 }
+
+                await concreteContext.SaveChangesAsync(cancellationToken);
             }
 
             return new CommandResponse { Successful = true };

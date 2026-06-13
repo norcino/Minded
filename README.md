@@ -2208,21 +2208,27 @@ For a detailed quick-start guide including prerequisites, login credentials, and
 1. **Clone the Repository**
    ```bash
    git clone https://github.com/norcino/Minded.git
-   cd Minded/Example
+   cd Minded
    ```
 
-2. **Run the API**
+2. **Start the Database** (PostgreSQL via Docker — the default configuration points at it)
    ```bash
-   cd MindedExample.Api
+   docker compose -f docker-compose.tests.yml up -d
+   ```
+   > No Docker? Set `"DatabaseType": "SQLiteInMemory"` in `Example/MindedExample.Api/appsettings.Development.json` instead — SQL Server is also supported via `"SQLServer"`/`"LocalDb"`.
+
+3. **Run the API** (schema is created and seeded automatically)
+   ```bash
+   cd Example/MindedExample.Api
    dotnet run
    ```
 
-3. **Access the API**
+4. **Access the API**
    - Swagger UI: `http://localhost:6000/swagger`
    - API Base URL: `http://localhost:6000/api`
    - Frontend (Vite): `http://localhost:3000`
 
-4. **Try Some Requests**
+5. **Try Some Requests**
 
    **Get all categories:**
    ```bash
@@ -2368,16 +2374,45 @@ The example application automatically seeds the database with sample data in dev
 
 ### Running Tests
 
+The repository has a single, CI-agnostic test entry point: [`test.ps1`](test.ps1) (PowerShell, works on Windows `powershell`/`pwsh` and Linux/macOS `pwsh`). Any CI system should call this script instead of defining its own test logic.
+
 ```bash
-# Run all tests
-dotnet test
+# Fast tier (default): Framework/Extensions tests + Example unit tests — no infrastructure needed
+pwsh ./test.ps1 -Tier unit
 
-# Run specific test project
-cd Tests/MindedExample.Application.Category.UnitTests
-dotnet test
+# In-process API E2E + integration tests (WebApplicationFactory, SQLite in-memory) — no infrastructure needed
+pwsh ./test.ps1 -Tier api
 
-# Run with coverage
-dotnet test /p:CollectCoverage=true
+# Same API E2E suite against real PostgreSQL (starts docker-compose.tests.yml automatically;
+# each run uses a unique database that is created and dropped automatically)
+pwsh ./test.ps1 -Tier api -ApiDatabase postgres
+
+# Playwright browser E2E tests (real frontend + API + PostgreSQL; Docker started automatically)
+pwsh ./test.ps1 -Tier ui
+
+# Everything
+pwsh ./test.ps1 -Tier all
+```
+
+TRX result files and Cobertura coverage reports are written to `TestResults/<tier>/`. The script exits non-zero if any project fails, making it directly usable as a CI gate.
+
+A single project can still be run directly with `dotnet test path/to/Project.csproj`.
+
+#### PostgreSQL test database
+
+The `unit` and `api` tiers need no infrastructure. To run the Example application against a real database (and for the upcoming Playwright UI tier), a PostgreSQL instance is provided via Docker Compose:
+
+```bash
+docker compose -f docker-compose.tests.yml up -d    # start (host port 5433)
+docker compose -f docker-compose.tests.yml down     # stop
+docker compose -f docker-compose.tests.yml down -v  # stop and wipe all data
+```
+
+Two databases are created on first start: `mindedexample` (local API runs) and `mindedexample_e2e` (reserved for UI E2E tests). Credentials: `minded`/`minded`. To point the Example API at it, set `DatabaseType` to `PostgreSQL` (the `MindedExamplePostgreSQL` connection string in `appsettings.json` already targets `localhost:5433`):
+
+```bash
+DatabaseType=PostgreSQL dotnet run --project Example/MindedExample.Api    # bash
+$env:DatabaseType='PostgreSQL'; dotnet run --project Example/MindedExample.Api  # PowerShell
 ```
 
 ---

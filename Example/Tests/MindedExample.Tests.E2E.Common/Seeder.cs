@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AnonymousData;
 using Builder;
+using MindedExample.Domain;
 using MindedExample.Tests.Common;
 using MindedExample.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ namespace MindedExample.Tests.E2E.Common
         private TestingProfile _currentTestingProfile;
         private IMindedExampleContext _context;
         private Mock<IMindedExampleContext> _mockIMindedExampleContext;
+        private int? _baselineTenantId;
+        private readonly HashSet<int> _usedPrimaryKeys = new HashSet<int>();
 
         public Seeder(TestingProfile currentTestingProfile, IMindedExampleContext context, Mock<IMindedExampleContext> mockIMindedExampleContext) {
             _currentTestingProfile = currentTestingProfile;
@@ -72,6 +75,10 @@ namespace MindedExample.Tests.E2E.Common
             {
                 _context.ChangeTracker.Clear();
                 entities = Builder<T>.New().BuildMany(quantity, (e, i) => {
+                    // Re-point the randomly generated TenantId at the baseline tenant
+                    // before buildAction runs, so explicit per-test values still win
+                    ApplyBaselineTenant(e);
+
                     // Execute custom action initialization if present
                     if (buildAction != default)
                         buildAction(e, i);
@@ -93,6 +100,7 @@ namespace MindedExample.Tests.E2E.Common
             else // E2E
             {
                 entities = Builder<T>.New().BuildMany(quantity, (e,i) => {
+                    ApplyBaselineTenant(e);
                     SetPrimaryKey(id, e);
                     if(buildAction != null)
                         buildAction(e, i);
@@ -109,6 +117,34 @@ namespace MindedExample.Tests.E2E.Common
             }
 
             return entities;
+        }
+
+        /// <summary>
+        /// Entities are built with random property values, so domain-constrained properties
+        /// must be re-pointed at valid values before insert:
+        /// - TenantId would reference a non-existent tenant and violate the foreign key;
+        ///   it is set to the baseline tenant created by BaseE2ETest during initialization.
+        /// - TenantRole is a constrained value stored as varchar(20); random strings overflow
+        ///   it on providers that enforce column lengths (PostgreSQL, SQL Server).
+        /// Runs before the per-test buildAction so explicit test values still win.
+        /// </summary>
+        private void ApplyBaselineTenant<T>(T entity) where T : class
+        {
+            PropertyInfo tenantRoleProperty = typeof(T).GetProperty("TenantRole");
+            if (tenantRoleProperty != null && tenantRoleProperty.CanWrite && tenantRoleProperty.PropertyType == typeof(string))
+                tenantRoleProperty.SetValue(entity, TenantMemberRoles.Member);
+
+            PropertyInfo tenantIdProperty = typeof(T).GetProperty("TenantId");
+            if (tenantIdProperty == null || !tenantIdProperty.CanWrite)
+                return;
+
+            if (_baselineTenantId == null)
+                _baselineTenantId = _context.Tenants.Select(t => (int?)t.Id).FirstOrDefault();
+
+            if (_baselineTenantId == null)
+                return;
+
+            tenantIdProperty.SetValue(entity, _baselineTenantId.Value);
         }
 
         private void SetPrimaryKey<T>(Expression<Func<T, int>> id, T e) where T : class, new()
@@ -130,7 +166,25 @@ namespace MindedExample.Tests.E2E.Common
                 return;
             }
 
-            setter.Compile()(e, Any.Int());
+            setter.Compile()(e, NextUniquePrimaryKey());
+        }
+
+        /// <summary>
+        /// Random primary keys must be unique within a test run: Any.Int() alone collides
+        /// occasionally when seeding many rows (birthday paradox), producing flaky
+        /// "instance is already being tracked" failures. Values below 1000 are also
+        /// rejected so they never clash with autoincrement ids assigned to baseline
+        /// rows (tenant, authenticated user) created during test initialization.
+        /// </summary>
+        private int NextUniquePrimaryKey()
+        {
+            int value;
+            do
+            {
+                value = Any.Int();
+            } while (value < 1000 || !_usedPrimaryKeys.Add(value));
+
+            return value;
         }
     }
 }

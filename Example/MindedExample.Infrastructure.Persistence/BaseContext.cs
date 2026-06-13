@@ -36,8 +36,19 @@ namespace MindedExample.Infrastructure.Persistence
         //            modelBuilder.Conventions.Remove<PluralizingTableNameConvention>();
         //        }
 
+        private bool _disposed;
+
         public override void Dispose()
         {
+            // Idempotent: the context can be registered in DI both as the concrete type and
+            // behind IMindedExampleContext, in which case the container disposes it twice;
+            // accessing Database on an already-disposed context throws ObjectDisposedException.
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
             Database?.CloseConnection();
             base.Dispose();
         }

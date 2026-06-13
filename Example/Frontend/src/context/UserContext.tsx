@@ -20,7 +20,20 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Hydrate synchronously: RequireAuth redirects on the FIRST render, so loading the saved
+  // user in an effect (after render) would bounce authenticated users to /login on hard refresh.
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (!savedUser) {
+      return null;
+    }
+    try {
+      return JSON.parse(savedUser) as User;
+    } catch {
+      localStorage.removeItem('currentUser');
+      return null;
+    }
+  });
   const [accessToken, setAccessTokenState] = useState<string | null>(localStorage.getItem('accessToken'));
   const [tenantName, setTenantName] = useState<string | null>(localStorage.getItem('tenantName'));
 
@@ -65,15 +78,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem('currentUser');
-      }
-    }
-
+    // Re-validate the stored session against the API; an invalid/expired token logs out
     refreshCurrentUser().catch(() => {
       logout();
     });

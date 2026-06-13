@@ -232,7 +232,7 @@ namespace MindedExample.Api.E2ETests
             const int NumberOfCatetoriesToCreate = 110;
 
             User user = await SeedOne<User>(c => c.Id);
-            await Seed<Category>(c => c.Id, NumberOfCatetoriesToCreate, (c, i) => { c.Id = i; c.UserId = user.Id; c.ParentId = null; });
+            await Seed<Category>(c => c.Id, NumberOfCatetoriesToCreate, (c, i) => { c.UserId = user.Id; c.ParentId = null; });
 
             var response = await _sutClient.GetAsync("/api/category");
 

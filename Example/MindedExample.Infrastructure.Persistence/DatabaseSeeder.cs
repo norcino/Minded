@@ -196,6 +196,9 @@ namespace MindedExample.Infrastructure.Persistence
                 .Where(rp => (int)rp["TenantId"] == tenantId)
                 .ToList();
 
+            // Inserted through the shared-type entity set (not raw SQL) so EF generates
+            // correctly quoted, schema-qualified SQL for every database provider.
+            var rolePermissions = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
             foreach (var kvp in DefaultRolesDefinition.RolePermissions)
             {
                 foreach (var permission in kvp.Value)
@@ -209,13 +212,17 @@ namespace MindedExample.Infrastructure.Persistence
                         continue;
                     }
 
-                    concreteContext.Database.ExecuteSqlRaw(
-                        "INSERT INTO RolePermissions (TenantId, RoleName, PermissionName) VALUES ({0}, {1}, {2})",
-                        tenantId,
-                        kvp.Key,
-                        permission);
+                    rolePermissions.Add(new Dictionary<string, object>
+                    {
+                        ["TenantId"] = tenantId,
+                        ["RoleName"] = kvp.Key,
+                        ["PermissionName"] = permission
+                    });
                 }
             }
+
+            concreteContext.SaveChanges();
+            concreteContext.ChangeTracker.Clear();
         }
 
         private void SeedUserRoles(int tenantId, int tenantAdminId, params int[] userIds)
@@ -245,11 +252,14 @@ namespace MindedExample.Infrastructure.Persistence
                 return;
             }
 
-            concreteContext.Database.ExecuteSqlRaw(
-                "INSERT INTO UserRoles (TenantId, UserId, RoleName) VALUES ({0}, {1}, {2})",
-                tenantId,
-                userId,
-                roleName);
+            concreteContext.Set<Dictionary<string, object>>("UserRoles").Add(new Dictionary<string, object>
+            {
+                ["TenantId"] = tenantId,
+                ["UserId"] = userId,
+                ["RoleName"] = roleName
+            });
+            concreteContext.SaveChanges();
+            concreteContext.ChangeTracker.Clear();
         }
 
         private void SeedCategoriesAndTransactionsForTenantOne(int johnId, int janeId, int bobId)

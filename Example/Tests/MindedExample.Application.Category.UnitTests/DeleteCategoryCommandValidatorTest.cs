@@ -26,14 +26,19 @@ namespace MindedExample.Application.Category.UnitTests
     [TestClass]
     public class DeleteCategoryCommandValidatorTest
     {
+        private const int TestTenantId = 7;
+
         private DeleteCategoryCommandValidator _sut;
         private Mock<IMindedExampleContext> _contextMock;
+        private Mock<ICurrentUserAccessor> _currentUserAccessorMock;
 
         [TestInitialize]
         public void TestInitialize()
         {
             _contextMock = new Mock<IMindedExampleContext>();
-            _sut = new DeleteCategoryCommandValidator(_contextMock.Object);
+            _currentUserAccessorMock = new Mock<ICurrentUserAccessor>();
+            _currentUserAccessorMock.SetupGet(a => a.TenantId).Returns(TestTenantId);
+            _sut = new DeleteCategoryCommandValidator(_contextMock.Object, _currentUserAccessorMock.Object);
         }
 
         /// <summary>
@@ -47,7 +52,7 @@ namespace MindedExample.Application.Category.UnitTests
 
             var categories = new List<MindedExample.Domain.Category>
             {
-                new MindedExample.Domain.Category { Id = categoryId }
+                new MindedExample.Domain.Category { Id = categoryId, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
             };
             Mock<DbSet<MindedExample.Domain.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);
@@ -92,8 +97,8 @@ namespace MindedExample.Application.Category.UnitTests
 
             var categories = new List<MindedExample.Domain.Category>
             {
-                new MindedExample.Domain.Category { Id = categoryId },
-                new MindedExample.Domain.Category { Id = 99 }
+                new MindedExample.Domain.Category { Id = categoryId, User = new MindedExample.Domain.User { TenantId = TestTenantId } },
+                new MindedExample.Domain.Category { Id = 99, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
             };
             Mock<DbSet<MindedExample.Domain.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
             _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);

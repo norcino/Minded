@@ -91,6 +91,25 @@ namespace Minded.Extensions.Authorization.Decorator
 
         public async Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken = default)
         {
+            var (allowed, denial) = await EvaluateAuthorizationAsync(query, cancellationToken);
+            if (!allowed)
+            {
+                return denial;
+            }
+
+            // Outside the deny-by-default guard: exceptions thrown by the handler or the
+            // data layer must propagate to the Exception decorator, not degrade to a denial.
+            return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+        }
+
+        /// <summary>
+        /// Runs the authorization flow under the deny-by-default guard.
+        /// Returns (true, default) when the query is allowed to proceed; (false, denial) when denied
+        /// with an envelope error response. Denials on raw (non-envelope) result types throw instead
+        /// (<see cref="SecurityException"/> / <see cref="UnauthorizedAccessException"/>).
+        /// </summary>
+        private async Task<(bool Allowed, TResult Denial)> EvaluateAuthorizationAsync(TQuery query, CancellationToken cancellationToken)
+        {
             var stopwatch = Stopwatch.StartNew();
 
             try
@@ -98,7 +117,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 var mindedContext = _mindedContextAccessor.Current;
                 if (mindedContext.TryGetScoped<AuthorizationBypass>(out _))
                 {
-                    return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                    return (true, default);
                 }
 
                 var descriptor = AuthorizationDescriptorCache.GetOrCreate(typeof(TQuery));
@@ -106,7 +125,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 // AllowUnauthenticated always passes through
                 if (descriptor.AllowUnauthenticated)
                 {
-                    return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                    return (true, default);
                 }
 
                 // Determine if authorization checks are needed
@@ -115,7 +134,7 @@ namespace Minded.Extensions.Authorization.Decorator
 
                 if (!needsAuth)
                 {
-                    return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                    return (true, default);
                 }
 
                 // Get authorization context
@@ -126,7 +145,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogDenied(query, stopwatch.Elapsed, isUnauthenticated: true);
-                    return DenyUnauthenticated();
+                    return (false, DenyUnauthenticated());
                 }
 
                 // If only authentication is required (no RBAC clauses), pass through
@@ -137,7 +156,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogAllowed(query, stopwatch.Elapsed);
-                    return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                    return (true, default);
                 }
 
                 // If enforce-auth brought us here but there are no RBAC clauses, just check principal
@@ -145,7 +164,7 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogAllowed(query, stopwatch.Elapsed);
-                    return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                    return (true, default);
                 }
 
                 // Evaluate RBAC
@@ -155,26 +174,26 @@ namespace Minded.Extensions.Authorization.Decorator
                 {
                     stopwatch.Stop();
                     LogDenied(query, stopwatch.Elapsed, isUnauthenticated: false);
-                    return DenyUnauthorized();
+                    return (false, DenyUnauthorized());
                 }
 
                 if (!EvaluateMatchPropertyClaims(descriptor, query, context))
                 {
                     stopwatch.Stop();
                     LogDenied(query, stopwatch.Elapsed, isUnauthenticated: false);
-                    return DenyUnauthorized();
+                    return (false, DenyUnauthorized());
                 }
 
                 if (!await EvaluateResourceClausesAsync(descriptor, query, context, mindedContext, cancellationToken))
                 {
                     stopwatch.Stop();
                     LogDenied(query, stopwatch.Elapsed, isUnauthenticated: false);
-                    return DenyUnauthorized();
+                    return (false, DenyUnauthorized());
                 }
 
                 stopwatch.Stop();
                 LogAllowed(query, stopwatch.Elapsed);
-                return await DecoratedQueryHandler.HandleAsync(query, cancellationToken);
+                return (true, default);
             }
             catch (MindedContextRequiredException)
             {
@@ -191,10 +210,10 @@ namespace Minded.Extensions.Authorization.Decorator
             }
             catch (System.Exception)
             {
-                // Deny-by-default: any exception in the auth flow results in denial
+                // Deny-by-default: any exception in the authorization flow results in denial
                 stopwatch.Stop();
                 LogDenied(query, stopwatch.Elapsed, isUnauthenticated: false);
-                return DenyUnauthorized();
+                return (false, DenyUnauthorized());
             }
         }
 

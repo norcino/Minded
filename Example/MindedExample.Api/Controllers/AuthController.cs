@@ -257,12 +257,7 @@ namespace MindedExample.Api.Controllers
             invite.UsedByUserId = user.Id;
 
             await EnsureTenantRolePermissionsInitializedAsync(invite.TenantId);
-            if (_context is MindedExampleContext concreteContext)
-            {
-                await concreteContext.Database.ExecuteSqlRawAsync(
-                    "INSERT INTO UserRoles (TenantId, UserId, RoleName) VALUES ({0}, {1}, {2})",
-                    invite.TenantId, user.Id, Roles.User);
-            }
+            await AssignUserRoleAsync(invite.TenantId, user.Id, Roles.User);
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -302,15 +297,23 @@ namespace MindedExample.Api.Controllers
                 return;
             }
 
+            // Inserted through the shared-type entity set (not raw SQL) so EF generates
+            // correctly quoted, schema-qualified SQL for every database provider.
+            var rolePermissions = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
             foreach (var kvp in DefaultRolesDefinition.RolePermissions)
             {
                 foreach (var permission in kvp.Value)
                 {
-                    await concreteContext.Database.ExecuteSqlRawAsync(
-                        "INSERT INTO RolePermissions (TenantId, RoleName, PermissionName) VALUES ({0}, {1}, {2})",
-                        tenantId, kvp.Key, permission);
+                    rolePermissions.Add(new Dictionary<string, object>
+                    {
+                        ["TenantId"] = tenantId,
+                        ["RoleName"] = kvp.Key,
+                        ["PermissionName"] = permission
+                    });
                 }
             }
+
+            await concreteContext.SaveChangesAsync();
         }
 
         private async Task<AuthResponse> BuildAuthResponseAsync(User user, string token, CancellationToken cancellationToken)
@@ -472,9 +475,13 @@ namespace MindedExample.Api.Controllers
                 return;
             }
 
-            await concreteContext.Database.ExecuteSqlRawAsync(
-                "INSERT INTO UserRoles (TenantId, UserId, RoleName) VALUES ({0}, {1}, {2})",
-                tenantId, userId, roleName);
+            concreteContext.Set<Dictionary<string, object>>("UserRoles").Add(new Dictionary<string, object>
+            {
+                ["TenantId"] = tenantId,
+                ["UserId"] = userId,
+                ["RoleName"] = roleName
+            });
+            await concreteContext.SaveChangesAsync();
         }
     }
 }

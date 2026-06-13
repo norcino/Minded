@@ -4,32 +4,30 @@
 
 ### Prerequisites
 - .NET 10.0 SDK or later
-- SQL Server LocalDB or full instance
+- Docker (for the default PostgreSQL database)
+- Node.js 20+ (frontend only)
 
 ### Setup & Debug
 
-1. **Update connection string** in `MindedExample.Api/appsettings.json`:
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=MindedExample;Trusted_Connection=True;"
-  }
-}
-```
-
-2. **Run migrations**:
+1. **Start the database** (PostgreSQL, from the repository root):
 ```bash
-cd Example/MindedExample.Api
-dotnet ef database update --project ../MindedExample.Infrastructure.Persistence
+docker compose -f docker-compose.tests.yml up -d
 ```
+The default configuration (`DatabaseType: PostgreSQL`) already points at this container
+(`localhost:5433`). The schema is created and seeded automatically at startup — there is no
+manual migration step.
 
-3. **Start debugging** (F5 in VS Code):
+> **No Docker?** Set `"DatabaseType": "SQLiteInMemory"` in `MindedExample.Api/appsettings.Development.json`
+> for a zero-infrastructure in-memory database, or `"SQLServer"`/`"LocalDb"` with the
+> `MindedExample` connection string to use SQL Server.
+
+2. **Start debugging** (F5 in VS Code):
    - Opens `Full Stack: Frontend + MindedExample.Api` debug config
    - Backend runs on http://localhost:6000
    - Frontend (Vite) runs on http://localhost:3000
    - Database auto-seeds with sample data
 
-4. **View API docs**:
+3. **View API docs**:
    ```
    http://localhost:6000/swagger
    ```

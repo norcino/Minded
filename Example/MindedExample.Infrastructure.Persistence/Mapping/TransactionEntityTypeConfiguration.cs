@@ -11,10 +11,12 @@ namespace MindedExample.Infrastructure.Persistence.Mapping
             builder.HasKey(c => c.Id);
             builder.Property(c => c.CategoryId).HasDefaultValueSql("0");
             builder.Property(c => c.UserId);
-            builder.Property(c => c.Credit).HasColumnType("money");
-            builder.Property(c => c.Debit).HasColumnType("money");
+            // Precision instead of provider-specific column types: money and datetime
+            // are SQL Server-only and do not exist in PostgreSQL. Each provider maps
+            // decimal/DateTime to its native equivalent.
+            builder.Property(c => c.Credit).HasPrecision(18, 2);
+            builder.Property(c => c.Debit).HasPrecision(18, 2);
             builder.Property(c => c.Description).HasColumnType("varchar(500)");
-            builder.Property(c => c.Recorded).HasColumnType("datetime");
             builder.HasOne(d => d.Category)
                 .WithMany(p => p.Transactions)
                 .HasForeignKey(d => d.CategoryId)

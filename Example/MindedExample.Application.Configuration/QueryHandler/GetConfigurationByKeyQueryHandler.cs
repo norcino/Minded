@@ -32,7 +32,7 @@ namespace MindedExample.Application.Configuration.QueryHandler
             
             if (entry == null)
             {
-                return null; // Validator will handle this
+                return null; // Mapped to 404 NotFound by the GetSingle REST rule
             }
 
             var configurations = _configStore.GetAllConfigurations();

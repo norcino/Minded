@@ -30,6 +30,8 @@ const GlobalTenantManagementPage: React.FC = () => {
   const [form, setForm] = useState<CreateTenantRequest>(initialTenantForm);
   const [deleteTarget, setDeleteTarget] = useState<TenantSummary | null>(null);
   const [confirmationName, setConfirmationName] = useState('');
+  // Shown inside the dialog: a snackbar would be aria-hidden behind the open modal
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -64,6 +66,12 @@ const GlobalTenantManagementPage: React.FC = () => {
     }
   };
 
+  const closeDeleteDialog = () => {
+    setDeleteTarget(null);
+    setDeleteError(null);
+    setConfirmationName('');
+  };
+
   const handleDeleteTenant = async () => {
     if (!deleteTarget) {
       return;
@@ -72,15 +80,15 @@ const GlobalTenantManagementPage: React.FC = () => {
     try {
       await appTenantService.delete(deleteTarget.id, confirmationName);
       setSuccess('Tenant deleted successfully.');
-      setDeleteTarget(null);
-      setConfirmationName('');
+      closeDeleteDialog();
       await loadTenants();
     } catch {
-      setError('Failed to delete tenant. Make sure the confirmation name matches.');
+      setDeleteError('Failed to delete tenant. Make sure the confirmation name matches.');
     }
   };
 
   const columns: GridColDef[] = [
+    { field: 'id', headerName: 'ID', width: 70 },
     { field: 'name', headerName: 'Tenant', flex: 1.1, minWidth: 220 },
     { field: 'legalOwnerEmail', headerName: 'Legal Owner', flex: 1.3, minWidth: 240 },
     { field: 'activeUsersCount', headerName: 'Active Users', width: 130 },
@@ -123,9 +131,10 @@ const GlobalTenantManagementPage: React.FC = () => {
         <DataGrid rows={tenants} columns={columns} disableRowSelectionOnClick />
       </Paper>
 
-      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+      <Dialog open={!!deleteTarget} onClose={closeDeleteDialog}>
         <DialogTitle>Delete Tenant</DialogTitle>
         <DialogContent>
+          {deleteError && <Alert severity="error" sx={{ mb: 2 }}>{deleteError}</Alert>}
           <Typography sx={{ mb: 1 }}>
             This will permanently delete all users, categories, transactions, invites, and requests for this tenant.
           </Typography>
@@ -140,7 +149,7 @@ const GlobalTenantManagementPage: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button onClick={closeDeleteDialog}>Cancel</Button>
           <Button color="error" variant="contained" onClick={handleDeleteTenant}>Delete</Button>
         </DialogActions>
       </Dialog>

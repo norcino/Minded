@@ -104,7 +104,8 @@ namespace MindedExample.Api.E2ETests
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             List<User> users = await response.Content.ReadAsAsync<List<User>>();
 
-            users.Should().HaveCount(expectedUsers);
+            // +1 accounts for the baseline authenticated user
+            users.Should().HaveCount(expectedUsers + 1);
             users.Should().BeInAscendingOrder(u => u.Name);
         }
 
@@ -119,7 +120,8 @@ namespace MindedExample.Api.E2ETests
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             List<User> users = await response.Content.ReadAsAsync<List<User>>();
 
-            users.Should().HaveCount(expectedUsers);
+            // +1 accounts for the baseline authenticated user
+            users.Should().HaveCount(expectedUsers + 1);
             users.Should().BeInDescendingOrder(u => u.Name);
         }
 
@@ -134,7 +136,8 @@ namespace MindedExample.Api.E2ETests
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             List<User> users = await response.Content.ReadAsAsync<List<User>>();
 
-            users.Should().HaveCount(numberOfUsers);
+            // +1 accounts for the baseline authenticated user
+            users.Should().HaveCount(numberOfUsers + 1);
             users.Should().BeInAscendingOrder(u => u.Id);
         }
 
@@ -149,7 +152,8 @@ namespace MindedExample.Api.E2ETests
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             List<User> users = await response.Content.ReadAsAsync<List<User>>();
 
-            users.Should().HaveCount(numberOfUsers);
+            // +1 accounts for the baseline authenticated user
+            users.Should().HaveCount(numberOfUsers + 1);
             users.Should().BeInDescendingOrder(u => u.Id);
         }
         #endregion
@@ -242,7 +246,8 @@ namespace MindedExample.Api.E2ETests
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             List<User> users = await response.Content.ReadAsAsync<List<User>>();
 
-            users.Should().HaveCount(numberOfUsers - skipValue);
+            // +1 accounts for the baseline authenticated user
+            users.Should().HaveCount(numberOfUsers + 1 - skipValue);
         }
 
         [TestMethod]
@@ -267,7 +272,9 @@ namespace MindedExample.Api.E2ETests
         {
             const int topValue = MaxPageItemNumber + 1;
 
-            await Seed<User>(u => u.Id, 200, (u,i) => u.Id = i);
+            // Ids are left to the Seeder: explicit sequential ids collide with the
+            // identity-generated id of the baseline authenticated user on real databases.
+            await Seed<User>(u => u.Id, 200);
 
             var response = await _sutClient.GetAsync($"/api/users?$top={topValue}");
 
@@ -277,14 +284,15 @@ namespace MindedExample.Api.E2ETests
 
         #region GET - All Users
         [TestMethod]
-        public async Task GET_should_return_empty_list_and_200Ok_when_no_users_exist()
+        public async Task GET_should_return_only_the_authenticated_user_when_no_other_users_exist()
         {
             var response = await _sutClient.GetAsync("/api/users");
 
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             List<User> users = await response.Content.ReadAsAsync<List<User>>();
 
-            users.Should().BeEmpty();
+            // The caller is always a real user in the tenant, so the list is never empty
+            users.Should().ContainSingle(u => u.Id == AuthenticatedUserId);
         }
 
         [TestMethod]
@@ -299,7 +307,8 @@ namespace MindedExample.Api.E2ETests
             response.Should().HaveHttpStatusCode(HttpStatusCode.OK);
             List<User> users = await response.Content.ReadAsAsync<List<User>>();
 
-            users.Should().HaveCount(numberOfUsers);
+            // +1 accounts for the baseline authenticated user
+            users.Should().HaveCount(numberOfUsers + 1);
         }
 
         [TestMethod]
@@ -380,8 +389,15 @@ namespace MindedExample.Api.E2ETests
             var response = await _sutClient.PostAsync("/api/users", newUser);
             User createdUser = await response.Content.ReadAsAsync<User>();
 
-            createdUser.Should().BeEquivalentTo(newUser, options => options.Excluding(u => u.Id));
+            // TenantId and TenantRole are excluded because the API assigns them server-side
+            // (tenant isolation; roles are managed via the tenant-admin endpoints).
+            createdUser.Should().BeEquivalentTo(newUser, options => options
+                .Excluding(u => u.Id)
+                .Excluding(u => u.TenantId)
+                .Excluding(u => u.TenantRole));
             createdUser.Id.Should().BeGreaterThan(0);
+            createdUser.TenantId.Should().Be(AuthenticatedTenantId);
+            createdUser.TenantRole.Should().Be(TenantMemberRoles.Member);
         }
 
         [TestMethod]

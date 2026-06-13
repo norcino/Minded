@@ -140,6 +140,7 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
         <Tooltip title="Add subcategory">
           <IconButton
             size="small"
+            aria-label={`Add subcategory to ${category.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onAddChild(category);
@@ -151,6 +152,7 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
         <Tooltip title="Edit">
           <IconButton
             size="small"
+            aria-label={`Edit ${category.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onEdit(category);
@@ -162,6 +164,7 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
         <Tooltip title="Delete">
           <IconButton
             size="small"
+            aria-label={`Delete ${category.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onDelete(category);
@@ -466,12 +469,12 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
     <Box sx={{ height: '100%', width: '100%' }}>
       <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <Tooltip title="Expand all categories">
-          <IconButton size="small" onClick={handleExpandAll}>
+          <IconButton size="small" aria-label="Expand all categories" onClick={handleExpandAll}>
             <ExpandMore />
           </IconButton>
         </Tooltip>
         <Tooltip title="Collapse all categories">
-          <IconButton size="small" onClick={handleCollapseAll}>
+          <IconButton size="small" aria-label="Collapse all categories" onClick={handleCollapseAll}>
             <ChevronRight />
           </IconButton>
         </Tooltip>

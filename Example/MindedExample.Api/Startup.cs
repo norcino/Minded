@@ -440,6 +440,49 @@ namespace MindedExample.Api
                         return context;
                     });
                     break;
+                case DatabaseType.PostgreSQL:
+                {
+                    // Prefer the dedicated PostgreSQL connection string so the provider can be
+                    // switched by changing DatabaseType alone; fall back to the default one.
+                    var postgreSqlConnectionString = configuration.GetConnectionString(
+                            MindedExample.Infrastructure.Configuration.Constants.ConfigPostgreSqlConnectionStringName)
+                        ?? connectionString;
+
+                    if (!(env != null && env.IsProduction()))
+                    {
+                        services.AddDbContext<MindedExampleContext>(options =>
+                        {
+                            options.UseNpgsql(postgreSqlConnectionString);
+                        });
+
+                        services.AddTransient<IMindedExampleContext>(s =>
+                        {
+                            MindedExampleContext context = s.GetService<MindedExampleContext>();
+                            context.Database.EnsureCreated();
+
+                            // Seed the database with sample data for debugging (only in development)
+                            if (env != null && env.IsDevelopment())
+                            {
+                                var seeder = new DatabaseSeeder(context);
+                                seeder.Seed();
+                            }
+
+                            return context;
+                        });
+
+                        break;
+                    }
+
+                    // Use PostgreSQL production configuration
+                    services.AddDbContextPool<MindedExampleContext>(options =>
+                    {
+                        options.UseNpgsql(postgreSqlConnectionString);
+                    }, poolSize: 5);
+
+                    services.AddTransient<IMindedExampleContext>(service =>
+                        service.GetService<MindedExampleContext>());
+                    break;
+                }
                 case DatabaseType.SQLServer:
                 default:
                     // Use SQL Server testing configuration

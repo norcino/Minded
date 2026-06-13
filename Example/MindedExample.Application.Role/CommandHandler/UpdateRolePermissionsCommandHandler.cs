@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MindedExample.Infrastructure.Persistence;
@@ -28,17 +30,29 @@ namespace MindedExample.Application.Role.CommandHandler
             var tenantId = _currentUserAccessor.TenantId.Value;
             if (_context is MindedExampleContext concreteContext)
             {
+                // Mutations go through the shared-type entity set (not raw SQL) so EF
+                // generates correctly quoted, schema-qualified SQL for every provider.
+                var rolePermissions = concreteContext.Set<Dictionary<string, object>>("RolePermissions");
+
                 // Clear existing permissions for this role
-                await concreteContext.Database.ExecuteSqlRawAsync(
-                    "DELETE FROM RolePermissions WHERE TenantId = {0} AND RoleName = {1}", tenantId, command.RoleName);
+                var existingPermissions = await rolePermissions
+                    .Where(rp => (int)rp["TenantId"] == tenantId && (string)rp["RoleName"] == command.RoleName)
+                    .ToListAsync(cancellationToken);
+                rolePermissions.RemoveRange(existingPermissions);
+                await concreteContext.SaveChangesAsync(cancellationToken);
 
                 // Insert new permissions
                 foreach (var permissionName in command.PermissionNames)
                 {
-                    await concreteContext.Database.ExecuteSqlRawAsync(
-                        "INSERT INTO RolePermissions (TenantId, RoleName, PermissionName) VALUES ({0}, {1}, {2})",
-                        tenantId, command.RoleName, permissionName);
+                    rolePermissions.Add(new Dictionary<string, object>
+                    {
+                        ["TenantId"] = tenantId,
+                        ["RoleName"] = command.RoleName,
+                        ["PermissionName"] = permissionName
+                    });
                 }
+
+                await concreteContext.SaveChangesAsync(cancellationToken);
             }
 
             return new CommandResponse { Successful = true };

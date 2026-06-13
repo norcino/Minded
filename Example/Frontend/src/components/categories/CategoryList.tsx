@@ -218,12 +218,12 @@ const CategoryList: React.FC = () => {
             onChange={(_, newMode) => newMode && setViewMode(newMode)}
             size="small"
           >
-            <ToggleButton value="tree">
+            <ToggleButton value="tree" aria-label="Tree view">
               <Tooltip title="Tree View">
                 <AccountTreeIcon />
               </Tooltip>
             </ToggleButton>
-            <ToggleButton value="grid">
+            <ToggleButton value="grid" aria-label="Grid view">
               <Tooltip title="Grid View">
                 <ViewListIcon />
               </Tooltip>

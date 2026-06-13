@@ -36,7 +36,15 @@ namespace MindedExample.Domain
                 Permissions.CanUpdateCategory, Permissions.CanDeleteCategory,
                 Permissions.CanCreateTransaction, Permissions.CanUpdateTransaction,
                 Permissions.CanDeleteTransaction, Permissions.CanCreateUser,
-                Permissions.CanUpdateUser, Permissions.CanDeleteUser
+                Permissions.CanUpdateUser, Permissions.CanDeleteUser,
+                // Role management within the tenant: without these no user of a freshly
+                // registered tenant could ever manage roles (the Admin role holds them but
+                // is never assigned, and granting it requires CanAssignRoles itself).
+                Permissions.CanManageRoles, Permissions.CanAssignRoles,
+                Permissions.CanCreateRole, Permissions.CanDeleteRole,
+                Permissions.CanUpdateRolePermissions,
+                // Runtime configuration management (same reachability rationale as above)
+                Permissions.CanUpdateConfiguration
             },
             [Roles.User] = new[]
             {

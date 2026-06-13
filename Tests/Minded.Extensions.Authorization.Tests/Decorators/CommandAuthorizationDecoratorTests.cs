@@ -616,4 +616,105 @@ public class CommandAuthorizationDecoratorTests
             return (result == expectedResponse).ToProperty();
         }).QuickCheckThrowOnFailure();
     }
+
+    /// <summary>
+    /// Exception scoping: an exception thrown by the inner handler of an authorized command
+    /// SHALL propagate to the caller (so the Exception decorator can handle it) instead of
+    /// being converted into a NotAuthorized denial by the deny-by-default guard.
+    /// </summary>
+    [TestMethod]
+    public async Task HandlerException_OnAuthorizedProtectedCommand_Propagates()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = new Mock<ICommandHandler<ProtectedCommand>>();
+        innerHandler.Setup(h => h.HandleAsync(It.IsAny<ProtectedCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("handler failure"));
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var decorator = CreateDecorator(innerHandler.Object, contextAccessor.Object);
+
+        var act = () => decorator.HandleAsync(new ProtectedCommand(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("handler failure");
+    }
+
+    /// <summary>
+    /// Exception scoping: handler exceptions also propagate on the unprotected pass-through path.
+    /// </summary>
+    [TestMethod]
+    public async Task HandlerException_OnUnprotectedCommand_Propagates()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = new Mock<ICommandHandler<UnprotectedCommand>>();
+        innerHandler.Setup(h => h.HandleAsync(It.IsAny<UnprotectedCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("handler failure"));
+        var contextAccessor = CreateContextAccessor(false);
+        var decorator = CreateDecorator(innerHandler.Object, contextAccessor.Object);
+
+        var act = () => decorator.HandleAsync(new UnprotectedCommand(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("handler failure");
+    }
+
+    /// <summary>
+    /// Exception scoping (with result): inner-handler exceptions propagate for ICommand{TResult}.
+    /// </summary>
+    [TestMethod]
+    public async Task HandlerException_OnAuthorizedProtectedCommandWithResult_Propagates()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = new Mock<ICommandHandler<ProtectedCommandWithResult, int>>();
+        innerHandler.Setup(h => h.HandleAsync(It.IsAny<ProtectedCommandWithResult>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("handler failure"));
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var decorator = CreateDecoratorWithResult<ProtectedCommandWithResult, int>(innerHandler.Object, contextAccessor.Object);
+
+        var act = () => decorator.HandleAsync(new ProtectedCommandWithResult(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("handler failure");
+    }
+
+    /// <summary>
+    /// Deny-by-default: an exception thrown inside the authorization flow itself (here the
+    /// evaluator) SHALL still result in a NotAuthorized denial without invoking the inner handler.
+    /// </summary>
+    [TestMethod]
+    public async Task AuthorizationFlowException_DeniesWithoutInvokingHandler()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = CreateMockHandler<ProtectedCommand>();
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var evaluator = new Mock<IRequestAuthorizationEvaluator>();
+        evaluator.Setup(e => e.Evaluate(It.IsAny<Type>(), It.IsAny<AuthorizationDescriptor>(), It.IsAny<AuthorizationContext>()))
+            .Throws(new InvalidOperationException("evaluator failure"));
+        var decorator = CreateDecorator(innerHandler.Object, contextAccessor.Object, evaluator.Object);
+
+        var result = await decorator.HandleAsync(new ProtectedCommand(), CancellationToken.None);
+
+        result.Successful.Should().BeFalse();
+        result.OutcomeEntries.Should().HaveCount(1);
+        result.OutcomeEntries[0].ErrorCode.Should().Be(GenericErrorCodes.NotAuthorized);
+        innerHandler.Verify(h => h.HandleAsync(It.IsAny<ProtectedCommand>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
+
+    /// <summary>
+    /// Deny-by-default (with result): authorization-flow exceptions deny for ICommand{TResult}.
+    /// </summary>
+    [TestMethod]
+    public async Task AuthorizationFlowException_WithResult_DeniesWithoutInvokingHandler()
+    {
+        AuthorizationDescriptorCache.Clear();
+        var innerHandler = CreateMockHandlerWithResult<ProtectedCommandWithResult, int>(CommandResponse<int>.Success(42));
+        var contextAccessor = CreateContextAccessor(true, new List<string> { "Admin" }.AsReadOnly());
+        var evaluator = new Mock<IRequestAuthorizationEvaluator>();
+        evaluator.Setup(e => e.Evaluate(It.IsAny<Type>(), It.IsAny<AuthorizationDescriptor>(), It.IsAny<AuthorizationContext>()))
+            .Throws(new InvalidOperationException("evaluator failure"));
+        var decorator = CreateDecoratorWithResult<ProtectedCommandWithResult, int>(innerHandler.Object, contextAccessor.Object, evaluator.Object);
+
+        var result = await decorator.HandleAsync(new ProtectedCommandWithResult(), CancellationToken.None);
+
+        result.Successful.Should().BeFalse();
+        result.OutcomeEntries.Should().HaveCount(1);
+        result.OutcomeEntries[0].ErrorCode.Should().Be(GenericErrorCodes.NotAuthorized);
+        innerHandler.Verify(h => h.HandleAsync(It.IsAny<ProtectedCommandWithResult>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
 }

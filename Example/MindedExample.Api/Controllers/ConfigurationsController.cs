@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MindedExample.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Minded.Extensions.WebApi;
 using MindedExample.Application.Configuration.Query;
@@ -12,8 +13,11 @@ namespace MindedExample.Api.Controllers
     /// Controller for managing runtime configuration of Minded decorators.
     /// Allows viewing and updating configuration options at runtime without application restart.
     /// Uses CQRS pattern with RestMediator for consistent API design.
+    /// Reads require authentication; updates additionally require the CanUpdateConfiguration
+    /// permission (enforced by the authorization decorator on UpdateConfigurationCommand).
     /// </summary>
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class ConfigurationsController : ControllerBase
     {
