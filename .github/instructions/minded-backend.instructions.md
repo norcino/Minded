@@ -4,7 +4,7 @@ applyTo: "Example/**/*.cs"
 
 # Minded Framework – Backend Clean Architecture Guidelines
 
-These rules apply to all C# code in this repository. They enforce clean architecture, CQRS discipline, and correct use of the Minded framework decorators, testing patterns, and REST mediator conventions.
+These rules apply to all C# code in the Example folder. They enforce clean architecture, CQRS discipline, and correct use of the Minded framework decorators, testing patterns, and REST mediator conventions.
 
 ---
 

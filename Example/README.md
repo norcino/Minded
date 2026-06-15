@@ -78,11 +78,72 @@ Example/
 
 ## Getting Started
 
-### Prerequisites
-- .NET 8.0 SDK or later
-- SQL Server (LocalDB or full instance)
+### Option 1 — Docker (recommended, no local tooling required)
 
-### Running the Application
+The easiest way to run the full stack is with Docker. The `docker-compose.tests.yml` file at the repository root manages three services: PostgreSQL, the API, and the frontend.
+
+**Prerequisites:** Docker Desktop (or Docker Engine + Compose v2)
+
+#### Start the full stack
+
+From the **repository root**:
+
+```bash
+docker compose -f docker-compose.tests.yml --profile full up -d --build --wait
+```
+
+Once all containers are healthy, the following endpoints are available:
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| API | http://localhost:6000 |
+| Swagger UI | http://localhost:6000/swagger |
+| PostgreSQL | `localhost:5433` (user: `minded`, password: `minded`) |
+
+#### Stop the stack
+
+```bash
+docker compose -f docker-compose.tests.yml --profile full down
+```
+
+#### Reset (wipe all database data and restart clean)
+
+```bash
+docker compose -f docker-compose.tests.yml --profile full down -v
+docker compose -f docker-compose.tests.yml --profile full up -d --build --wait
+```
+
+#### Database only (if you want to run the API or frontend locally)
+
+```bash
+docker compose -f docker-compose.tests.yml up -d
+```
+
+This starts only PostgreSQL on port `5433`. Two databases are created automatically:
+- `mindedexample` — default database for local development
+- `mindedexample_e2e` — dedicated database for Playwright E2E tests
+
+---
+
+### Option 2 — Local (requires .NET SDK and Node.js)
+
+**Prerequisites:**
+- .NET 8.0 SDK or later
+- Node.js (for the frontend)
+- PostgreSQL or SQL Server
+
+#### Quick start (Windows)
+
+From the `Example/` folder, run:
+
+```cmd
+localdebug.cmd
+```
+
+This opens two terminal windows — one running `dotnet watch run` for the API and one running `npm run dev` for the frontend. You still need a database running (e.g. PostgreSQL via the database-only Docker command above).
+
+#### Manual setup
 
 1. **Update the connection string** in `MindedExample.Api/appsettings.json`:
 ```json
