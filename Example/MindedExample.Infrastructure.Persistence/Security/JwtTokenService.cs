@@ -5,23 +5,27 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using MindedExample.Application.Common;
 using MindedExample.Domain;
 
-namespace MindedExample.Api.Authorization
+namespace MindedExample.Infrastructure.Persistence.Security
 {
     /// <summary>
-    /// Creates JWT access tokens for authenticated users.
+    /// Infrastructure implementation of <see cref="IJwtTokenService"/> that generates
+    /// signed JWT access tokens for authenticated users.
     /// </summary>
-    public class JwtTokenFactory
+    public class JwtTokenService : IJwtTokenService
     {
         private readonly IConfiguration _configuration;
 
-        public JwtTokenFactory(IConfiguration configuration)
+        /// <summary>Initializes a new <see cref="JwtTokenService"/>.</summary>
+        public JwtTokenService(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        public string CreateToken(User user)
+        /// <inheritdoc />
+        public string CreateAccessToken(User user)
         {
             var jwtSection = _configuration.GetSection("Jwt");
             var issuer = jwtSection["Issuer"] ?? "MindedExample";
@@ -38,9 +42,7 @@ namespace MindedExample.Api.Authorization
             };
 
             if (user.TenantId.HasValue)
-            {
                 claims.Add(new Claim("tenant_id", user.TenantId.Value.ToString()));
-            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

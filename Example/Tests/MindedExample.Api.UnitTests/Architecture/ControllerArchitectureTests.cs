@@ -15,8 +15,7 @@ namespace MindedExample.Api.UnitTests.Architecture
         private static readonly HashSet<string> LegacyControllerAllowlist = new HashSet<string>(StringComparer.Ordinal)
         {
             nameof(AuthController),
-            nameof(TenantAdminController),
-            nameof(UsersController)
+            nameof(TenantAdminController)
         };
 
         [TestMethod]

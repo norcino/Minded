@@ -4,25 +4,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using MindedExample.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 using MindedExample.Application.Category.Query;
 
 namespace MindedExample.Application.Category.QueryHandler
 {
+    /// <summary>
+    /// Handler for retrieving a collection of categories for the current tenant.
+    /// Logging is handled by the decorator pipeline via ILoggable on <see cref="GetCategoriesQuery"/>.
+    /// </summary>
     public class GetCategoriesQueryHandler : IQueryHandler<GetCategoriesQuery, IQueryResponse<IEnumerable<MindedExample.Domain.Category>>>
     {
         private readonly IMindedExampleContext _context;
-        private readonly ILogger<IQueryHandler<GetCategoriesQuery, IQueryResponse<IEnumerable<MindedExample.Domain.Category>>>> _logger;
         private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public GetCategoriesQueryHandler(
-            IMindedExampleContext context,
-            ILogger<IQueryHandler<GetCategoriesQuery, IQueryResponse<IEnumerable<MindedExample.Domain.Category>>>> logger,
-            ICurrentUserAccessor currentUserAccessor)
+        public GetCategoriesQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
-            _logger = logger;
             _currentUserAccessor = currentUserAccessor;
         }
 

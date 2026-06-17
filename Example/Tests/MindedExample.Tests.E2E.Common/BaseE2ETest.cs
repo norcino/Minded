@@ -1,6 +1,7 @@
 using MindedExample.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -284,6 +285,9 @@ namespace MindedExample.Tests.E2E.Common
                         options.UseSqlite($"DataSource='file::memory:?cache=shared'");
                         options.EnableSensitiveDataLogging();
                         options.EnableDetailedErrors();
+                        // SQLite does not support System.Transactions ambient transactions;
+                        // commands decorated with [TransactionalCommand] would otherwise fail under E2ELive.
+                        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.AmbientTransactionWarning));
                     }, ServiceLifetime.Singleton);
 
                     services.AddSingleton<IMindedExampleContext>(s =>
@@ -550,26 +554,42 @@ namespace MindedExample.Tests.E2E.Common
     /// </summary>
     internal class TestAdminAuthorizationContextAccessor : Minded.Extensions.Authorization.IAuthorizationContextAccessor
     {
-        private static readonly Minded.Extensions.Authorization.AuthorizationContext _adminContext =
-            new Minded.Extensions.Authorization.AuthorizationContext(
-                true,
-                new[] { Roles.Admin },
-                new[]
-                {
-                    Permissions.CanCreateCategory, Permissions.CanCreateRootCategory,
-                    Permissions.CanUpdateCategory, Permissions.CanDeleteCategory,
-                    Permissions.CanCreateTransaction, Permissions.CanUpdateTransaction,
-                    Permissions.CanDeleteTransaction, Permissions.CanCreateUser,
-                    Permissions.CanUpdateUser, Permissions.CanDeleteUser,
-                    Permissions.CanManageRoles, Permissions.CanAssignRoles
-                },
-                // Commands/queries decorated with [RequireClaim("is_global_admin", "false")]
-                // are evaluated against these claims.
-                new Dictionary<string, string>
-                {
-                    ["is_global_admin"] = "false"
-                });
+        private static readonly string[] _adminRoles = new[] { Roles.Admin };
 
-        public Minded.Extensions.Authorization.AuthorizationContext Current => _adminContext;
+        private static readonly string[] _adminPermissions = new[]
+        {
+            Permissions.CanCreateCategory, Permissions.CanCreateRootCategory,
+            Permissions.CanUpdateCategory, Permissions.CanDeleteCategory,
+            Permissions.CanCreateTransaction, Permissions.CanUpdateTransaction,
+            Permissions.CanDeleteTransaction, Permissions.CanCreateUser,
+            Permissions.CanUpdateUser, Permissions.CanDeleteUser,
+            Permissions.CanManageRoles, Permissions.CanAssignRoles
+        };
+
+        // Built lazily so claims reflect the baseline user/tenant established by
+        // SeedAuthorizationData during TestInitialize (mirrors HttpCurrentUserAccessor).
+        public Minded.Extensions.Authorization.AuthorizationContext Current
+        {
+            get
+            {
+                var claims = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+                {
+                    ["is_global_admin"] = TestAuthenticationState.IsGlobalAdmin.ToString().ToLowerInvariant()
+                };
+
+                if (TestAuthenticationState.TenantId.HasValue)
+                {
+                    claims["tenant_id"] = TestAuthenticationState.TenantId.Value.ToString();
+                }
+
+                if (TestAuthenticationState.UserId != 0)
+                {
+                    claims["sub"] = TestAuthenticationState.UserId.ToString();
+                }
+
+                return new Minded.Extensions.Authorization.AuthorizationContext(
+                    true, _adminRoles, _adminPermissions, claims);
+            }
+        }
     }
 }

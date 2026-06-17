@@ -15,6 +15,7 @@ using Minded.Framework.Mediator;
 using Minded.Extensions.Configuration;
 using Minded.Extensions.Exception.Decorator;
 using Minded.Extensions.Exception.Configuration;
+using Minded.Extensions.Transaction.Decorator;
 using Minded.Extensions.Logging.Decorator;
 using Minded.Extensions.Logging.Configuration;
 using Minded.Extensions.Validation.Decorator;
@@ -31,6 +32,7 @@ using MindedExample.Api.Hubs;
 using Minded.Extensions.Authorization.Configuration;
 using Minded.Extensions.Context.Decorator;
 using MindedExample.Api.Authorization;
+using MindedExample.Infrastructure.Persistence.Security;
 using MindedExample.Api.Logging;
 using Microsoft.AspNetCore.OData;
 using Microsoft.OpenApi;
@@ -159,8 +161,12 @@ namespace MindedExample.Api
             // Register HttpContextAccessor for authorization context
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserAccessor, HttpCurrentUserAccessor>();
-            services.AddScoped<JwtTokenFactory>();
             services.AddScoped<IPasswordHasher<MindedExample.Domain.User>, PasswordHasher<MindedExample.Domain.User>>();
+
+            // Infrastructure service implementations
+            services.AddScoped<MindedExample.Application.Common.IJwtTokenService, JwtTokenService>();
+            services.AddScoped<MindedExample.Application.Common.IPasswordService, MindedExample.Infrastructure.Persistence.Security.PasswordService>();
+            services.AddScoped<MindedExample.Application.User.Services.IAuthResultBuilder, MindedExample.Application.User.Services.AuthResultBuilder>();
 
             var jwtSection = Configuration.GetSection("Jwt");
             var signingKey = jwtSection["SigningKey"] ?? "ThisIsADevelopmentOnlySigningKeyPleaseChange";
@@ -215,7 +221,7 @@ namespace MindedExample.Api
             services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), b =>
             {
                 b.AddMediator();
-                b.AddRestMediator();
+                b.AddRestMediator(iRestRulesProviderType: typeof(MindedExampleRestRulesProvider));
 
                 // Configure DataProtection with static defaults
                 b.AddDataProtection(options =>
@@ -229,11 +235,8 @@ namespace MindedExample.Api
                 b.ServiceCollection.AddSingleton<Minded.Framework.CQRS.Abstractions.Sanitization.ILoggingSanitizer,
                     CustomLoggingSanitizer>();
 
-                // Ambient context decorator: must be registered as the outermost layer so that
-                // all subsequent decorators and handlers observe a populated IMindedContext.
-                b.AddContextDecorator();
-
                 b.AddCommandValidationDecorator()
+                .AddCommandTransactionDecorator()
                 .AddCommandExceptionDecorator(options =>
                 {
                     options.Serialize = true;
@@ -253,8 +256,7 @@ namespace MindedExample.Api
                     options.Enabled = false;
                     options.LogMessageTemplateData = false;
                     options.LogOutcomeEntries = false;
-                })
-                .AddCommandHandlers();
+                });
 
                 b.AddQueryValidationDecorator()
                 .AddQueryExceptionDecorator(options =>
@@ -274,8 +276,16 @@ namespace MindedExample.Api
                     options.LogMessageTemplateData = false;
                     options.LogOutcomeEntries = false;
                 })
-                .AddQueryMemoryCacheDecorator()
-                .AddQueryHandlers();
+                .AddQueryMemoryCacheDecorator();
+
+                // Ambient context decorator: registered LAST so it becomes the OUTERMOST layer
+                // (last registered = first to run). This guarantees IMindedContext is populated
+                // before any other decorator executes, which features such as [RequireResourceAccess]
+                // rely on to install their recursion guard.
+                b.AddContextDecorator();
+
+                b.AddCommandHandlers();
+                b.AddQueryHandlers();
             });
 
             // Configure runtime configuration providers using PostConfigure with dependency injection

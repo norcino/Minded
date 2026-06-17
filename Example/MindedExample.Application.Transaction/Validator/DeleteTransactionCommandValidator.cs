@@ -1,47 +1,42 @@
 using System.Threading.Tasks;
-using MindedExample.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Minded.Extensions.Exception;
 using Minded.Extensions.Validation;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Abstractions;
+using Minded.Framework.Mediator;
 using MindedExample.Application.Transaction.Command;
+using MindedExample.Application.Transaction.Query;
 
 namespace MindedExample.Application.Transaction.Validator
 {
     /// <summary>
-    /// Validator for DeleteTransactionCommand.
-    /// Ensures the transaction exists before allowing the delete operation.
+    /// Validator for <see cref="DeleteTransactionCommand"/>.
+    /// Ensures the transaction exists (within the caller's tenant) before allowing the delete operation.
+    /// Tenant scoping is enforced by <see cref="ExistsTransactionByIdQuery"/> and its handler,
+    /// keeping this validator free of infrastructure concerns.
     /// Returns a 404 error code if the transaction is not found.
     /// </summary>
     public class DeleteTransactionCommandValidator : ICommandValidator<DeleteTransactionCommand>
     {
-        private readonly IMindedExampleContext _context;
-        private readonly ICurrentUserAccessor _currentUserAccessor;
+        private readonly IMediator _mediator;
 
-        public DeleteTransactionCommandValidator(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
+        public DeleteTransactionCommandValidator(IMediator mediator)
         {
-            _context = context;
-            _currentUserAccessor = currentUserAccessor;
+            _mediator = mediator;
         }
 
         /// <summary>
-        /// Validates the delete command.
-        /// Checks if the transaction exists within the caller's tenant. The check must be
-        /// tenant-scoped: an unscoped check would answer differently for foreign-tenant ids
-        /// and nonexistent ids, leaking which ids exist in other tenants.
+        /// Validates the delete command by dispatching <see cref="ExistsTransactionByIdQuery"/>
+        /// through the mediator. The query handler enforces tenant isolation, so this validator
+        /// stays free of infrastructure dependencies.
         /// </summary>
-        /// <param name="command">The delete command to validate</param>
-        /// <returns>Validation result with 404 error code if transaction not found</returns>
+        /// <param name="command">The delete command to validate.</param>
+        /// <returns>Validation result with a 404 error code if the transaction is not found.</returns>
         public async Task<IValidationResult> ValidateAsync(DeleteTransactionCommand command)
         {
             var validationResult = new ValidationResult();
 
-            // Check if the transaction exists in the caller's tenant
-            var tenantId = _currentUserAccessor.TenantId;
-            var exists = tenantId.HasValue && await _context.Transactions
-                .AnyAsync(t => t.Id == command.TransactionId && t.User.TenantId == tenantId.Value);
-            if (!exists)
+            if (!await _mediator.ProcessQueryAsync(new ExistsTransactionByIdQuery(command.TransactionId)))
             {
                 validationResult.OutcomeEntries.Add(new OutcomeEntry(
                     nameof(command.TransactionId),

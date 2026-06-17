@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Logging;
 using Minded.Framework.CQRS.Query;
 
@@ -7,7 +8,9 @@ namespace MindedExample.Application.Configuration.Query
 {
     /// <summary>
     /// Query to retrieve tenant-level summaries for global administration.
+    /// Requires the caller to be a global administrator.
     /// </summary>
+    [RequireClaim("is_global_admin", "true")]
     public class GetAdminTenantSummariesQuery : IQuery<IQueryResponse<IEnumerable<TenantSummaryModel>>>, ILoggable
     {
         public GetAdminTenantSummariesQuery(Guid? traceId = null)

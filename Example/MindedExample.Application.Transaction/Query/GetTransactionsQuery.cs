@@ -1,34 +1,42 @@
-using Microsoft.AspNetCore.OData.Query;
 using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Logging;
+using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Query;
+using Minded.Framework.CQRS.Query.Trait;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace MindedExample.Application.Transaction.Query
 {
     /// <summary>
-    /// Query to retrieve transactions with OData query options.
-    /// Uses a computed property for logging the OData options string representation.
+    /// Query to retrieve a collection of transactions, supporting OData-style filtering,
+    /// ordering, paging, and expansion through the Minded trait interface system.
     /// </summary>
+    [ValidateQuery]
     [RequireClaim("is_global_admin", "false")]
-    public class GetTransactionsQuery : IQuery<List<MindedExample.Domain.Transaction>>, ILoggable
+    public class GetTransactionsQuery :
+        IQuery<IQueryResponse<IEnumerable<MindedExample.Domain.Transaction>>>,
+        ICanCount, ICanTop, ICanSkip, ICanExpand, ICanOrderBy,
+        ICanFilterExpression<MindedExample.Domain.Transaction>,
+        ILoggable
     {
-        public GetTransactionsQuery(ODataQueryOptions<MindedExample.Domain.Transaction> options, Guid? traceId = null)
+        public GetTransactionsQuery(Guid? traceId = null)
         {
-            Options = options;
             TraceId = traceId ?? TraceId;
         }
 
-        public ODataQueryOptions<MindedExample.Domain.Transaction> Options { get; set; }
-
-        /// <summary>
-        /// Computed property for logging - returns string representation of OData options.
-        /// </summary>
-        public string ODataQueryOptionsString => Options?.ToString() ?? "None";
+        public bool CountOnly { get; set; }
+        public bool Count { get; set; }
+        public int CountValue { get; set; }
+        public int? Top { get; set; }
+        public int? Skip { get; set; }
+        public string[] Expand { get; set; }
+        public IList<OrderDescriptor> OrderBy { get; set; }
+        public Expression<Func<MindedExample.Domain.Transaction, bool>> Filter { get; set; }
 
         public Guid TraceId { get; } = Guid.NewGuid();
-        public string LoggingTemplate => "{ODataQueryOptions}";
-        public string[] LoggingProperties => [nameof(ODataQueryOptionsString)];
+        public string LoggingTemplate => "Count: {Count} - Top: {Top} - Skip: {Skip}";
+        public string[] LoggingProperties => [nameof(Count), nameof(Top), nameof(Skip)];
     }
 }

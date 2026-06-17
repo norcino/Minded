@@ -8,22 +8,22 @@ using MindedExample.Application.Category.Query;
 namespace MindedExample.Application.Category.QueryHandler
 {
     /// <summary>
-    /// Handler for <see cref="ExistsCategoryByIdQuery"/>.
-    /// Returns true if the Category exists, otherwise false.
+    /// Handler for <see cref="ExistsCategoryInCurrentTenantQuery"/>.
+    /// Returns true if the Category exists in the current caller's tenant, otherwise false.
     /// Uses AsNoTracking for performance.
     /// </summary>
-    public class ExistsCategoryByIdQueryHandler : IQueryHandler<ExistsCategoryByIdQuery, bool>
+    public class ExistsCategoryInCurrentTenantQueryHandler : IQueryHandler<ExistsCategoryInCurrentTenantQuery, bool>
     {
         private readonly IMindedExampleContext _context;
         private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public ExistsCategoryByIdQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
+        public ExistsCategoryInCurrentTenantQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
             _currentUserAccessor = currentUserAccessor;
         }
 
-        public async Task<bool> HandleAsync(ExistsCategoryByIdQuery query, CancellationToken cancellationToken = default)
+        public async Task<bool> HandleAsync(ExistsCategoryInCurrentTenantQuery query, CancellationToken cancellationToken = default)
         {
             if (!_currentUserAccessor.TenantId.HasValue)
             {

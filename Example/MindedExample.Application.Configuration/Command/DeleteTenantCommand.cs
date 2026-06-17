@@ -1,4 +1,5 @@
 using System;
+using Minded.Extensions.Authorization.Attributes;
 using Minded.Extensions.Logging;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Framework.CQRS.Command;
@@ -7,8 +8,10 @@ namespace MindedExample.Application.Configuration.Command
 {
     /// <summary>
     /// Command to delete a tenant and all tenant-scoped data.
+    /// Requires the caller to be a global administrator.
     /// </summary>
     [ValidateCommand]
+    [RequireClaim("is_global_admin", "true")]
     public class DeleteTenantCommand : ICommand, ILoggable
     {
         public DeleteTenantCommand(int tenantId, string confirmationName, Guid? traceId = null)

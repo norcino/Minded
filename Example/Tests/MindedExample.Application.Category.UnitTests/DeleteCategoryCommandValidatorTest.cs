@@ -1,48 +1,40 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AnonymousData;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Minded.Extensions.Exception;
+using Minded.Extensions.Validation;
 using Minded.Framework.CQRS.Abstractions;
-using MockQueryable.Moq;
+using Minded.Framework.Mediator;
 using Moq;
 using MindedExample.Application.Category.Command;
+using MindedExample.Application.Category.Query;
 using MindedExample.Application.Category.Validator;
-using MindedExample.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using FluentAssertions;
-using QM.Common.Testing;
-using Minded.Extensions.Validation;
 
 namespace MindedExample.Application.Category.UnitTests
 {
     /// <summary>
     /// Unit tests for DeleteCategoryCommandValidator.
-    /// Tests validation rules for deleting categories including existence checks.
+    /// Validates that the validator correctly dispatches ExistsCategoryInCurrentTenantQuery via IMediator
+    /// and returns the appropriate validation errors when the category is not found.
     /// </summary>
     [TestClass]
     public class DeleteCategoryCommandValidatorTest
     {
-        private const int TestTenantId = 7;
-
         private DeleteCategoryCommandValidator _sut;
-        private Mock<IMindedExampleContext> _contextMock;
-        private Mock<ICurrentUserAccessor> _currentUserAccessorMock;
+        private Mock<IMediator> _mediatorMock;
 
         [TestInitialize]
         public void TestInitialize()
         {
-            _contextMock = new Mock<IMindedExampleContext>();
-            _currentUserAccessorMock = new Mock<ICurrentUserAccessor>();
-            _currentUserAccessorMock.SetupGet(a => a.TenantId).Returns(TestTenantId);
-            _sut = new DeleteCategoryCommandValidator(_contextMock.Object, _currentUserAccessorMock.Object);
+            _mediatorMock = new Mock<IMediator>();
+            _sut = new DeleteCategoryCommandValidator(_mediatorMock.Object);
         }
 
         /// <summary>
-        /// Verifies that validation succeeds when category exists.
+        /// Verifies that validation succeeds when the category exists.
         /// </summary>
         [TestMethod]
         public async Task Validation_Succeeds_WhenCategoryExists()
@@ -50,12 +42,8 @@ namespace MindedExample.Application.Category.UnitTests
             var categoryId = Any.Int();
             var command = new DeleteCategoryCommand(categoryId);
 
-            var categories = new List<MindedExample.Domain.Category>
-            {
-                new MindedExample.Domain.Category { Id = categoryId, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
-            };
-            Mock<DbSet<MindedExample.Domain.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
-            _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
 
             IValidationResult result = await _sut.ValidateAsync(command);
 
@@ -64,7 +52,7 @@ namespace MindedExample.Application.Category.UnitTests
         }
 
         /// <summary>
-        /// Verifies that validation fails when category does not exist.
+        /// Verifies that validation fails with a 404-style error when the category does not exist.
         /// </summary>
         [TestMethod]
         public async Task Validation_Fails_WhenCategoryDoesNotExist()
@@ -72,9 +60,8 @@ namespace MindedExample.Application.Category.UnitTests
             var categoryId = Any.Int();
             var command = new DeleteCategoryCommand(categoryId);
 
-            var categories = new List<MindedExample.Domain.Category>();
-            Mock<DbSet<MindedExample.Domain.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
-            _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
 
             IValidationResult result = await _sut.ValidateAsync(command);
 
@@ -87,25 +74,23 @@ namespace MindedExample.Application.Category.UnitTests
         }
 
         /// <summary>
-        /// Verifies that validator queries the database with correct category ID.
+        /// Verifies that the validator dispatches ExistsCategoryInCurrentTenantQuery with the correct category ID.
         /// </summary>
         [TestMethod]
-        public async Task Validation_QueriesDatabaseWithCorrectCategoryId()
+        public async Task Validation_DispatchesQueryWithCorrectCategoryId()
         {
             var categoryId = 42;
             var command = new DeleteCategoryCommand(categoryId);
 
-            var categories = new List<MindedExample.Domain.Category>
-            {
-                new MindedExample.Domain.Category { Id = categoryId, User = new MindedExample.Domain.User { TenantId = TestTenantId } },
-                new MindedExample.Domain.Category { Id = 99, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
-            };
-            Mock<DbSet<MindedExample.Domain.Category>> mockDbSet = categories.AsQueryable().GetMockDbSet();
-            _contextMock.Setup(c => c.Categories).Returns(mockDbSet.Object);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
 
-            IValidationResult result = await _sut.ValidateAsync(command);
+            await _sut.ValidateAsync(command);
 
-            result.IsValid.Should().BeTrue();
+            _mediatorMock.Verify(m => m.ProcessQueryAsync(
+                It.Is<ExistsCategoryInCurrentTenantQuery>(q => q.CategoryId == categoryId),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
         }
     }
 }

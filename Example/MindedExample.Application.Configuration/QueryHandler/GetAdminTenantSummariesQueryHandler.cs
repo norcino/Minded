@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -12,25 +11,19 @@ namespace MindedExample.Application.Configuration.QueryHandler
 {
     /// <summary>
     /// Handles retrieval of tenant summaries for global administration.
+    /// Authorization (global admin required) is enforced by the [RequireClaim] attribute on the query.
     /// </summary>
     public class GetAdminTenantSummariesQueryHandler : IQueryHandler<GetAdminTenantSummariesQuery, IQueryResponse<IEnumerable<TenantSummaryModel>>>
     {
         private readonly IMindedExampleContext _context;
-        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public GetAdminTenantSummariesQueryHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
+        public GetAdminTenantSummariesQueryHandler(IMindedExampleContext context)
         {
             _context = context;
-            _currentUserAccessor = currentUserAccessor;
         }
 
         public async Task<IQueryResponse<IEnumerable<TenantSummaryModel>>> HandleAsync(GetAdminTenantSummariesQuery query, CancellationToken cancellationToken = default)
         {
-            if (!_currentUserAccessor.IsGlobalAdmin)
-            {
-                throw new SecurityException();
-            }
-
             var tenants = await _context.Tenants
                 .AsNoTracking()
                 .Include(t => t.LegalOwnerUser)

@@ -32,25 +32,9 @@ namespace MindedExample.Application.Transaction.CommandHandler
         /// <returns>Successful command response with the updated transaction</returns>
         public async Task<ICommandResponse<MindedExample.Domain.Transaction>> HandleAsync(UpdateTransactionCommand command, CancellationToken cancellationToken = default)
         {
-            if (!_currentUserAccessor.TenantId.HasValue)
-            {
-                return new CommandResponse<MindedExample.Domain.Transaction>(default(MindedExample.Domain.Transaction), false);
-            }
-
             var tenantId = _currentUserAccessor.TenantId.Value;
             MindedExample.Domain.Transaction transaction = await _context.Transactions
                 .SingleOrDefaultAsync(p => p.Id == command.TransactionId && p.User.TenantId == tenantId, cancellationToken);
-            if (transaction == null)
-            {
-                return new CommandResponse<MindedExample.Domain.Transaction>(default(MindedExample.Domain.Transaction), false);
-            }
-
-            var userExistsInTenant = await _context.Users
-                .AnyAsync(u => u.Id == command.Transaction.UserId && u.TenantId == tenantId, cancellationToken);
-            if (!userExistsInTenant)
-            {
-                return new CommandResponse<MindedExample.Domain.Transaction>(default(MindedExample.Domain.Transaction), false);
-            }
 
             transaction.Description = command.Transaction.Description;
             transaction.CategoryId = command.Transaction.CategoryId;
@@ -60,10 +44,7 @@ namespace MindedExample.Application.Transaction.CommandHandler
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new CommandResponse<MindedExample.Domain.Transaction>(transaction)
-            {
-                Successful = true
-            };
+            return CommandResponse<MindedExample.Domain.Transaction>.Success(transaction);
         }
     }
 }

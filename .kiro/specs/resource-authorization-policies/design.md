@@ -225,7 +225,7 @@ public class RequirePermissionsAttribute : Attribute
 public class ResourceAuthorizeAttribute : Attribute
 {
     public string ResourceIdProperty { get; }
-    public string ResourceIdClaim { get; }
+    public string ClaimName { get; }
     public Type QueryType { get; }
 
     // OR short-circuit conditions — any one match across all arrays skips the query dispatch
@@ -235,11 +235,11 @@ public class ResourceAuthorizeAttribute : Attribute
 
     public ResourceAuthorizeAttribute(
         string resourceIdProperty,
-        string resourceIdClaim,
+        string claimName,
         Type queryType)
     {
         ResourceIdProperty = resourceIdProperty;
-        ResourceIdClaim = resourceIdClaim;
+        ClaimName = claimName;
         QueryType = queryType;
     }
 }
@@ -251,14 +251,14 @@ public class ResourceAuthorizeAttribute : Attribute
 // Simple resource check — no OR clauses
 [ResourceAuthorize(
     resourceIdProperty: nameof(ProjectId),
-    resourceIdClaim: "UserId",
+    claimName: "UserId",
     queryType: typeof(CanUserUpdateProjectQuery))]
 public sealed record UpdateProjectCommand(Guid ProjectId, string Name) : ICommand;
 
 // Resource check with single OR role
 [ResourceAuthorize(
     resourceIdProperty: nameof(ProjectId),
-    resourceIdClaim: "UserId",
+    claimName: "UserId",
     queryType: typeof(CanUserUpdateProjectQuery),
     OrAnyRole = new[] { "Admin" })]
 public sealed record UpdateProjectCommand(Guid ProjectId, string Name) : ICommand;
@@ -266,7 +266,7 @@ public sealed record UpdateProjectCommand(Guid ProjectId, string Name) : IComman
 // Resource check with multiple OR conditions across types
 [ResourceAuthorize(
     resourceIdProperty: nameof(GroupId),
-    resourceIdClaim: "UserId",
+    claimName: "UserId",
     queryType: typeof(GetUsersInGroupQuery),
     OrAnyRole = new[] { "Admin", "SuperUser" },
     OrAnyPermission = new[] { "CanAccessAllGroups" },
@@ -355,13 +355,13 @@ public sealed class ClaimClause
 public sealed class ResourceClause
 {
     public string ResourceIdProperty { get; }
-    public string ResourceIdClaim { get; }
+    public string ClaimName { get; }
     public Type QueryType { get; }
     public IReadOnlyList<string> OrAnyRole { get; }
     public IReadOnlyList<string> OrAnyPermission { get; }
     public IReadOnlyList<string> OrAnyClaim { get; }
 
-    public ResourceClause(string resourceIdProperty, string resourceIdClaim,
+    public ResourceClause(string resourceIdProperty, string claimName,
         Type queryType, IReadOnlyList<string> orAnyRole,
         IReadOnlyList<string> orAnyPermission, IReadOnlyList<string> orAnyClaim)
     { /* assign all */ }
@@ -412,7 +412,7 @@ private static AuthorizationDescriptor Compile(Type requestType)
 
             resourceClauses.Add(new ResourceClause(
                 resAttr.ResourceIdProperty,
-                resAttr.ResourceIdClaim,
+                resAttr.ClaimName,
                 resAttr.QueryType,
                 Array.AsReadOnly(resAttr.OrAnyRole ?? Array.Empty<string>()),
                 Array.AsReadOnly(resAttr.OrAnyPermission ?? Array.Empty<string>()),
@@ -517,9 +517,9 @@ private static void ValidateResourceAuthorize(Type requestType, ResourceAuthoriz
         throw new InvalidOperationException(
             $"Type '{requestType.Name}' has ResourceAuthorizeAttribute with blank resourceIdProperty.");
 
-    if (string.IsNullOrWhiteSpace(attr.ResourceIdClaim))
+    if (string.IsNullOrWhiteSpace(attr.ClaimName))
         throw new InvalidOperationException(
-            $"Type '{requestType.Name}' has ResourceAuthorizeAttribute with blank resourceIdClaim.");
+            $"Type '{requestType.Name}' has ResourceAuthorizeAttribute with blank claimName.");
 
     if (attr.QueryType == null)
         throw new InvalidOperationException(
@@ -784,7 +784,7 @@ public class AuthorizationCommandHandlerDecorator<TCommand, TResult>
                 var resourceId = GetResourceId(command, clause.ResourceIdProperty);
 
                 // 7c: Read claim value from context
-                if (!authContext.Claims.TryGetValue(clause.ResourceIdClaim, out var claimValue))
+                if (!authContext.Claims.TryGetValue(clause.ClaimName, out var claimValue))
                 {
                     LogDenied(command, stopwatch.Elapsed, isUnauthenticated: false);
                     return CommandResponse<TResult>.Error(CreateUnauthorizedOutcomeEntry());
@@ -955,7 +955,7 @@ Add:
 
 ### Property 4: Authorization query receives correct resource ID and claim value
 
-*For any* request object carrying a `ResourceAuthorizeAttribute`, the authorization decorator SHALL instantiate the authorization query with the resource identifier value read from the property named by `resourceIdProperty` and the claim value read from the `AuthorizationContext.Claims` dictionary using the key specified by `resourceIdClaim`.
+*For any* request object carrying a `ResourceAuthorizeAttribute`, the authorization decorator SHALL instantiate the authorization query with the resource identifier value read from the property named by `resourceIdProperty` and the claim value read from the `AuthorizationContext.Claims` dictionary using the key specified by `claimName`.
 
 **Validates: Requirements 3.1, 3.2, 9.3**
 
@@ -1030,7 +1030,7 @@ All attribute configuration errors are detected eagerly during service registrat
 
 | Scenario | Behavior |
 |----------|----------|
-| Missing claim key for `resourceIdClaim` | 403 Forbidden (claim not present → deny) |
+| Missing claim key for `claimName` | 403 Forbidden (claim not present → deny) |
 | MatchProperty claim value doesn't match request property value | 403 Forbidden |
 | Missing claim key for `RequireClaimAttribute.MatchProperty` | 403 Forbidden (claim not present → deny) |
 | Authorization query throws exception | 403 Forbidden (deny-by-default, consistent with existing pattern) |

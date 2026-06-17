@@ -48,7 +48,7 @@ namespace MindedExample.Application.Category.Validator
                 return validationResult;
             }
 
-            if (!await _mediator.ProcessQueryAsync(new ExistsCategoryByIdQuery(command.CategoryId)))
+            if (!await _mediator.ProcessQueryAsync(new ExistsCategoryInCurrentTenantQuery(command.CategoryId)))
             {
                 validationResult.OutcomeEntries.Add(new OutcomeEntry(
                     nameof(command.CategoryId), "Category with ID {0} not found", command.CategoryId, Severity.Error, GenericErrorCodes.SubjectNotFound));

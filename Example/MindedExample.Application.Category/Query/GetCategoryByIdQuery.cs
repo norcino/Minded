@@ -9,6 +9,7 @@ namespace MindedExample.Application.Category.Query
 {
     [MemoryCache(ExpirationInSeconds = 300)]
     [RequireClaim("is_global_admin", "false")]
+    [RequireResourceAccess(nameof(CategoryId), "tenant_id", typeof(ExistsCategoryInCurrentTenantQuery))]
     public class GetCategoryByIdQuery : IQuery<MindedExample.Domain.Category>, IGenerateCacheKey, ILoggable
     {
         public int CategoryId { get; }

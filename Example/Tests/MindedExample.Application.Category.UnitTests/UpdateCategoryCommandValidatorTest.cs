@@ -51,7 +51,7 @@ namespace MindedExample.Application.Category.UnitTests
                 });
             var command = new UpdateCategoryCommand(5, category);
 
-            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Category.Query.ExistsCategoryByIdQuery>(), It.IsAny<CancellationToken>()))
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Category.Query.ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
             IValidationResult result = await _sut.ValidateAsync(command);
@@ -116,7 +116,7 @@ namespace MindedExample.Application.Category.UnitTests
                 });
             var command = new UpdateCategoryCommand(999, category);
 
-            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Category.Query.ExistsCategoryByIdQuery>(), It.IsAny<CancellationToken>()))
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Category.Query.ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
             IValidationResult result = await _sut.ValidateAsync(command);
@@ -143,7 +143,7 @@ namespace MindedExample.Application.Category.UnitTests
                 });
             var command = new UpdateCategoryCommand(5, category);
 
-            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Category.Query.ExistsCategoryByIdQuery>(), It.IsAny<CancellationToken>()))
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Category.Query.ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
             var categoryValidationResult = new ValidationResult();

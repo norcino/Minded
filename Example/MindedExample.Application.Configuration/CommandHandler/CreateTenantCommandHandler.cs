@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
@@ -14,30 +13,23 @@ namespace MindedExample.Application.Configuration.CommandHandler
 {
     /// <summary>
     /// Handles creation of tenants and their legal owner users.
+    /// Authorization (global admin required) is enforced by the [RequireClaim] attribute on the command.
     /// </summary>
     public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, CreateTenantResult>
     {
         private readonly IMindedExampleContext _context;
-        private readonly ICurrentUserAccessor _currentUserAccessor;
         private readonly IPasswordHasher<User> _passwordHasher;
 
         public CreateTenantCommandHandler(
             IMindedExampleContext context,
-            ICurrentUserAccessor currentUserAccessor,
             IPasswordHasher<User> passwordHasher)
         {
             _context = context;
-            _currentUserAccessor = currentUserAccessor;
             _passwordHasher = passwordHasher;
         }
 
         public async Task<ICommandResponse<CreateTenantResult>> HandleAsync(CreateTenantCommand command, CancellationToken cancellationToken = default)
         {
-            if (!_currentUserAccessor.IsGlobalAdmin)
-            {
-                throw new SecurityException();
-            }
-
             var tenantName = command.Name.Trim();
             var ownerEmail = command.LegalOwnerEmail.Trim().ToLowerInvariant();
 

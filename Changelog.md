@@ -243,7 +243,7 @@ Fixed critical bugs in DefaultRulesProcessor and validation logic.
 * Added 5 integration tests for end-to-end retry decorator validation
 * Added retry decorator demonstration in Example application (CreateCategoryCommandHandler)
 * Added comprehensive retry decorator documentation in README.md
-* Added `ExistsCategoryByIdQuery` and `ExistsTransactionByIdQuery` for data validation
+* Added `ExistsCategoryInCurrentTenantQuery` and `ExistsTransactionByIdQuery` for data validation
 * Added 48 edge case tests for DefaultRulesProcessor
 * Added 23 unit tests for Service.Transaction
 * Added 14 new unit tests for Service.Category (total 21)

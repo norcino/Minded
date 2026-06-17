@@ -41,7 +41,7 @@ This specification extends the Minded authorization system to support claim-base
 #### Acceptance Criteria
 
 1. THE Resource_Authorize_Attribute SHALL accept a `resourceIdProperty` parameter that names the property on the command or query containing the resource identifier.
-2. THE Resource_Authorize_Attribute SHALL accept a `resourceIdClaim` parameter that names the claim key from the Authorization_Context to pass to the Authorization_Query.
+2. THE Resource_Authorize_Attribute SHALL accept a `claimName` parameter that names the claim key from the Authorization_Context to pass to the Authorization_Query.
 3. THE Resource_Authorize_Attribute SHALL accept a `queryType` parameter that specifies the Type of the Authorization_Query to dispatch via the mediator.
 4. THE Resource_Authorize_Attribute SHALL support `AllowMultiple = true` so that multiple resource authorization checks can be declared on a single command or query.
 5. THE Resource_Authorize_Attribute SHALL support an optional `OrAnyRole` property of type `string[]` that specifies role names which can short-circuit the resource authorization check.
@@ -59,12 +59,12 @@ This specification extends the Minded authorization system to support claim-base
 #### Acceptance Criteria
 
 1. WHEN a command or query carries a Resource_Authorize_Attribute, THE Authorization_Decorator SHALL read the resource identifier value from the property named by `resourceIdProperty` on the request object.
-2. WHEN a command or query carries a Resource_Authorize_Attribute, THE Authorization_Decorator SHALL read the claim value from the Authorization_Context Claims dictionary using the key specified by `resourceIdClaim`.
+2. WHEN a command or query carries a Resource_Authorize_Attribute, THE Authorization_Decorator SHALL read the claim value from the Authorization_Context Claims dictionary using the key specified by `claimName`.
 3. WHEN both the resource identifier and the claim value are resolved, THE Authorization_Decorator SHALL instantiate the Authorization_Query specified by `queryType` and dispatch it through the mediator.
 4. WHEN the Authorization_Query returns a result indicating access is granted (Query returns true or QueryResponse with false value), THE Authorization_Decorator SHALL allow the request to proceed to the next handler.
 5. WHEN the Authorization_Query returns a result indicating access is denied (Query returns false or QueryResponse with false value), THE Authorization_Decorator SHALL deny the request with a 403 Forbidden response.
 6. IF the resource identifier property does not exist on the request type, THEN THE Descriptor_Cache SHALL throw an InvalidOperationException during attribute compilation at startup.
-7. IF the claim key specified by `resourceIdClaim` is not present in the Authorization_Context Claims dictionary, THEN THE Authorization_Decorator SHALL deny the request with a 403 Forbidden response.
+7. IF the claim key specified by `claimName` is not present in the Authorization_Context Claims dictionary, THEN THE Authorization_Decorator SHALL deny the request with a 403 Forbidden response.
 
 ### Requirement 4: OR/AND Evaluation Semantics
 

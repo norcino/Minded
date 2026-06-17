@@ -39,7 +39,7 @@ This plan implements claim-based authorization predicates and resource-instance 
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.13, 13.1, 13.2, 13.3_
   - [ ] 2.2 Create ResourceAuthorizeAttribute
     - Create `Extensions/Minded.Extensions.Authorization/Attributes/ResourceAuthorizeAttribute.cs`
-    - Constructor accepts `string resourceIdProperty`, `string resourceIdClaim`, `Type queryType`
+    - Constructor accepts `string resourceIdProperty`, `string claimName`, `Type queryType`
     - OR clause properties: `OrAnyRole`, `OrAnyPermission`, `OrAnyClaim` (all `string[]`)
     - `[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]`
     - XML documentation on all public members
@@ -56,7 +56,7 @@ This plan implements claim-based authorization predicates and resource-instance 
 - [ ] 3. Extend AuthorizationDescriptor with ClaimClause, ResourceClause, and OR arrays on existing clauses
   - [ ] 3.1 Add ClaimClause and ResourceClause classes, extend RoleClause and PermissionClause with OR arrays
     - Add `ClaimClause` sealed class to `AuthorizationDescriptor.cs` with properties: `ClaimType`, `Values`, `Match`, `Minimum`, `MatchProperty`, `OrAnyRole`, `OrAnyPermission`, `OrAnyClaim`
-    - Add `ResourceClause` sealed class to `AuthorizationDescriptor.cs` with properties: `ResourceIdProperty`, `ResourceIdClaim`, `QueryType`, `OrAnyRole`, `OrAnyPermission`, `OrAnyClaim`
+    - Add `ResourceClause` sealed class to `AuthorizationDescriptor.cs` with properties: `ResourceIdProperty`, `ClaimName`, `QueryType`, `OrAnyRole`, `OrAnyPermission`, `OrAnyClaim`
     - Extend `RoleClause` with `OrAnyRole`, `OrAnyPermission`, `OrAnyClaim` properties (IReadOnlyList<string>)
     - Extend `PermissionClause` with `OrAnyRole`, `OrAnyPermission`, `OrAnyClaim` properties (IReadOnlyList<string>)
     - Extend `AuthorizationDescriptor` with `ClaimClauses` and `ResourceClauses` properties (IReadOnlyList), update constructor
@@ -69,7 +69,7 @@ This plan implements claim-based authorization predicates and resource-instance 
 - [ ] 4. Extend AuthorizationDescriptorCache to compile new attributes
   - [ ] 4.1 Extend Compile method in AuthorizationDescriptorCache
     - Handle `RequireClaimAttribute`: compile into `ClaimClause` with claim type, values, match, minimum, matchProperty, and OR arrays
-    - Handle `ResourceAuthorizeAttribute`: compile into `ResourceClause` with resourceIdProperty, resourceIdClaim, queryType, and OR arrays
+    - Handle `ResourceAuthorizeAttribute`: compile into `ResourceClause` with resourceIdProperty, claimName, queryType, and OR arrays
     - Compile OR arrays on `RequireRolesAttribute` and `RequirePermissionsAttribute` into the extended `RoleClause` and `PermissionClause`
     - Validate `resourceIdProperty` exists on request type during compilation
     - Validate `queryType` implements `IQuery<bool>` or `IQuery<IQueryResponse<bool>>` and has `(object, string)` constructor
@@ -92,7 +92,7 @@ This plan implements claim-based authorization predicates and resource-instance 
 - [ ] 6. Extend AttributeValidator for new attributes and OR arrays
   - [ ] 6.1 Add validation for RequireClaimAttribute, ResourceAuthorizeAttribute, and OR arrays on all attributes
     - Validate `RequireClaimAttribute`: non-empty claimType, valid values (non-empty, no blanks, no duplicates), valid Minimum for AtLeast, MatchProperty exists on request type if specified, either values or MatchProperty must be specified
-    - Validate `ResourceAuthorizeAttribute`: non-blank resourceIdProperty, non-blank resourceIdClaim, non-null queryType, OR arrays contain no blank entries
+    - Validate `ResourceAuthorizeAttribute`: non-blank resourceIdProperty, non-blank claimName, non-null queryType, OR arrays contain no blank entries
     - Validate OR arrays on `RequireRolesAttribute` and `RequirePermissionsAttribute`: no blank or whitespace-only entries
     - Validate `RequireClaimAttribute` + `AllowUnauthenticatedAttribute` is contradictory
     - Validate `ResourceAuthorizeAttribute` + `AllowUnauthenticatedAttribute` is contradictory

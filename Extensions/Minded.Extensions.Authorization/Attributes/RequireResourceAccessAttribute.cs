@@ -13,7 +13,7 @@ namespace Minded.Extensions.Authorization.Attributes
         public string ResourceIdProperty { get; }
 
         /// <summary>Gets the claim key containing the caller identifier used in the authorization query.</summary>
-        public string ResourceIdClaim { get; }
+        public string ClaimName { get; }
 
         /// <summary>Gets the query type to instantiate and dispatch for resource authorization.</summary>
         public Type QueryType { get; }
@@ -37,12 +37,12 @@ namespace Minded.Extensions.Authorization.Attributes
         /// Initializes a new instance of <see cref="RequireResourceAccessAttribute"/>.
         /// </summary>
         /// <param name="resourceIdProperty">Request property containing the resource identifier.</param>
-        /// <param name="resourceIdClaim">Claim key containing caller identifier.</param>
+        /// <param name="claimName">Claim key containing caller identifier.</param>
         /// <param name="queryType">Authorization query type to dispatch.</param>
-        public RequireResourceAccessAttribute(string resourceIdProperty, string resourceIdClaim, Type queryType)
+        public RequireResourceAccessAttribute(string resourceIdProperty, string claimName, Type queryType)
         {
             ResourceIdProperty = resourceIdProperty;
-            ResourceIdClaim = resourceIdClaim;
+            ClaimName = claimName;
             QueryType = queryType;
         }
     }

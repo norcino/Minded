@@ -1,48 +1,41 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AnonymousData;
+using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Minded.Extensions.Exception;
+using Minded.Extensions.Validation;
 using Minded.Framework.CQRS.Abstractions;
-using MockQueryable.Moq;
+using Minded.Framework.Mediator;
 using Moq;
 using MindedExample.Application.Transaction.Command;
+using MindedExample.Application.Transaction.Query;
 using MindedExample.Application.Transaction.Validator;
-using MindedExample.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
-using FluentAssertions;
-using QM.Common.Testing;
-using Minded.Extensions.Validation;
 
 namespace MindedExample.Application.Transaction.UnitTests
 {
     /// <summary>
     /// Unit tests for DeleteTransactionCommandValidator.
     /// Tests validation rules for deleting transactions including existence checks.
+    /// The validator delegates the existence check to <see cref="ExistsTransactionByIdQuery"/> via IMediator,
+    /// so these tests mock the mediator rather than the DbContext.
     /// </summary>
     [TestClass]
     public class DeleteTransactionCommandValidatorTest
     {
-        private const int TestTenantId = 7;
-
         private DeleteTransactionCommandValidator _sut;
-        private Mock<IMindedExampleContext> _contextMock;
-        private Mock<ICurrentUserAccessor> _currentUserAccessorMock;
+        private Mock<IMediator> _mediatorMock;
 
         [TestInitialize]
         public void TestInitialize()
         {
-            _contextMock = new Mock<IMindedExampleContext>();
-            _currentUserAccessorMock = new Mock<ICurrentUserAccessor>();
-            _currentUserAccessorMock.SetupGet(a => a.TenantId).Returns(TestTenantId);
-            _sut = new DeleteTransactionCommandValidator(_contextMock.Object, _currentUserAccessorMock.Object);
+            _mediatorMock = new Mock<IMediator>();
+            _sut = new DeleteTransactionCommandValidator(_mediatorMock.Object);
         }
 
         /// <summary>
-        /// Verifies that validation succeeds when transaction exists.
+        /// Verifies that validation succeeds when the transaction exists.
         /// </summary>
         [TestMethod]
         public async Task Validation_Succeeds_WhenTransactionExists()
@@ -50,12 +43,8 @@ namespace MindedExample.Application.Transaction.UnitTests
             var transactionId = Any.Int();
             var command = new DeleteTransactionCommand(transactionId);
 
-            var transactions = new List<MindedExample.Domain.Transaction>
-            {
-                new MindedExample.Domain.Transaction { Id = transactionId, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
-            };
-            Mock<DbSet<MindedExample.Domain.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
-            _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
 
             IValidationResult result = await _sut.ValidateAsync(command);
 
@@ -64,7 +53,7 @@ namespace MindedExample.Application.Transaction.UnitTests
         }
 
         /// <summary>
-        /// Verifies that validation fails when transaction does not exist.
+        /// Verifies that validation fails when the transaction does not exist.
         /// </summary>
         [TestMethod]
         public async Task Validation_Fails_WhenTransactionDoesNotExist()
@@ -72,9 +61,8 @@ namespace MindedExample.Application.Transaction.UnitTests
             var transactionId = Any.Int();
             var command = new DeleteTransactionCommand(transactionId);
 
-            var transactions = new List<MindedExample.Domain.Transaction>();
-            Mock<DbSet<MindedExample.Domain.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
-            _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
 
             IValidationResult result = await _sut.ValidateAsync(command);
 
@@ -87,25 +75,22 @@ namespace MindedExample.Application.Transaction.UnitTests
         }
 
         /// <summary>
-        /// Verifies that validator queries the database with correct transaction ID.
+        /// Verifies that the validator dispatches ExistsTransactionByIdQuery with the correct transaction ID.
         /// </summary>
         [TestMethod]
-        public async Task Validation_QueriesDatabaseWithCorrectTransactionId()
+        public async Task Validation_Dispatches_ExistsTransactionByIdQuery_WithCorrectId()
         {
             var transactionId = 42;
             var command = new DeleteTransactionCommand(transactionId);
 
-            var transactions = new List<MindedExample.Domain.Transaction>
-            {
-                new MindedExample.Domain.Transaction { Id = transactionId, User = new MindedExample.Domain.User { TenantId = TestTenantId } },
-                new MindedExample.Domain.Transaction { Id = 99, User = new MindedExample.Domain.User { TenantId = TestTenantId } }
-            };
-            Mock<DbSet<MindedExample.Domain.Transaction>> mockDbSet = transactions.AsQueryable().GetMockDbSet();
-            _contextMock.Setup(c => c.Transactions).Returns(mockDbSet.Object);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
 
-            IValidationResult result = await _sut.ValidateAsync(command);
+            await _sut.ValidateAsync(command);
 
-            result.IsValid.Should().BeTrue();
+            _mediatorMock.Verify(m => m.ProcessQueryAsync(
+                It.Is<ExistsTransactionByIdQuery>(q => q.TransactionId == transactionId),
+                It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

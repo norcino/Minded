@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Minded.Framework.CQRS.Query.Trait;
@@ -57,7 +58,7 @@ namespace Minded.Framework.CQRS.Query
 
             if (query is ICanExpand e && e.Expand?.Length > 0)
             {
-                queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(expand));
+                queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(ResolveIncludePath<T>(expand)));
             }
 
             if (query is ICanFilterExpression<T> f && f.Filter != null)
@@ -131,7 +132,7 @@ namespace Minded.Framework.CQRS.Query
 
             if (query is ICanExpand e && e.Expand?.Length > 0)
             {
-               queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(expand));
+               queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(ResolveIncludePath<T>(expand)));
             }
 
             if (query is ICanFilterExpression<T> f && f.Filter != null)
@@ -178,7 +179,7 @@ namespace Minded.Framework.CQRS.Query
         {
             if (query is ICanExpand e && e.Expand?.Length > 0)
             {
-                queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(expand));
+                queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(ResolveIncludePath<T>(expand)));
             }
 
             if (query is ICanFilterExpression<T> f && f.Filter != null)
@@ -205,7 +206,7 @@ namespace Minded.Framework.CQRS.Query
         {
             if (query is ICanExpand e && e.Expand?.Length > 0)
             {
-                queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(expand));
+                queryable = e.Expand.Aggregate(queryable, (current, expand) => current.Include(ResolveIncludePath<T>(expand)));
             }
 
             if (query is ICanFilterExpression<T> f && f.Filter != null)
@@ -235,6 +236,57 @@ namespace Minded.Framework.CQRS.Query
             UnaryExpression propertyObject = Expression.Convert(property, typeof(object));
 
             return Expression.Lambda<Func<T, object>>(propertyObject, parameter);
+        }
+
+        /// <summary>
+        /// Resolves an expand path against the CLR type <typeparamref name="T"/>, matching each
+        /// path segment case-insensitively to the actual navigation property name. This guards
+        /// against casing mismatches (for example a lowercase OData <c>$expand</c> value) that would
+        /// otherwise cause Entity Framework Core's string-based <c>Include</c> to fail.
+        /// Segments that cannot be resolved are preserved as-is so the original EF Core error surfaces.
+        /// </summary>
+        /// <typeparam name="T">Root entity type the expand path starts from.</typeparam>
+        /// <param name="expand">Dot-separated navigation property path (case-insensitive).</param>
+        /// <returns>The expand path with each resolvable segment normalised to its declared property name.</returns>
+        private static string ResolveIncludePath<T>(string expand)
+        {
+            if (string.IsNullOrWhiteSpace(expand))
+                return expand;
+
+            Type currentType = typeof(T);
+            string[] segments = expand.Split('.');
+
+            for (int i = 0; i < segments.Length; i++)
+            {
+                PropertyInfo property = currentType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(p => string.Equals(p.Name, segments[i], StringComparison.OrdinalIgnoreCase));
+
+                if (property == null)
+                    break;
+
+                segments[i] = property.Name;
+                currentType = GetNavigationTargetType(property.PropertyType);
+            }
+
+            return string.Join(".", segments);
+        }
+
+        /// <summary>
+        /// Returns the entity type targeted by a navigation property, unwrapping collection navigations
+        /// (for example <see cref="ICollection{T}"/>) to their element type.
+        /// </summary>
+        /// <param name="propertyType">CLR type of the navigation property.</param>
+        /// <returns>The target entity type of the navigation.</returns>
+        private static Type GetNavigationTargetType(Type propertyType)
+        {
+            if (propertyType.IsArray)
+                return propertyType.GetElementType();
+
+            if (propertyType.IsGenericType)
+                return propertyType.GetGenericArguments().FirstOrDefault() ?? propertyType;
+
+            return propertyType;
         }
         #endregion
     }

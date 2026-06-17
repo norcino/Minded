@@ -4,6 +4,7 @@ using MindedExample.Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Minded.Extensions.WebApi;
+using Minded.Extensions.CQRS.OData;
 using MindedExample.Application.Transaction.Command;
 using MindedExample.Application.Transaction.Query;
 using Microsoft.AspNetCore.Authorization;
@@ -35,7 +36,9 @@ namespace MindedExample.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> Get(ODataQueryOptions<Transaction> queryOptions, CancellationToken cancellationToken = default)
         {
-            var query = new GetTransactionsQuery(queryOptions);
+            var query = new GetTransactionsQuery();
+            if (queryOptions != null)
+                query.ApplyODataQueryOptions(queryOptions);
             return await _restMediator.ProcessRestQueryAsync(RestOperation.GetMany, query, cancellationToken);
         }
 

@@ -338,7 +338,7 @@ namespace Minded.Extensions.Authorization.Decorator
                     continue;
                 }
 
-                if (!context.Claims.TryGetValue(resourceClause.ResourceIdClaim, out var claimValue))
+                if (!context.Claims.TryGetValue(resourceClause.ClaimName, out var claimValue))
                 {
                     return false;
                 }

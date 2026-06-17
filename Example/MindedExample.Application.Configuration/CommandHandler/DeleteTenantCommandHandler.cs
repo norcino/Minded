@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -12,25 +11,19 @@ namespace MindedExample.Application.Configuration.CommandHandler
 {
     /// <summary>
     /// Handles tenant deletion with full tenant-scoped data cleanup.
+    /// Authorization (global admin required) is enforced by the [RequireClaim] attribute on the command.
     /// </summary>
     public class DeleteTenantCommandHandler : ICommandHandler<DeleteTenantCommand>
     {
         private readonly IMindedExampleContext _context;
-        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public DeleteTenantCommandHandler(IMindedExampleContext context, ICurrentUserAccessor currentUserAccessor)
+        public DeleteTenantCommandHandler(IMindedExampleContext context)
         {
             _context = context;
-            _currentUserAccessor = currentUserAccessor;
         }
 
         public async Task<ICommandResponse> HandleAsync(DeleteTenantCommand command, CancellationToken cancellationToken = default)
         {
-            if (!_currentUserAccessor.IsGlobalAdmin)
-            {
-                throw new SecurityException();
-            }
-
             var tenant = await _context.Tenants
                 .AsNoTracking()
                 .SingleOrDefaultAsync(t => t.Id == command.TenantId, cancellationToken);

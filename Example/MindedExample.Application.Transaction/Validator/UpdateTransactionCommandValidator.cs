@@ -6,6 +6,8 @@ using Minded.Framework.CQRS.Abstractions;
 using Minded.Framework.Mediator;
 using MindedExample.Application.Transaction.Command;
 using MindedExample.Application.Transaction.Query;
+using MindedExample.Application.Category.Query;
+using MindedExample.Application.User.Query;
 
 namespace MindedExample.Application.Transaction.Validator
 {
@@ -51,12 +53,25 @@ namespace MindedExample.Application.Transaction.Validator
             if (!await _mediator.ProcessQueryAsync(new ExistsTransactionByIdQuery(command.TransactionId)))
             {
                 validationResult.OutcomeEntries.Add(new OutcomeEntry(
-                    nameof(command.TransactionId), 
+                    nameof(command.TransactionId),
                     "Transaction with ID {0} not found", command.TransactionId, Severity.Error, GenericErrorCodes.SubjectNotFound));
                 return validationResult;
             }
 
-            // Validate the transaction entity
+            if (command.Transaction.CategoryId != 0 && !await _mediator.ProcessQueryAsync(new ExistsCategoryInCurrentTenantQuery(command.Transaction.CategoryId)))
+            {
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(
+                    nameof(command.Transaction.CategoryId),
+                    "Category with ID {0} does not exist", command.Transaction.CategoryId, Severity.Error, GenericErrorCodes.ValidationFailed));
+            }
+
+            if (command.Transaction.UserId != 0 && !await _mediator.ProcessQueryAsync(new ExistsUserInCurrentTenantQuery(command.Transaction.UserId)))
+            {
+                validationResult.OutcomeEntries.Add(new OutcomeEntry(
+                    nameof(command.Transaction.UserId),
+                    "User with ID {0} does not exist in the current tenant", command.Transaction.UserId, Severity.Error, GenericErrorCodes.ValidationFailed));
+            }
+
             IValidationResult transactionValidationResult = await _transactionValidator.ValidateAsync(command.Transaction);
             return transactionValidationResult.Merge(validationResult);
         }

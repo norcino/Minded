@@ -205,7 +205,7 @@ namespace Minded.Extensions.Authorization
         public string ResourceIdProperty { get; }
 
         /// <summary>Gets the claim key containing caller identifier.</summary>
-        public string ResourceIdClaim { get; }
+        public string ClaimName { get; }
 
         /// <summary>Gets the authorization query type.</summary>
         public System.Type QueryType { get; }
@@ -224,14 +224,14 @@ namespace Minded.Extensions.Authorization
         /// </summary>
         public ResourceClause(
             string resourceIdProperty,
-            string resourceIdClaim,
+            string claimName,
             System.Type queryType,
             IReadOnlyList<string> orAnyRole,
             IReadOnlyList<string> orAnyPermission,
             IReadOnlyList<string> orAnyClaim)
         {
             ResourceIdProperty = resourceIdProperty;
-            ResourceIdClaim = resourceIdClaim;
+            ClaimName = claimName;
             QueryType = queryType;
             OrAnyRole = orAnyRole;
             OrAnyPermission = orAnyPermission;

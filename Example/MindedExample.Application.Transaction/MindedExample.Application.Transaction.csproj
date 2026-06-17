@@ -7,11 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OData" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Authorization\Minded.Extensions.Authorization.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Retry\Minded.Extensions.Retry.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.EntityFrameworkCore\Minded.Extensions.CQRS.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.CQRS.OData\Minded.Extensions.CQRS.OData.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Exception\Minded.Extensions.Exception.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Logging\Minded.Extensions.Logging.csproj" />
@@ -20,6 +18,7 @@
     <ProjectReference Include="..\MindedExample.Infrastructure.Persistence\MindedExample.Infrastructure.Persistence.csproj" />
     <ProjectReference Include="..\MindedExample.Domain\MindedExample.Domain.csproj" />
     <ProjectReference Include="..\MindedExample.Application.Category\MindedExample.Application.Category.csproj" />
+    <ProjectReference Include="..\MindedExample.Application.User\MindedExample.Application.User.csproj" />
   </ItemGroup>
 
 </Project>

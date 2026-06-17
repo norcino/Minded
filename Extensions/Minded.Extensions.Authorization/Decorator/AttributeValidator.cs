@@ -162,10 +162,10 @@ namespace Minded.Extensions.Authorization.Decorator
                     $"Type '{requestType.Name}' has RequireResourceAccessAttribute with blank resourceIdProperty.");
             }
 
-            if (string.IsNullOrWhiteSpace(resourceAttr.ResourceIdClaim))
+            if (string.IsNullOrWhiteSpace(resourceAttr.ClaimName))
             {
                 throw new InvalidOperationException(
-                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute with blank resourceIdClaim.");
+                    $"Type '{requestType.Name}' has RequireResourceAccessAttribute with blank claimName.");
             }
 
             var resourceProperty = requestType.GetProperty(resourceAttr.ResourceIdProperty);
@@ -193,7 +193,24 @@ namespace Minded.Extensions.Authorization.Decorator
                     $"Type '{requestType.Name}' has RequireResourceAccessAttribute with queryType '{resourceAttr.QueryType.Name}' which does not implement IQuery<bool> or IQuery<IQueryResponse<bool>>.");
             }
 
-            var constructor = resourceAttr.QueryType.GetConstructor(new[] { typeof(object), typeof(string) });
+            var constructor = resourceAttr.QueryType.GetConstructors()
+                .FirstOrDefault(ctor =>
+                {
+                    var parameters = ctor.GetParameters();
+
+                    if (parameters.Length < 2)
+                        return false;
+
+                    if (parameters[0].ParameterType != typeof(object))
+                        return false;
+
+                    if (parameters[1].ParameterType != typeof(string))
+                        return false;
+
+                    // Any parameters beyond the first two must be optional
+                    return parameters.Skip(2).All(p => p.IsOptional);
+                });
+
             if (constructor == null)
             {
                 throw new InvalidOperationException(

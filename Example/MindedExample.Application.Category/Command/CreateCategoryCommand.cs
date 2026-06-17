@@ -1,5 +1,4 @@
 using System;
-using Minded.Extensions.Context;
 using Minded.Extensions.Logging;
 using Minded.Extensions.Validation.Decorator;
 using Minded.Extensions.Retry.Decorator;
@@ -13,14 +12,12 @@ namespace MindedExample.Application.Category.Command
     /// This command is validated before execution and includes retry logic.
     /// The retry decorator can be configured to retry up to 3 times with increasing delays (100ms, 200ms, 400ms).
     /// Using [RetryCommand(3, 100, 200, 400)], but this command will be configured to use default settings.
-    /// Implements ITraceable to opt in to TraceId alignment with the ambient IMindedContext so that nested
-    /// mediator calls share the same correlation id without requiring manual propagation.
     /// </summary>
     [ValidateCommand]
     [RetryCommand]
     [RequirePermissions(Domain.Permissions.CanCreateCategory)]
     [RequireClaim("is_global_admin", "false")]
-    public class CreateCategoryCommand : ICommand<MindedExample.Domain.Category>, ILoggable, ITraceable
+    public class CreateCategoryCommand : ICommand<MindedExample.Domain.Category>, ILoggable
     {
         public MindedExample.Domain.Category Category { get; set; }
 
@@ -29,7 +26,7 @@ namespace MindedExample.Application.Category.Command
             Category = category;
             TraceId = traceId ?? TraceId;
         }
-        public Guid TraceId { get; set; } = Guid.NewGuid();
+        public Guid TraceId { get; } = Guid.NewGuid();
 
         public string LoggingTemplate => "CategoryName {CategoryName}";
 

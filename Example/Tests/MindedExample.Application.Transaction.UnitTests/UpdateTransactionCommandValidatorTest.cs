@@ -3,15 +3,18 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Builder;
+using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Minded.Extensions.Exception;
 using Minded.Extensions.Validation;
 using Minded.Framework.CQRS.Abstractions;
-using Moq;
-using MindedExample.Application.Transaction.Command;
-using MindedExample.Application.Transaction.Validator;
 using Minded.Framework.Mediator;
-using FluentAssertions;
+using Moq;
+using MindedExample.Application.Category.Query;
+using MindedExample.Application.Transaction.Command;
+using MindedExample.Application.Transaction.Query;
+using MindedExample.Application.Transaction.Validator;
+using MindedExample.Application.User.Query;
 
 namespace MindedExample.Application.Transaction.UnitTests
 {
@@ -48,18 +51,91 @@ namespace MindedExample.Application.Transaction.UnitTests
                 {
                     t.Id = 5;
                     t.CategoryId = 1;
+                    t.UserId = 1;
                     t.Description = "Updated transaction";
                     t.Credit = 200;
                 });
             var command = new UpdateTransactionCommand(5, transaction);
 
-            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Transaction.Query.ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsUserInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
             IValidationResult result = await _sut.ValidateAsync(command);
 
             result.IsValid.Should().BeTrue();
             result.OutcomeEntries.Should().BeEmpty();
+        }
+
+        /// <summary>
+        /// Verifies that validation fails when the category does not exist.
+        /// </summary>
+        [TestMethod]
+        public async Task Validation_Fails_WhenCategoryDoesNotExist()
+        {
+            MindedExample.Domain.Transaction transaction = Builder<MindedExample.Domain.Transaction>.New()
+                .Build(t =>
+                {
+                    t.Id = 5;
+                    t.CategoryId = 999;
+                    t.UserId = 1;
+                    t.Description = "Updated transaction";
+                    t.Credit = 200;
+                });
+            var command = new UpdateTransactionCommand(5, transaction);
+
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsUserInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            IValidationResult result = await _sut.ValidateAsync(command);
+
+            result.IsValid.Should().BeFalse();
+            result.OutcomeEntries.Any(e =>
+                e.PropertyName == nameof(command.Transaction.CategoryId) &&
+                e.Severity == Severity.Error &&
+                e.Message == "Category with ID {0} does not exist")
+                .Should().BeTrue();
+        }
+
+        /// <summary>
+        /// Verifies that validation fails when the user does not exist in the current tenant.
+        /// </summary>
+        [TestMethod]
+        public async Task Validation_Fails_WhenUserDoesNotExistInCurrentTenant()
+        {
+            MindedExample.Domain.Transaction transaction = Builder<MindedExample.Domain.Transaction>.New()
+                .Build(t =>
+                {
+                    t.Id = 5;
+                    t.CategoryId = 1;
+                    t.UserId = 999;
+                    t.Description = "Updated transaction";
+                    t.Credit = 200;
+                });
+            var command = new UpdateTransactionCommand(5, transaction);
+
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsUserInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            IValidationResult result = await _sut.ValidateAsync(command);
+
+            result.IsValid.Should().BeFalse();
+            result.OutcomeEntries.Any(e =>
+                e.PropertyName == nameof(command.Transaction.UserId) &&
+                e.Severity == Severity.Error &&
+                e.Message == "User with ID {0} does not exist in the current tenant")
+                .Should().BeTrue();
         }
 
         /// <summary>
@@ -121,7 +197,7 @@ namespace MindedExample.Application.Transaction.UnitTests
                 });
             var command = new UpdateTransactionCommand(999, transaction);
 
-            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Transaction.Query.ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
             IValidationResult result = await _sut.ValidateAsync(command);
@@ -149,7 +225,11 @@ namespace MindedExample.Application.Transaction.UnitTests
                 });
             var command = new UpdateTransactionCommand(5, transaction);
 
-            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<MindedExample.Application.Transaction.Query.ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsTransactionByIdQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsCategoryInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.ProcessQueryAsync(It.IsAny<ExistsUserInCurrentTenantQuery>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
             var transactionValidationResult = new ValidationResult();

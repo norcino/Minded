@@ -68,7 +68,7 @@ public class AuthorizationDescriptorCacheResourceTests
         descriptor.ClaimClauses[0].OrAnyRole.Should().ContainSingle().Which.Should().Be("Admin");
 
         descriptor.ResourceClauses[0].ResourceIdProperty.Should().Be(nameof(ResourceRequest.ProjectId));
-        descriptor.ResourceClauses[0].ResourceIdClaim.Should().Be("UserId");
+        descriptor.ResourceClauses[0].ClaimName.Should().Be("UserId");
         descriptor.ResourceClauses[0].QueryType.Should().Be(typeof(CanAccessProjectQuery));
         descriptor.ResourceClauses[0].OrAnyPermission.Should().ContainSingle().Which.Should().Be("projects.full");
     }

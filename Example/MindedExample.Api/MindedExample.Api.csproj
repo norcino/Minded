@@ -56,6 +56,7 @@
     <ProjectReference Include="..\MindedExample.Application.User\MindedExample.Application.User.csproj" />
     <ProjectReference Include="..\MindedExample.Application.Role\MindedExample.Application.Role.csproj" />
     <ProjectReference Include="..\..\Extensions\Minded.Extensions.Context\Minded.Extensions.Context.csproj" />
+    <ProjectReference Include="..\..\Extensions\Minded.Extensions.Transaction\Minded.Extensions.Transaction.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="appsettings.Development.json">

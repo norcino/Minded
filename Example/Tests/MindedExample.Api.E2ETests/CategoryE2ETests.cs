@@ -243,11 +243,11 @@ namespace MindedExample.Api.E2ETests
 
         #region Get by ID Category/{id}
         [TestMethod]
-        public async Task GET_byId_should_return_404NotFound_when_Id_does_not_exist()
+        public async Task GET_byId_should_return_403Forbidden_when_Id_does_not_exist()
         {
             var response = await _sutClient.GetAsync("/api/category/999");
 
-            response.Should().HaveHttpStatusCode(HttpStatusCode.NotFound);
+            response.Should().HaveHttpStatusCode(HttpStatusCode.Forbidden);
         }
 
         [TestMethod]
@@ -321,7 +321,7 @@ namespace MindedExample.Api.E2ETests
 
             response = await _sutClient.GetAsync($"/api/category/{expectedCategory.Id}");
 
-            response.Should().HaveHttpStatusCode(HttpStatusCode.NotFound);
+            response.Should().HaveHttpStatusCode(HttpStatusCode.Forbidden);
         }
 
         [TestMethod]
@@ -334,7 +334,7 @@ namespace MindedExample.Api.E2ETests
 
             response = await _sutClient.GetAsync($"/api/category/{id}");
 
-            response.Should().HaveHttpStatusCode(HttpStatusCode.NotFound);
+            response.Should().HaveHttpStatusCode(HttpStatusCode.Forbidden);
         }
         #endregion
 

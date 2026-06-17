@@ -84,7 +84,7 @@ namespace Minded.Extensions.Authorization.Decorator
 
                     resourceClauses.Add(new ResourceClause(
                         resourceAttr.ResourceIdProperty,
-                        resourceAttr.ResourceIdClaim,
+                        resourceAttr.ClaimName,
                         resourceAttr.QueryType,
                         Array.AsReadOnly(resourceAttr.OrAnyRole ?? Array.Empty<string>()),
                         Array.AsReadOnly(resourceAttr.OrAnyPermission ?? Array.Empty<string>()),

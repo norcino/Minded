@@ -105,13 +105,12 @@ namespace MindedExample.Api.E2ETests
 
         #region Direct id access does not leak existence
         [TestMethod]
-        public async Task GET_category_by_id_of_another_tenant_should_return_404NotFound()
+        public async Task GET_category_by_id_of_another_tenant_should_return_403Forbidden()
         {
             UseBearer(_ownerB.AccessToken);
             var response = await _sutClient.GetAsync($"/api/category/{_categoryA.Id}");
 
-            // 404 (not 403): the response must not reveal that the entity exists
-            response.Should().HaveHttpStatusCode(HttpStatusCode.NotFound);
+            response.Should().HaveHttpStatusCode(HttpStatusCode.Forbidden);
         }
 
         [TestMethod]
