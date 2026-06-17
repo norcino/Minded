@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/Application/">
+    <Project Path="MindedExample.Api/MindedExample.Api.csproj" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="MindedExample.Domain/MindedExample.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="MindedExample.Infrastructure.Configuration/MindedExample.Infrastructure.Configuration.csproj" />
+    <Project Path="MindedExample.Infrastructure.Data/MindedExample.Infrastructure.Data.csproj" />
+    <Project Path="MindedExample.Infrastructure.Persistence/MindedExample.Infrastructure.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/Application Features/">
+    <Project Path="MindedExample.Application.Common/MindedExample.Application.Common.csproj" />
+    <Project Path="MindedExample.Application.Category/MindedExample.Application.Category.csproj" />
+    <Project Path="MindedExample.Application.Configuration/MindedExample.Application.Configuration.csproj" />
+    <Project Path="MindedExample.Application.Transaction/MindedExample.Application.Transaction.csproj" />
+    <Project Path="MindedExample.Application.User/MindedExample.Application.User.csproj" />
+    <Project Path="MindedExample.Application.Role/MindedExample.Application.Role.csproj" />
+  </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Tests/Common.Integration.Tests/Common.IntegrationTests.csproj" />
+    <Project Path="Tests/Common.Tests/Common.Tests.csproj" />
+  </Folder>
+</Solution>

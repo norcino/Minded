@@ -347,3 +347,6 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# VS Code C# Dev Tools - Auto-generated runners
+.vscodecsdt/

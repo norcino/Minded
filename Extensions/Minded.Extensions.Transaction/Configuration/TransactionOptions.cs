@@ -158,4 +158,3 @@ namespace Minded.Extensions.Transaction.Configuration
         }
     }
 }
-

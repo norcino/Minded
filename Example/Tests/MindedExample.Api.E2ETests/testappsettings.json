@@ -1,0 +1,69 @@
+{
+    "LogFile": "Logs/api-test-{Date}.txt",
+    "Logging": {
+        "IncludeScopes": false,
+        "LogLevel": {
+            "Default": "Debug",
+            "System": "Debug",
+            "Microsoft": "Debug"
+        }
+    },
+
+    // ************************************
+    // UnitTesting configuration example
+    // ************************************
+    //"TestingProfile": "UnitTesting",
+    //"DatabaseType": "",
+    //"ConnectionStrings": {
+    //  "MindedExample": ""
+    //}
+
+    // ************************************
+    // Integration Testing for Live execution using SQLite in Memory
+    // ************************************
+     "TestingProfile": "E2ELive",
+     "DatabaseType": "SQLiteInMemory",
+     "ConnectionStrings": {
+       "MindedExample": "",
+       // Used by the PostgreSQL E2E profile; each run targets a unique database derived
+       // from this name (minded_apitests_<runid>), created and dropped automatically.
+       "MindedExamplePostgreSQL": "Host=localhost;Port=5433;Database=minded_apitests;Username=minded;Password=minded"
+     }
+
+    // ************************************
+    // E2E Testing PostgreSQL (docker-compose.tests.yml)
+    // Preferred way to select this profile WITHOUT editing this file - set environment
+    // variables before running dotnet test (the test.ps1 -ApiDatabase postgres flag does this):
+    //   MINDEDTEST_TestingProfile = E2E
+    //   MINDEDTEST_DatabaseType   = PostgreSQL
+    // ************************************
+    //"TestingProfile": "E2E",
+    //"DatabaseType": "PostgreSQL",
+
+    // ************************************
+    // Integration Testing using LocalDb
+    // ************************************
+    //  "TestingProfile": "E2E",
+    //  "DatabaseType": "LocalDb",
+    //  "ConnectionStrings": {
+    //   "MindedExample": "Server=(localdb)\\mssqllocaldb;Database=MindedExample;MultipleActiveResultSets=true"
+    //  }
+
+    // ************************************
+    // E2E Testing docker SqlServer
+    // ************************************
+    //"TestingProfile": "E2E",
+    //"DatabaseType": "SQLServer",
+    //"ConnectionStrings": {
+    //    "MindedExample": "Server=sqlserver.home;Database=MindedExample;User Id=minded;Password=minded;Trust Server Certificate=true"
+    //}
+
+    // ************************************
+    // E2E Testing local SqlServer
+    // ************************************
+    //"TestingProfile": "E2E",
+    //"DatabaseType": "SQLServer",
+    //"ConnectionStrings": {
+    //    "MindedExample": "Server=.;Database=MindedExample;Integrated Security=sspi;Trust Server Certificate=true"
+    //}
+}

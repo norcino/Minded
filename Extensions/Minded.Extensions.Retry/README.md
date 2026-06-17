@@ -39,7 +39,7 @@ public class SendEmailCommand : ICommand<bool>
 ```csharp
 using Minded.Extensions.Configuration;
 
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Add retry decorator for commands
     builder.AddCommandRetryDecorator();
@@ -240,6 +240,17 @@ public class RetryQueryAttribute : Attribute
 [RetryCommand(3, 100, 200, 400)]  // 3 retries: 100ms, 200ms, 400ms
 ```
 
+**Delay Resolution Order:**
+
+For each retry iteration the decorator resolves the delay as follows (see `Decorator\RetryCommandAttribute.cs` and `Decorator\RetryCommandHandlerDecorator.cs`):
+
+1. The delay configured on the attribute for that iteration is used. If fewer delay values than retries are configured, the last configured delay value is used for the remaining retries.
+2. Delay parameters passed as `0` are treated as **not configured** — the attribute constructor only assigns `Delay3`, `Delay4` and `Delay5` when the value is greater than `0`, so a `0` falls through to the last configured delay.
+3. When the delay resolved from the attribute for an iteration is `0`, the decorator falls back to `RetryOptions.GetDefaultDelayForIteration(...)` using the options configured in DI — so a `0` delay does **not** necessarily mean an immediate retry.
+4. Only when both the attribute and `RetryOptions` resolve to `0` for that iteration does the retry happen immediately.
+
+`RetryOptions` defaults: `DefaultRetryCount = 3` and `DefaultDelay1`–`DefaultDelay5 = 0` (no delay). With these defaults, a bare `[RetryCommand]` performs 3 immediate retries.
+
 ### Example Configurations
 
 #### Aggressive Retry (Fast, Many Attempts)
@@ -276,12 +287,14 @@ public class ProcessPaymentCommand : ICommand<PaymentResult>
 ```csharp
 using Minded.Extensions.Retry.Decorator;
 
-[RetryCommand]  // Uses defaults from RetryOptions (typically 3 retries)
+[RetryCommand]  // No parameters: everything comes from RetryOptions
 public class SendNotificationCommand : ICommand<bool>
 {
     public string Message { get; set; }
 }
 ```
+
+A bare `[RetryCommand]` (or `[RetryQuery]`) with no parameters uses the `RetryOptions` defaults registered in DI: retry count from `DefaultRetryCount` (default `3`) and delays from `DefaultDelay1`–`DefaultDelay5` (default `0`, meaning immediate retries unless configured).
 
 #### No Attribute = No Retry
 
@@ -326,7 +339,8 @@ public class SendEmailCommandHandler : ICommandHandler<SendEmailCommand, bool>
         catch (SmtpException ex)
         {
             // Don't retry on permanent failures
-            return CommandResponse<bool>.Failure("Failed to send email: " + ex.Message);
+            return CommandResponse<bool>.Error(
+                new OutcomeEntry(null, "Failed to send email: " + ex.Message));
         }
     }
 
@@ -345,13 +359,10 @@ public class SendEmailCommandHandler : ICommandHandler<SendEmailCommand, bool>
 Combine retry with a circuit breaker for better resilience:
 
 ```csharp
-public class CallExternalApiQuery : IQuery<ApiResponse>, IRetryConfiguration
+[RetryQuery(3, 1000, 2000, 4000)]  // 3 retries with exponential backoff
+public class CallExternalApiQuery : IQuery<ApiResponse>
 {
     public string Endpoint { get; set; }
-
-    public int MaxRetries => 3;
-    public TimeSpan InitialDelay => TimeSpan.FromSeconds(1);
-    public bool UseExponentialBackoff => true;
 }
 
 public class CallExternalApiQueryHandler : IQueryHandler<CallExternalApiQuery, ApiResponse>
@@ -367,7 +378,7 @@ public class CallExternalApiQueryHandler : IQueryHandler<CallExternalApiQuery, A
         _circuitBreaker = circuitBreaker;
     }
 
-    public async Task<QueryResponse<ApiResponse>> HandleAsync(
+    public async Task<ApiResponse> HandleAsync(
         CallExternalApiQuery query,
         CancellationToken cancellationToken)
     {
@@ -379,7 +390,7 @@ public class CallExternalApiQueryHandler : IQueryHandler<CallExternalApiQuery, A
         });
 
         var content = await response.Content.ReadAsStringAsync();
-        return QueryResponse<ApiResponse>.Success(new ApiResponse { Data = content });
+        return new ApiResponse { Data = content };
     }
 }
 ```
@@ -404,24 +415,21 @@ Do NOT retry for:
 
 ```csharp
 // High-frequency, low-impact operations
-public int MaxRetries => 5;
-public TimeSpan InitialDelay => TimeSpan.FromMilliseconds(100);
+[RetryQuery(5, 100)]
 
 // Critical operations (payments, data modifications)
-public int MaxRetries => 2;
-public TimeSpan InitialDelay => TimeSpan.FromSeconds(2);
+[RetryCommand(2, 2000)]
 
 // Idempotent read operations
-public int MaxRetries => 3;
-public TimeSpan InitialDelay => TimeSpan.FromSeconds(1);
+[RetryQuery(3, 1000)]
 ```
 
 ### 3. Use Exponential Backoff
 
-Always use exponential backoff to avoid overwhelming failing services:
+Always use increasing delays (exponential backoff) to avoid overwhelming failing services:
 
 ```csharp
-public bool UseExponentialBackoff => true;  // Recommended
+[RetryCommand(3, 100, 200, 400)]  // Recommended: each retry waits longer
 ```
 
 ### 4. Implement Idempotency
@@ -429,15 +437,12 @@ public bool UseExponentialBackoff => true;  // Recommended
 Ensure your operations are idempotent (safe to retry):
 
 ```csharp
-public class CreateOrderCommand : ICommand<Order>, IRetryConfiguration
+[RetryCommand(3, 1000, 2000, 4000)]
+public class CreateOrderCommand : ICommand<Order>
 {
     public Guid IdempotencyKey { get; set; }  // Prevent duplicate orders
     public int CustomerId { get; set; }
     public List<OrderItem> Items { get; set; }
-
-    public int MaxRetries => 3;
-    public TimeSpan InitialDelay => TimeSpan.FromSeconds(1);
-    public bool UseExponentialBackoff => true;
 }
 
 public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, Order>

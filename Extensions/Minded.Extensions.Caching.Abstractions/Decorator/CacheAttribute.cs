@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 
 namespace Minded.Extensions.Caching.Abstractions.Decorator
 {
     /// <summary>
-    /// Caches the query result using the given cofiguration
+    /// Caches the query result using the given configuration
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public abstract class CacheAttribute : Attribute
@@ -14,7 +14,8 @@ namespace Minded.Extensions.Caching.Abstractions.Decorator
         public int ExpirationInSeconds { get; set; }
 
         /// <summary>
-        /// Seconds from last access when the cache entry will be evicted
+        /// Seconds from last access when the cache entry will be evicted (sliding expiration).
+        /// Each access renews the entry lifetime by this duration.
         /// This will not extend the entry lifetime beyond the absolute expiration (if set)
         /// </summary>
         public int SlidingExpiration { get; set; }
@@ -26,8 +27,8 @@ namespace Minded.Extensions.Caching.Abstractions.Decorator
         public string AbsoluteExpiration { get; set; }
 
         /// <summary>
-        /// Errors are cought and suppressed by default, if caching is mandator set this
-        /// property to break the application flow and throw the excetion
+        /// Errors are caught and suppressed by default, if caching is mandatory set this
+        /// property to break the application flow and throw the exception
         /// </summary>
         public bool FailOnError{ get; set; }
     }

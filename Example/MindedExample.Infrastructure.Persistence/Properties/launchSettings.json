@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "MindedExample.Infrastructure.Persistence": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:20032;http://localhost:20036"
+    }
+  }
+}

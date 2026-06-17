@@ -43,4 +43,3 @@ namespace Minded.Extensions.Exception.Configuration
         }
     }
 }
-

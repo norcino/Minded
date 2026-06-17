@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="testappsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="MSTest.TestAdapter" />
+    <PackageReference Include="MSTest.TestFramework" />
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
+    <ProjectReference Include="..\..\MindedExample.Api\MindedExample.Api.csproj" />
+    <ProjectReference Include="..\..\MindedExample.Domain\MindedExample.Domain.csproj" />
+    <ProjectReference Include="..\MindedExample.Tests.E2E.Common\MindedExample.Tests.E2E.Common.csproj" />
+    <ProjectReference Include="..\MindedExample.Tests.Integration.Common\MindedExample.Tests.Integration.Common.csproj" />
+    <ProjectReference Include="..\MindedExample.Tests.Common\MindedExample.Tests.Common.csproj" />
+  </ItemGroup>
+
+</Project>

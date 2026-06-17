@@ -68,9 +68,9 @@ namespace Minded.Extensions.WebApi
     public class DefaultRestRulesProvider : IRestRulesProvider
     {
         #region Command Rules
-        // Any 401 Unauthorized
-        private ICommandRestRule NotAuthorizedCommand = new CommandRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, ContentResponse.Full, UnsuccessfulCommandWithNotAuthorizationCode);
-        private ICommandRestRule NotAuthenticatedCommand = new CommandRestRule(RestOperation.Any, HttpStatusCode.Forbidden, ContentResponse.Full, UnsuccessfulCommandWithNotAuthenticatedCode);
+        // Not authenticated -> 401 Unauthorized; authenticated but not authorized -> 403 Forbidden
+        private ICommandRestRule NotAuthorizedCommand = new CommandRestRule(RestOperation.Any, HttpStatusCode.Forbidden, ContentResponse.Full, UnsuccessfulCommandWithNotAuthorizationCode);
+        private ICommandRestRule NotAuthenticatedCommand = new CommandRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, ContentResponse.Full, UnsuccessfulCommandWithNotAuthenticatedCode);
 
         private static Func<IMessageResponse, bool> SuccessfulCommand = (r) => r.Successful;
 
@@ -183,9 +183,9 @@ namespace Minded.Extensions.WebApi
             return !m.Successful && m.OutcomeEntries.Any(e => e.ErrorCode == GenericErrorCodes.NotAuthorized);
         };
 
-        // Any 401 Unauthorized
-        private IQueryRestRule NotAuthorizedQuery = new QueryRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, ContentResponse.Full, UnsuccessfulQueryWithNotAuthorizationCode);
-        private IQueryRestRule NotAuthenticatedQuery = new QueryRestRule(RestOperation.Any, HttpStatusCode.Forbidden, ContentResponse.Full, UnsuccessfulQueryWithNotAuthenticatedCode);
+        // Not authenticated -> 401 Unauthorized; authenticated but not authorized -> 403 Forbidden
+        private IQueryRestRule NotAuthorizedQuery = new QueryRestRule(RestOperation.Any, HttpStatusCode.Forbidden, ContentResponse.Full, UnsuccessfulQueryWithNotAuthorizationCode);
+        private IQueryRestRule NotAuthenticatedQuery = new QueryRestRule(RestOperation.Any, HttpStatusCode.Unauthorized, ContentResponse.Full, UnsuccessfulQueryWithNotAuthenticatedCode);
         // Get(key) 200 Ok
         private IQueryRestRule GetSingleSuccessfully = new QueryRestRule(RestOperation.GetSingle, HttpStatusCode.OK, ContentResponse.Result, (o) => QueryHasContent(o) && SuccessfulQuery(o));
         // Get(key) 404 NotFound

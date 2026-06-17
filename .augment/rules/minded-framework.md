@@ -6,12 +6,15 @@ type: "always_apply"
 
 Guidelines for developing applications using the Minded Framework with CQRS pattern, REST API, and decorators.
 
+> Full canonical guides: `AI/minded-contributing.md` (extending the framework) and `AI/minded-utilization.md` (using the framework in applications).
+
 ## Core Principles
 
-- Always ask clarifying questions when requirements are unclear
-- Follow Single Responsibility Principle - one handler per command/query
-- Strict separation: Commands change state, Queries retrieve data
-- Commands can use other commands and queries; Queries can only use other queries
+- Always ask clarifying questions when requirements are unclear.
+- Follow Single Responsibility Principle — one handler per command/query.
+- Strict separation: Commands change state, Queries retrieve data.
+- Commands may orchestrate other commands/queries via `IMediator` (saga/orchestrator pattern); Queries should only call other queries.
+- Never put validation or cross-cutting logic inside a handler — use the decorator pipeline.
 
 ## Required Packages
 
@@ -150,7 +153,7 @@ public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryComman
         await _context.Categories.AddAsync(command.Category, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new CommandResponse<Category>(true, command.Category);
+        return CommandResponse<Category>.Success(command.Category);
     }
 }
 ```
@@ -224,8 +227,8 @@ public class GetCategoriesQueryHandler :
 
 **Rules:**
 - One handler per query
-- Can invoke other query handlers (composition)
-- Should NOT invoke command handlers
+- Can dispatch other queries through `IMediator` (composition) — never invoke another handler class directly
+- Should NOT trigger commands
 - Use `.AsNoTracking()` for read-only when appropriate
 - Apply query traits using `.ApplyQueryTo()`
 - Navigation properties NOT loaded by default - require explicit `$expand`
@@ -248,8 +251,9 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
                 new OutcomeEntry(
                     nameof(command.Category), 
                     "{0} is mandatory", 
-                    GenericErrorCodes.ValidationFailed, 
-                    Severity.Error));
+                    attemptedValue: null, 
+                    Severity.Error, 
+                    GenericErrorCodes.ValidationFailed));
             return validationResult;
         }
 
@@ -318,23 +322,24 @@ Use memory cache decorator for queries that benefit from caching:
 
 ```csharp
 [ValidateQuery]
-[CacheQuery(DurationSeconds = 300)]
-public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>
+[MemoryCache(ExpirationInSeconds = 300)]  // must pair with IGenerateCacheKey
+public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>, IGenerateCacheKey
 ```
 
 ## Startup Configuration
 
+**Decorator registration order: first registered = innermost (runs last, right before handler); last registered = outermost (runs first). Exception handling must be outermost (registered last).**
+
 ```csharp
-services.AddMinded(Configuration, 
-    assembly => assembly.Name.StartsWith("Service."), 
+services.AddMinded(Configuration,
+    assembly => assembly.Name.StartsWith("Service."),
     builder =>
 {
     builder.AddMediator();
     builder.AddRestMediator();
-    
-    // Command Pipeline (order matters)
-    builder.AddCommandValidationDecorator()
-           .AddCommandExceptionDecorator(options => options.Serialize = true)
+
+    // Command Pipeline — innermost first, outermost last
+    builder.AddCommandValidationDecorator()           // innermost: validates right before handler
            .AddCommandRetryDecorator(options =>
            {
                options.DefaultRetryCount = 3;
@@ -344,14 +349,15 @@ services.AddMinded(Configuration,
            })
            .AddCommandLoggingDecorator(options => options.Enabled = true)
            .AddCommandTransactionDecorator()
+           .AddCommandExceptionDecorator(options => options.Serialize = true)  // outermost
            .AddCommandHandlers();
 
-    // Query Pipeline
+    // Query Pipeline — innermost first, outermost last
     builder.AddQueryValidationDecorator()
-           .AddQueryExceptionDecorator(options => options.Serialize = true)
            .AddQueryRetryDecorator(applyToAllQueries: false)
-           .AddQueryLoggingDecorator(options => options.Enabled = true)
            .AddQueryMemoryCacheDecorator()
+           .AddQueryLoggingDecorator(options => options.Enabled = true)
+           .AddQueryExceptionDecorator(options => options.Serialize = true)    // outermost
            .AddQueryHandlers();
 });
 
@@ -500,7 +506,7 @@ When receiving requirements, ask:
 - [ ] Use `[ValidateCommand]` or `[ValidateQuery]`
 - [ ] Use `[RetryCommand]` for transient failures
 - [ ] Use `[TransactionalCommand]` for multi-entity operations
-- [ ] Consider `[CacheQuery]` for frequently accessed data
+- [ ] Consider `[MemoryCache]` + `IGenerateCacheKey` for frequently accessed data
 - [ ] Implement ILoggable for structured logging
 - [ ] Ensure navigation properties only load via `$expand`
 - [ ] Add XML documentation

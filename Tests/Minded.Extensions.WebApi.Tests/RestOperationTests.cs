@@ -222,9 +222,7 @@
         [DataRow(RestOperation.UpdateWithContent, RestOperation.AnyGet, false)]
         public void Matches_ShouldReturnExpectedResult(RestOperation operationToBeVerified, RestOperation flag, bool expected)
         {
-            var result = operationToBeVerified.Matches(flag);
-
-            Assert.AreEqual(expected, result);
+            Assert.AreEqual(expected, operationToBeVerified.Matches(flag));
         }
     }
 }

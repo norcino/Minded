@@ -4,7 +4,7 @@ Logging decorator for automatic command and query execution logging with configu
 
 ## Features
 
-- **Automatic logging** for all command and query executions (start, complete, fail)
+- **Pipeline logging** of command and query executions (start, complete, fail) when the logging decorator is registered and enabled
 - **TraceId correlation** for request tracking across distributed systems
 - **Execution timing** for performance monitoring
 - **Outcome entry logging** with severity filtering (errors, warnings, info)
@@ -55,7 +55,7 @@ See [Sensitive Data Protection](#sensitive-data-protection) for more details.
 Register the logging decorators in your `Program.cs` or `Startup.cs`:
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Add command logging decorator
     builder.AddCommandLoggingDecorator();
@@ -65,9 +65,18 @@ services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service.
 });
 ```
 
-### What Gets Logged Automatically
+> **Important:** `LoggingOptions.Enabled` defaults to `false`, and when it is `false` the decorator is bypassed entirely. The parameterless registration methods bind options from the `Minded:LoggingOptions` configuration section, so to get log output you must either set `"Minded": { "LoggingOptions": { "Enabled": true } }` in `appsettings.json` or use the configuration overload:
+>
+> ```csharp
+> builder.AddCommandLoggingDecorator(options => options.Enabled = true);
+> builder.AddQueryLoggingDecorator(options => options.Enabled = true);
+> ```
 
-Once registered, **all commands and queries are automatically logged**. No additional interfaces are required for basic logging.
+### What Gets Logged
+
+Commands and queries are logged **when the logging decorator is registered in the pipeline** (`AddCommandLoggingDecorator` / `AddQueryLoggingDecorator`) and logging is enabled — logging happens because the decorator is in use, not unconditionally. No additional interfaces are required for basic logging.
+
+With the decorator registered and `Enabled = true` but nothing else configured, each command/query logs its start, completion (with duration and success flag) and failure events at Information level, correlated by `TraceId`. The remaining defaults are off: `ILoggable` template data is **not** appended (`LogMessageTemplateData = false`) and outcome entries are **not** logged (`LogOutcomeEntries = false`). `MinimumOutcomeSeverityLevel` defaults to `Info`, which logs all severities once outcome logging is enabled.
 
 #### Example Log Output
 
@@ -415,7 +424,7 @@ When logged, sensitive properties are automatically omitted:
 
 ```csharp
 // Program.cs
-services.AddMinded(Configuration, asm => asm.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, asm => asm.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Enable data protection for sensitive data handling
     builder.AddDataProtection(options =>

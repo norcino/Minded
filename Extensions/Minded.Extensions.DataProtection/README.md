@@ -48,7 +48,7 @@ public class User
 using Minded.Extensions.Configuration;
 using Minded.Extensions.DataProtection;
 
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Add data protection with default settings
     builder.AddDataProtection();
@@ -62,7 +62,7 @@ services.AddMinded(builder =>
 ### 3. Configure Sensitive Data Visibility
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     builder.AddDataProtection(options =>
     {
@@ -90,7 +90,7 @@ services.AddMinded(builder =>
 ### Programmatic Configuration
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Static configuration
     builder.AddDataProtection(options =>
@@ -213,7 +213,7 @@ public class MyCustomSanitizer : IDataSanitizer
 }
 
 // Register custom implementation
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     builder.AddDataProtection<MyCustomSanitizer>();
 });

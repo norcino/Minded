@@ -11,6 +11,13 @@ using Minded.Framework.CQRS.Query.Trait;
 
 namespace Minded.Extensions.CQRS.OData
 {
+    /// <summary>
+    /// Extension methods that map <see cref="Microsoft.AspNetCore.OData.Query.ODataQueryOptions"/> values
+    /// onto the Minded CQRS query trait interfaces (<see cref="ICanFilter{T}"/>, <see cref="ICanOrderBy"/>,
+    /// <see cref="ICanSkip"/>, <see cref="ICanTop"/>, <see cref="ICanExpand"/>, <see cref="ICanCount"/>).
+    /// Call the appropriate <c>ApplyODataQueryOptions</c> overload from an API controller action
+    /// before passing the query to <see cref="Minded.Framework.Mediator.IMediator"/>.
+    /// </summary>
     public static class ODataQueryOptionExtensions
     {
         /// <summary>
@@ -91,6 +98,13 @@ namespace Minded.Extensions.CQRS.OData
             }
         }
 
+        /// <summary>
+        /// Applies the ODataQueryOptions configuration to a query returning <see cref="IQueryResponse{TResult}"/>,
+        /// setting the relevant CQRS query traits based on the OData query options.
+        /// </summary>
+        /// <typeparam name="T">Type wrapped by the <see cref="IQueryResponse{TResult}"/>.</typeparam>
+        /// <param name="query">IQuery to setup with the OData query options.</param>
+        /// <param name="options">OData query options to use for the IQuery setup.</param>
         public static void ApplyODataQueryOptions<T>(this IQuery<IQueryResponse<T>> query, ODataQueryOptions options)
         {
             FilterQueryOption filter = options.Filter;
@@ -164,12 +178,15 @@ namespace Minded.Extensions.CQRS.OData
         }
 
         /// <summary>
-        /// Applies the ODataQueryOptions to the IQueryable depending on the traits used on the Query
+        /// Applies the ODataQueryOptions to an <see cref="IQueryable{T}"/> source and returns the
+        /// materialised entity collection, capped at 100 results.
+        /// Handles OData <c>$select</c> / <c>$expand</c> projections by unwrapping the intermediate
+        /// wrapper objects back into plain <typeparamref name="T"/> instances.
         /// </summary>
-        /// <typeparam name="T">Type returned by the query</typeparam>
-        /// <param name="query">IQuery to setup with the OData query options</param>
-        /// <param name="options">OData query options to use for the IQuery setup</param>
-        /// <returns></returns>
+        /// <typeparam name="T">Entity type. Must have a default constructor to support field unwrapping.</typeparam>
+        /// <param name="query">The source queryable to apply the options to.</param>
+        /// <param name="options">OData query options. When <c>null</c> the original queryable is returned unchanged.</param>
+        /// <returns>Materialised, unwrapped sequence of <typeparamref name="T"/> entities.</returns>
         public static IEnumerable<T> ApplyODataQueryOptions<T>(this IQueryable<T> query, ODataQueryOptions options) where T : class, new()
         {
             if (options == null) return query;

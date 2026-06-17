@@ -27,7 +27,7 @@ import DeleteConfirmDialog from '../common/DeleteConfirmDialog';
 /**
  * CategoryList component displays categories in either a data grid or tree view.
  * Provides functionality to create, edit, and delete categories.
- * Filters categories based on the currently impersonated user.
+ * Filters categories based on the currently authenticated user.
  * Supports hierarchical category structure with parent-child relationships.
  * Tree view allows drag-and-drop to reorganize category hierarchy.
  */
@@ -198,7 +198,7 @@ const CategoryList: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="warning">
-          Please select a user to impersonate from the Users page to manage categories.
+          Please sign in to manage categories.
         </Alert>
       </Box>
     );
@@ -218,12 +218,12 @@ const CategoryList: React.FC = () => {
             onChange={(_, newMode) => newMode && setViewMode(newMode)}
             size="small"
           >
-            <ToggleButton value="tree">
+            <ToggleButton value="tree" aria-label="Tree view">
               <Tooltip title="Tree View">
                 <AccountTreeIcon />
               </Tooltip>
             </ToggleButton>
-            <ToggleButton value="grid">
+            <ToggleButton value="grid" aria-label="Grid view">
               <Tooltip title="Grid View">
                 <ViewListIcon />
               </Tooltip>

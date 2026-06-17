@@ -106,11 +106,20 @@ namespace Minded.Extensions.Transaction.Decorator
 
         /// <summary>
         /// Gets the current transaction ID if a transaction is active, otherwise returns "N/A".
+        /// Returns "N/A" if the ambient scope has already been completed (accessing Transaction.Current
+        /// after TransactionScope.Complete() throws InvalidOperationException) so that logging never throws.
         /// </summary>
         /// <returns>The transaction ID or "N/A"</returns>
         private static string GetCurrentTransactionId()
         {
-            return System.Transactions.Transaction.Current?.TransactionInformation.LocalIdentifier ?? "N/A";
+            try
+            {
+                return System.Transactions.Transaction.Current?.TransactionInformation.LocalIdentifier ?? "N/A";
+            }
+            catch (InvalidOperationException)
+            {
+                return "N/A";
+            }
         }
     }
 }

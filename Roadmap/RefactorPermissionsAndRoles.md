@@ -1,0 +1,2 @@
+Add db context filder to automatically filter by tenant handling admin (global)
+Add example using category management assignment to different users to that I can secure a get category/ies with attributes to controll that the current user owns or can admin the category.

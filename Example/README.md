@@ -16,23 +16,23 @@ The example follows the Minded framework's recommended structure:
 
 ```
 Example/
-├── Application.Api/          # REST API entry point
+├── MindedExample.Api/          # REST API entry point
 │   ├── Controllers/          # REST controllers using RestMediator
 │   ├── OData/               # OData navigation property serialization
 │   └── Startup.cs           # Application configuration
-├── Service.Category/         # Category business logic
+├── MindedExample.Application.Category/         # Category business logic
 │   ├── Command/             # Commands (Create, Update, Delete)
 │   ├── CommandHandler/      # Command handlers
 │   ├── Query/               # Queries (Get, List)
 │   ├── QueryHandler/        # Query handlers
 │   └── Validator/           # FluentValidation validators
-├── Service.Transaction/      # Transaction business logic
-├── Service.Configuration/    # Runtime configuration management
-├── Service.User/            # User management business logic
-├── Service.Common/          # Shared service utilities
-├── Common.Configuration/    # Configuration services and metadata
-├── Data.Entity/             # Entity models
-├── Data.Context/            # EF Core DbContext
+├── MindedExample.Application.Transaction/      # Transaction business logic
+├── MindedExample.Application.Configuration/    # Runtime configuration management
+├── MindedExample.Application.User/            # User management business logic
+├── MindedExample.Application.Common/          # Shared service utilities
+├── MindedExample.Infrastructure.Configuration/    # Configuration services and metadata
+├── MindedExample.Domain/             # Entity models
+├── MindedExample.Infrastructure.Persistence/            # EF Core DbContext
 └── Tests/                   # Unit and integration tests
 ```
 
@@ -78,13 +78,74 @@ Example/
 
 ## Getting Started
 
-### Prerequisites
+### Option 1 — Docker (recommended, no local tooling required)
+
+The easiest way to run the full stack is with Docker. The `docker-compose.tests.yml` file at the repository root manages three services: PostgreSQL, the API, and the frontend.
+
+**Prerequisites:** Docker Desktop (or Docker Engine + Compose v2)
+
+#### Start the full stack
+
+From the **repository root**:
+
+```bash
+docker compose -f docker-compose.tests.yml --profile full up -d --build --wait
+```
+
+Once all containers are healthy, the following endpoints are available:
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| API | http://localhost:6000 |
+| Swagger UI | http://localhost:6000/swagger |
+| PostgreSQL | `localhost:5433` (user: `minded`, password: `minded`) |
+
+#### Stop the stack
+
+```bash
+docker compose -f docker-compose.tests.yml --profile full down
+```
+
+#### Reset (wipe all database data and restart clean)
+
+```bash
+docker compose -f docker-compose.tests.yml --profile full down -v
+docker compose -f docker-compose.tests.yml --profile full up -d --build --wait
+```
+
+#### Database only (if you want to run the API or frontend locally)
+
+```bash
+docker compose -f docker-compose.tests.yml up -d
+```
+
+This starts only PostgreSQL on port `5433`. Two databases are created automatically:
+- `mindedexample` — default database for local development
+- `mindedexample_e2e` — dedicated database for Playwright E2E tests
+
+---
+
+### Option 2 — Local (requires .NET SDK and Node.js)
+
+**Prerequisites:**
 - .NET 8.0 SDK or later
-- SQL Server (LocalDB or full instance)
+- Node.js (for the frontend)
+- PostgreSQL or SQL Server
 
-### Running the Application
+#### Quick start (Windows)
 
-1. **Update the connection string** in `Application.Api/appsettings.json`:
+From the `Example/` folder, run:
+
+```cmd
+localdebug.cmd
+```
+
+This opens two terminal windows — one running `dotnet watch run` for the API and one running `npm run dev` for the frontend. You still need a database running (e.g. PostgreSQL via the database-only Docker command above).
+
+#### Manual setup
+
+1. **Update the connection string** in `MindedExample.Api/appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
@@ -95,13 +156,13 @@ Example/
 
 2. **Run database migrations**:
 ```bash
-cd Example/Application.Api
-dotnet ef database update --project ../Data.Context
+cd Example/MindedExample.Api
+dotnet ef database update --project ../MindedExample.Infrastructure.Persistence
 ```
 
 3. **Run the application**:
 ```bash
-dotnet run --project Application.Api
+dotnet run --project MindedExample.Api
 ```
 
 4. **Open Swagger UI**:
@@ -229,24 +290,24 @@ This is handled automatically by:
 1. **`ODataExpandActionFilter`** - Captures `$expand` parameters from requests
 2. **`IgnoreNavigationPropertiesResolver`** - Controls JSON serialization based on `$expand`
 
-**See**: [OData Navigation Property Serialization Documentation](Application.Api/OData/README.md) for detailed implementation.
+**See**: [OData Navigation Property Serialization Documentation](MindedExample.Api/OData/README.md) for detailed implementation.
 
 ## Testing
 
 The example includes comprehensive tests:
 
 ### Unit Tests
-- **Service.Category.Tests** - Category service unit tests
-- **Service.Transaction.Tests** - Transaction service unit tests
-- **Application.Api.Tests** - API controller tests
+- **MindedExample.Application.Category.UnitTests** - Category service unit tests
+- **MindedExample.Application.Transaction.UnitTests** - Transaction service unit tests
+- **MindedExample.Api.UnitTests** - API controller tests
 
 ### Integration Tests
-- **Service.Category.IntegrationTests** - Category service with database
-- **Service.Transaction.IntegrationTests** - Transaction service with database
+- **MindedExample.Application.Category.IntegrationTests** - Category service with database
+- **MindedExample.Application.Transaction.IntegrationTests** - Transaction service with database
 - **Common.Integration.Tests** - Shared integration test utilities
 
 ### E2E Tests
-- **Application.Api.E2ETests** - Full API end-to-end tests
+- **MindedExample.Api.E2ETests** - Full API end-to-end tests
 
 Run all tests:
 ```bash
@@ -311,8 +372,8 @@ public class CreateCategoryCommandValidator : AbstractValidator<CreateCategoryCo
 ## Learn More
 
 - **Minded Framework Documentation**: [../README.md](../README.md)
-- **OData Implementation Details**: [Application.Api/OData/README.md](Application.Api/OData/README.md)
-- **Database Seeding**: [Data.Context/README_DatabaseSeeding.md](Data.Context/README_DatabaseSeeding.md)
+- **OData Implementation Details**: [MindedExample.Api/OData/README.md](MindedExample.Api/OData/README.md)
+- **Database Seeding**: [MindedExample.Infrastructure.Persistence/README_DatabaseSeeding.md](MindedExample.Infrastructure.Persistence/README_DatabaseSeeding.md)
 - **Configuration Management**: [Service.Configuration/README.md](Service.Configuration/README.md)
 
 ## License

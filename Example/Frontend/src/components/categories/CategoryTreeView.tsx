@@ -23,7 +23,6 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  DragOverEvent,
   closestCenter,
   useDraggable,
   useDroppable,
@@ -49,7 +48,6 @@ interface DraggableTreeItemProps {
   onAddChild: (parentCategory: Category) => void;
   expandedNodes: string[];
   onNodeToggle: (nodeId: string) => void;
-  isOver?: boolean;
 }
 
 /**
@@ -63,7 +61,6 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
   onAddChild,
   expandedNodes,
   onNodeToggle,
-  isOver = false,
 }) => {
   // Make this item draggable
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
@@ -143,6 +140,7 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
         <Tooltip title="Add subcategory">
           <IconButton
             size="small"
+            aria-label={`Add subcategory to ${category.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onAddChild(category);
@@ -154,6 +152,7 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
         <Tooltip title="Edit">
           <IconButton
             size="small"
+            aria-label={`Edit ${category.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onEdit(category);
@@ -165,6 +164,7 @@ const DraggableTreeItem: React.FC<DraggableTreeItemProps> = ({
         <Tooltip title="Delete">
           <IconButton
             size="small"
+            aria-label={`Delete ${category.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onDelete(category);
@@ -232,7 +232,6 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
   const [treeData, setTreeData] = useState<CategoryNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const [overCategory, setOverCategory] = useState<Category | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const { currentUser } = useUser();
@@ -316,25 +315,11 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
   };
 
   /**
-   * Handle drag over event - track which category is being hovered.
-   */
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (over) {
-      const category = over.data.current?.category as Category;
-      setOverCategory(category);
-    } else {
-      setOverCategory(null);
-    }
-  };
-
-  /**
    * Handle drag end event - update category parent.
    */
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCategory(null);
-    setOverCategory(null);
 
     if (!over) return;
 
@@ -484,12 +469,12 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
     <Box sx={{ height: '100%', width: '100%' }}>
       <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <Tooltip title="Expand all categories">
-          <IconButton size="small" onClick={handleExpandAll}>
+          <IconButton size="small" aria-label="Expand all categories" onClick={handleExpandAll}>
             <ExpandMore />
           </IconButton>
         </Tooltip>
         <Tooltip title="Collapse all categories">
-          <IconButton size="small" onClick={handleCollapseAll}>
+          <IconButton size="small" aria-label="Collapse all categories" onClick={handleCollapseAll}>
             <ChevronRight />
           </IconButton>
         </Tooltip>
@@ -502,7 +487,6 @@ const CategoryTreeView: React.FC<CategoryTreeViewProps> = ({
         <DndContext
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <RootDropZone />

@@ -35,7 +35,7 @@ This is suitable for development environments or applications without sensitive 
 ### Basic Usage (Without Data Protection)
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     builder.AddCommandExceptionDecorator();
     builder.AddQueryExceptionDecorator();
@@ -62,7 +62,7 @@ public class User
 }
 
 // Configure DataProtection and Exception handling
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     builder.AddDataProtection(options =>
     {
@@ -87,11 +87,11 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, User>
         CreateUserCommand command,
         CancellationToken cancellationToken)
     {
-        // If this throws an exception, the decorator catches it
+        // If this throws an exception, the decorator catches it,
+        // logs it with sanitized command context, and rethrows it
+        // wrapped in a CommandHandlerException<TCommand>
         var user = await _userRepository.CreateAsync(command.User);
 
-        // Exception is logged with full context
-        // Response is returned with Success = false
         return CommandResponse<User>.Success(user);
     }
 }
@@ -99,18 +99,20 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, User>
 
 ### Exception Response
 
-When an exception occurs:
+When an exception occurs, the decorator logs the original exception together with the sanitized command/query context and rethrows it wrapped in a `CommandHandlerException<TCommand>` (or `QueryHandlerException<TQuery, TResult>` for queries):
 
 ```csharp
 var command = new CreateUserCommand { User = new User { Name = "John" } };
-var result = await _mediator.ProcessCommandAsync(command);
 
-if (!result.Success)
+try
 {
-    // result.Success = false
-    // result.Outcomes contains error information
-    // Exception details are logged but not exposed to caller
-    Console.WriteLine($"Error: {result.Outcomes.First().Message}");
+    var result = await _mediator.ProcessCommandAsync(command);
+}
+catch (CommandHandlerException<CreateUserCommand> ex)
+{
+    // The original exception is available as ex.InnerException
+    // Sensitive data has already been sanitized in the logged context
+    Console.WriteLine($"Error: {ex.Message}");
 }
 ```
 
@@ -137,7 +139,7 @@ public async Task<CommandResponse<Report>> HandleAsync(
 ### Decorator Registration
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Default registration (no configuration)
     builder.AddCommandExceptionDecorator();
@@ -174,7 +176,7 @@ By default, the exception decorator serializes commands and queries when an exce
 #### Disable Serialization
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Disable serialization for commands
     builder.AddCommandExceptionDecorator(options =>
@@ -201,7 +203,7 @@ Type: CreateUserCommand (serialization disabled)
 Use a provider function for runtime configuration:
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Serialize only in development
     builder.AddCommandExceptionDecorator(options =>
@@ -219,7 +221,7 @@ services.AddMinded(builder =>
 #### Feature Flag-Based Serialization
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     builder.AddCommandExceptionDecorator(options =>
     {
@@ -232,16 +234,16 @@ services.AddMinded(builder =>
 
 ### Decorator Order
 
-The exception decorator should typically be registered **early** in the pipeline to catch exceptions from other decorators:
+Decorator registration follows this rule: **first registered = innermost (runs last, right before the handler); last registered = outermost (runs first)**. The exception decorator must be registered **last**, so it is the outermost decorator and catches exceptions thrown by all other decorators and the handler:
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
-    builder.AddCommandExceptionDecorator();   // First - catches all exceptions
-    builder.AddCommandLoggingDecorator();     // Second
-    builder.AddCommandValidationDecorator();  // Third
-    builder.AddCommandRetryDecorator();       // Fourth
-    // Handler executes last
+    builder.AddCommandValidationDecorator();  // First registered = innermost, runs right before the handler
+    builder.AddCommandRetryDecorator();
+    builder.AddCommandLoggingDecorator();
+    builder.AddCommandExceptionDecorator();   // Last registered = outermost, catches everything
+    builder.AddCommandHandlers();             // Actual handlers - always innermost regardless of position
 });
 ```
 
@@ -266,14 +268,14 @@ public class ProcessPaymentCommandHandler : ICommandHandler<ProcessPaymentComman
         catch (PaymentDeclinedException ex)
         {
             // Handle specific exception with custom message
-            return CommandResponse<PaymentResult>.Failure(
-                "Payment was declined: " + ex.Reason);
+            return CommandResponse<PaymentResult>.Error(
+                new OutcomeEntry(null, "Payment was declined: " + ex.Reason));
         }
         catch (InsufficientFundsException ex)
         {
             // Different handling for different exceptions
-            return CommandResponse<PaymentResult>.Failure(
-                "Insufficient funds. Please use a different payment method.");
+            return CommandResponse<PaymentResult>.Error(
+                new OutcomeEntry(null, "Insufficient funds. Please use a different payment method."));
         }
         // Other exceptions bubble up to the exception decorator
     }
@@ -384,7 +386,7 @@ public class MyCustomSanitizer : ILoggingSanitizer
 Register your custom sanitizer as a singleton:
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Register your custom sanitizer
     builder.ServiceCollection.AddSingleton<ILoggingSanitizer, MyCustomSanitizer>();
@@ -397,13 +399,13 @@ services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service.
 
 ### Excluding Interface Properties
 
-Some decorators automatically exclude properties added by specific interfaces. For example, the logging decorator excludes `LoggingTemplate` and `LoggingParameters` from `ILoggable`:
+Some decorators automatically exclude properties added by specific interfaces. For example, the logging decorator excludes `LoggingTemplate` and `LoggingProperties` from `ILoggable`:
 
 ```csharp
 // This is done automatically by the logging decorator
-builder.RegisterPipelineConfiguration(pipeline =>
+builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
 {
-    pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingParameters");
+    pipeline.ExcludeProperties(typeof(ILoggable), "LoggingTemplate", "LoggingProperties");
 });
 ```
 
@@ -413,7 +415,7 @@ You can exclude properties from your own interfaces in custom decorators:
 public static MindedBuilder AddMyCustomDecorator(this MindedBuilder builder)
 {
     // Exclude properties from IMyInterface
-    builder.RegisterPipelineConfiguration(pipeline =>
+    builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
     {
         pipeline.ExcludeProperties(typeof(IMyInterface), "InternalProperty1", "InternalProperty2");
     });
@@ -449,7 +451,7 @@ public async Task<CommandResponse<User>> HandleAsync(...)
     catch (Exception ex)
     {
         // Don't do this - let the decorator handle it
-        return CommandResponse<User>.Failure("Error");
+        return CommandResponse<User>.Error(new OutcomeEntry(null, "Error"));
     }
 }
 ```
@@ -467,7 +469,8 @@ public async Task<CommandResponse<Order>> HandleAsync(...)
     catch (OutOfStockException ex)
     {
         // Known business exception - handle explicitly
-        return CommandResponse<Order>.Failure($"Product {ex.ProductId} is out of stock");
+        return CommandResponse<Order>.Error(
+            new OutcomeEntry(null, $"Product {ex.ProductId} is out of stock"));
     }
     // Unknown exceptions bubble up to decorator
 }
@@ -477,12 +480,11 @@ public async Task<CommandResponse<Order>> HandleAsync(...)
 
 ```csharp
 // Good - pass cancellation token through
-public async Task<CommandResponse<Data>> HandleAsync(
+public async Task<Data> HandleAsync(
     GetDataQuery query,
     CancellationToken cancellationToken)
 {
-    var data = await _service.GetDataAsync(query.Id, cancellationToken);
-    return QueryResponse<Data>.Success(data);
+    return await _service.GetDataAsync(query.Id, cancellationToken);
 }
 ```
 
@@ -509,56 +511,30 @@ Some properties cannot be serialized and will cause issues in exception logs. Th
 
 #### Automatically Excluded Types
 
-The following types are automatically excluded from exception logging:
+The exception decorators sanitize the command/query through the centralized `ILoggingSanitizerPipeline` (implemented by `LoggingSanitizerPipeline` in `Minded.Framework.CQRS`). The pipeline automatically excludes the following non-serializable property types:
 
-- `CancellationToken`, `CancellationTokenSource`
-- `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`
-- `Func<>`, `Action<>`, and other delegate types
-- `Stream`, `MemoryStream`, `FileStream`, and derived types
-- `TextReader`, `TextWriter`, `StreamReader`, `StreamWriter`
-- `Type`, `RuntimeTypeHandle`
-- `IntPtr`, `UIntPtr`
-- `IServiceProvider`
-- ASP.NET Core HTTP types (`HttpContext`, etc.)
+- `CancellationToken`
+- `Task` and `Task<T>`
+- `Stream` (the exact `System.IO.Stream` type)
+- All delegate types (`Func<>`, `Action<>`, custom delegates)
 
-#### Explicit Exclusion with Attributes
+Property types not covered by this built-in list — e.g. `CancellationTokenSource`, derived stream types, `IServiceProvider` — are not skipped automatically: exclude them explicitly via `ExcludeProperties` or a custom `ILoggingSanitizer` (see below). See `LoggingSanitizerPipeline.cs` in `Minded.Framework.CQRS` for the authoritative list.
 
-For properties not automatically excluded, use one of these attributes:
+> **Note:** This package also ships a standalone `DiagnosticDataSanitizer` static helper with a broader exclusion list, but it is **not** used by the exception decorators at runtime.
 
-**Option 1: `[ExcludeFromSerializedDiagnosticLogging]`** (Recommended for Minded)
+#### Explicitly Excluding Properties
 
-```csharp
-using Minded.Extensions.Exception;
+For properties not automatically excluded, use one of these mechanisms:
 
-public class ProcessFileCommand : ICommand
-{
-    public Guid TraceId { get; set; }
-    public string FileName { get; set; }
+**Option 1: Exclude interface-declared properties via the pipeline**
 
-    [ExcludeFromSerializedDiagnosticLogging]
-    public byte[] FileContent { get; set; }  // Large binary data
+If the properties to exclude are declared on an interface, register a pipeline configuration with `pipeline.ExcludeProperties(...)` — see [Excluding Interface Properties](#excluding-interface-properties) above. This is how the logging decorator excludes the `ILoggable` members.
 
-    [ExcludeFromSerializedDiagnosticLogging]
-    public IFormFile UploadedFile { get; set; }  // ASP.NET Core file
-}
-```
+**Option 2: Custom sanitizer**
 
-**Option 2: `[JsonIgnore]`** (Standard .NET attribute)
+For arbitrary properties, implement a custom `ILoggingSanitizer` that removes the entries from the sanitized dictionary — see [Creating Custom Sanitizers](#creating-custom-sanitizers) above.
 
-```csharp
-using System.Text.Json.Serialization;
-
-public class MyQuery : IQuery<Result>
-{
-    public Guid TraceId { get; set; }
-    public int Id { get; set; }
-
-    [JsonIgnore]
-    public object InternalState { get; set; }  // Not for serialization
-}
-```
-
-Both attributes work identically for exception logging exclusion. Use `[JsonIgnore]` if you also want the property excluded from API serialization, or `[ExcludeFromSerializedDiagnosticLogging]` if you only want to exclude from diagnostic logs.
+> **Note:** Earlier versions provided an `[ExcludeFromSerializedDiagnosticLogging]` attribute; it has been removed. Property exclusion is now handled by the sanitization pipeline (`ExcludeProperties` or custom `ILoggingSanitizer` implementations). `[JsonIgnore]` is **not** honored by the sanitization pipeline, because the command/query is converted to a dictionary before JSON serialization takes place.
 
 ## Integration with RestMediator
 

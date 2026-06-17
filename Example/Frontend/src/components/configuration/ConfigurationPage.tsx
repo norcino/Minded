@@ -12,7 +12,6 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Grid,
   Chip,
   Select,
   MenuItem,
@@ -166,6 +165,7 @@ const ConfigurationPage: React.FC = () => {
             startIcon={<RestartAltIcon />}
             onClick={() => handleReset(entry)}
             disabled={!isModified}
+            aria-label={`Reset ${entry.key}`}
           >
             Reset
           </Button>
@@ -182,6 +182,7 @@ const ConfigurationPage: React.FC = () => {
             onChange={(e) => handleValueChange(entry, e.target.value)}
             size="small"
             sx={{ width: 150 }}
+            inputProps={{ 'aria-label': entry.key }}
           />
           {isModified && (
             <Chip label="Modified" color="warning" size="small" />
@@ -191,6 +192,7 @@ const ConfigurationPage: React.FC = () => {
             startIcon={<RestartAltIcon />}
             onClick={() => handleReset(entry)}
             disabled={!isModified}
+            aria-label={`Reset ${entry.key}`}
           >
             Reset
           </Button>
@@ -227,6 +229,7 @@ const ConfigurationPage: React.FC = () => {
               startIcon={<RestartAltIcon />}
               onClick={() => handleReset(entry)}
               disabled={!isModified}
+              aria-label={`Reset ${entry.key}`}
             >
               Reset
             </Button>
@@ -242,6 +245,7 @@ const ConfigurationPage: React.FC = () => {
             onChange={(e) => handleValueChange(entry, e.target.value)}
             size="small"
             sx={{ width: 250 }}
+            inputProps={{ 'aria-label': entry.key }}
           />
           {isModified && (
             <Chip label="Modified" color="warning" size="small" />
@@ -251,6 +255,7 @@ const ConfigurationPage: React.FC = () => {
             startIcon={<RestartAltIcon />}
             onClick={() => handleReset(entry)}
             disabled={!isModified}
+            aria-label={`Reset ${entry.key}`}
           >
             Reset
           </Button>
@@ -327,10 +332,10 @@ const ConfigurationPage: React.FC = () => {
             />
           </AccordionSummary>
           <AccordionDetails>
-            <Grid container spacing={3}>
+            <Box sx={{ display: 'grid', gap: 3 }}>
               {entries.map((entry) => (
-                <Grid item xs={12} key={entry.key}>
-                  <Paper sx={{ p: 2 }}>
+                <Box key={entry.key}>
+                  <Paper sx={{ p: 2 }} role="group" aria-label={entry.key}>
                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                       {entry.name}
                     </Typography>
@@ -347,9 +352,9 @@ const ConfigurationPage: React.FC = () => {
                     </Box>
                     {renderConfigControl(entry)}
                   </Paper>
-                </Grid>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </AccordionDetails>
         </Accordion>
       ))}

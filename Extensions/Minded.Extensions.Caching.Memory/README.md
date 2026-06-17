@@ -46,10 +46,10 @@ public class GetUserByIdQuery : IQuery<User>, IGenerateCacheKey  // Required int
 ```csharp
 using Minded.Extensions.Configuration;
 
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Add memory caching for queries
-    builder.AddQueryCachingDecorator();
+    builder.AddQueryMemoryCacheDecorator();
 });
 
 // Register IMemoryCache
@@ -74,6 +74,10 @@ var query3 = new GetUserByIdQuery { UserId = 456 };
 var result3 = await _mediator.ProcessQueryAsync(query3);
 // Handler executes, new result cached
 ```
+
+### What Gets Cached
+
+Only successful results are cached. When the query result type is an `IQueryResponse<TResult>`, the decorator checks the response before caching: unsuccessful responses (`Successful == false`) are **not** cached, so the handler executes again on the next call. `null` results are also never cached.
 
 ## Configuration Options
 
@@ -148,7 +152,7 @@ public class MemoryCacheAttribute : CacheAttribute
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `ExpirationInSeconds` | `int` | `0` | Seconds from now when the cache entry will be evicted (absolute expiration) |
-| `SlidingExpiration` | `int` | `0` | Seconds from last access when the cache entry will be evicted. Does not extend beyond absolute expiration |
+| `SlidingExpiration` | `int` | `0` | Seconds from last access when the cache entry will be evicted. Each access renews the entry lifetime; renewal never extends beyond the absolute expiration (enforced by the underlying memory cache) |
 | `AbsoluteExpiration` | `string` | `null` | Exact date/time when cache entry expires (ISO 8601 format: '2023-06-30T12:00:00Z') |
 | `FailOnError` | `bool` | `false` | If `true`, throws exception on caching errors. If `false` (default), suppresses errors and executes query normally |
 
@@ -170,7 +174,7 @@ public class GetUserByIdQuery : IQuery<User>, IGenerateCacheKey
 
 #### SlidingExpiration
 
-Specifies the number of seconds from last access when the cache entry will be evicted. The entry will be evicted if it hasn't been accessed for this duration. This will not extend the entry lifetime beyond the absolute expiration (if set).
+Specifies the number of seconds from last access when the cache entry will be evicted. The entry will be evicted if it hasn't been accessed for this duration; each access renews the entry lifetime. When an absolute expiration is also set, the decorator simply sets both `AbsoluteExpirationRelativeToNow` and `SlidingExpiration` on the `MemoryCacheEntryOptions` — the guarantee that sliding renewal never extends an entry beyond its absolute expiration is enforced by `Microsoft.Extensions.Caching.Memory` itself, not by the decorator.
 
 ```csharp
 // Cache expires 60 seconds after last access
@@ -663,18 +667,18 @@ If cache is consuming too much memory:
 
 3. Don't cache large objects or result sets
 
-## Integration with Other Decorators
+## Decorator Order
 
-### Decorator Order
+First registered = innermost (runs last, right before the handler); last registered = outermost (runs first). The exception decorator must be registered last so it wraps everything:
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
-    builder.AddQueryExceptionDecorator();   // First - catch exceptions
-    builder.AddQueryLoggingDecorator();     // Second - log requests
-    builder.AddQueryValidationDecorator();  // Third - validate
-    builder.AddQueryCachingDecorator();     // Fourth - check cache
-    // Handler executes last (if cache miss)
+    builder.AddQueryValidationDecorator()    // Innermost - validates right before the handler
+           .AddQueryMemoryCacheDecorator()   // Serves cached results; on a hit, validation and the handler are skipped
+           .AddQueryLoggingDecorator()       // Logs each request
+           .AddQueryExceptionDecorator()     // Outermost - catches all unhandled exceptions
+           .AddQueryHandlers();              // Actual handlers - always innermost regardless of position
 });
 ```
 

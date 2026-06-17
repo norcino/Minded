@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
@@ -20,7 +20,11 @@ import PeopleIcon from '@mui/icons-material/People';
 import CategoryIcon from '@mui/icons-material/Category';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import SettingsIcon from '@mui/icons-material/Settings';
-import PersonOffIcon from '@mui/icons-material/PersonOff';
+import LogoutIcon from '@mui/icons-material/Logout';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SecurityIcon from '@mui/icons-material/Security';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import GroupsIcon from '@mui/icons-material/Groups';
 import { useUser } from '../../context/UserContext';
 import LogConsole from '../logs/LogConsole';
 
@@ -44,19 +48,45 @@ interface NavItem {
  */
 const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [consoleHeight, setConsoleHeight] = useState(300);
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, setCurrentUser } = useUser();
+  const { currentUser, tenantName, logout } = useUser();
+  const isGlobalAdmin = !!currentUser?.isGlobalAdmin;
+  const isTenantAdmin = !!currentUser && (
+    currentUser.tenantRole === 'Owner' ||
+    currentUser.tenantRole === 'Admin' ||
+    currentUser.roles?.includes('TenantAdmin')
+  );
+
+  const handleConsoleResize = useCallback((newHeight: number) => {
+    setConsoleHeight(newHeight);
+  }, []);
 
   /**
    * Navigation items configuration.
    */
-  const navItems: NavItem[] = [
-    { text: 'Users', icon: <PeopleIcon />, path: '/' },
-    { text: 'Categories', icon: <CategoryIcon />, path: '/categories' },
-    { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
-    { text: 'Configuration', icon: <SettingsIcon />, path: '/configuration' },
-  ];
+  const navItems: NavItem[] = isGlobalAdmin
+    ? []
+    : [
+      { text: 'Users', icon: <PeopleIcon />, path: '/' },
+      { text: 'Categories', icon: <CategoryIcon />, path: '/categories' },
+      { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
+      { text: 'Configuration', icon: <SettingsIcon />, path: '/configuration' },
+    ];
+
+  /**
+   * Admin navigation items.
+   */
+  const adminItems: NavItem[] = isGlobalAdmin
+    ? [{ text: 'Tenants', icon: <GroupsIcon />, path: '/admin/global-tenants' }]
+    : isTenantAdmin
+      ? [
+        { text: 'Tenant Admin', icon: <GroupsIcon />, path: '/admin/tenant' },
+        { text: 'Roles', icon: <SecurityIcon />, path: '/admin/roles' },
+        { text: 'User Roles', icon: <AssignmentIndIcon />, path: '/admin/user-roles' },
+      ]
+      : [];
 
   /**
    * Handle drawer toggle for mobile view.
@@ -76,9 +106,9 @@ const Layout: React.FC = () => {
   /**
    * Handle clearing user impersonation.
    */
-  const handleClearImpersonation = () => {
-    setCurrentUser(null);
-    navigate('/');
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   /**
@@ -105,6 +135,31 @@ const Layout: React.FC = () => {
           </ListItem>
         ))}
       </List>
+      {adminItems.length > 0 && (
+        <>
+          <Divider />
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton disabled>
+                <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
+                <ListItemText primary="Admin" primaryTypographyProps={{ fontWeight: 'bold', fontSize: '0.85rem' }} />
+              </ListItemButton>
+            </ListItem>
+            {adminItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </>
+      )}
     </div>
   );
 
@@ -128,20 +183,20 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {navItems.find(item => item.path === location.pathname)?.text || 'Minded Example'}
+            {[...navItems, ...adminItems].find(item => item.path === location.pathname)?.text || 'Minded Example'}
           </Typography>
           {currentUser && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="body2">
-                Impersonating: {currentUser.name} {currentUser.surname}
+                {currentUser.name} {currentUser.surname} {(!isGlobalAdmin && tenantName) ? `(${tenantName})` : isGlobalAdmin ? '(Application Admin)' : ''}
               </Typography>
               <Button
                 color="inherit"
-                startIcon={<PersonOffIcon />}
-                onClick={handleClearImpersonation}
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
                 size="small"
               >
-                Clear
+                Logout
               </Button>
             </Box>
           )}
@@ -182,13 +237,15 @@ const Layout: React.FC = () => {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          paddingBottom: '320px', // Add padding to prevent content from being hidden by log console
+          height: '100vh',
+          overflow: 'auto',
+          paddingBottom: `${consoleHeight + 20}px`,
         }}
       >
         <Toolbar />
         <Outlet />
       </Box>
-      <LogConsole initialHeight={300} minHeight={100} maxHeight={800} />
+      <LogConsole initialHeight={300} minHeight={100} maxHeight={800} onResize={handleConsoleResize} />
     </Box>
   );
 };

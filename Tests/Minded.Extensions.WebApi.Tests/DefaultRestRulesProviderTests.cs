@@ -184,7 +184,7 @@ namespace Minded.Extensions.WebApi.Tests
                     new OutcomeEntry(Any.String(), Any.String(), null, Severity.Error, GenericErrorCodes.NotAuthenticated)
                 }
             };
-            ICommandRestRule rule = _sut.GetCommandRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
+            ICommandRestRule rule = _sut.GetCommandRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
 
             var result = rule.RuleCondition(response);
 
@@ -206,7 +206,7 @@ namespace Minded.Extensions.WebApi.Tests
                     new OutcomeEntry(Any.String(), Any.String(), null, Severity.Error, GenericErrorCodes.NotAuthorized)
                 }
             };
-            ICommandRestRule rule = _sut.GetCommandRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
+            ICommandRestRule rule = _sut.GetCommandRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
 
             var result = rule.RuleCondition(response);
 
@@ -393,7 +393,7 @@ namespace Minded.Extensions.WebApi.Tests
                     new OutcomeEntry(Any.String(), Any.String(), null, Severity.Error, GenericErrorCodes.NotAuthenticated)
                 }
             };
-            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
+            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
 
             var result = rule.RuleCondition(queryResult);
 
@@ -407,7 +407,7 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void QueryRuleCondition_NotAuthenticatedQuery_WithNullResult_ReturnsFalse()
         {
-            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
+            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
 
             var result = rule.RuleCondition(null);
 
@@ -422,7 +422,7 @@ namespace Minded.Extensions.WebApi.Tests
         public void QueryRuleCondition_NotAuthenticatedQuery_WithPlainObject_ReturnsTrue()
         {
             var queryResult = Any.String();
-            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
+            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
 
             var result = rule.RuleCondition(queryResult);
 
@@ -444,7 +444,7 @@ namespace Minded.Extensions.WebApi.Tests
                     new OutcomeEntry(Any.String(), Any.String(), null, Severity.Error, GenericErrorCodes.NotAuthorized)
                 }
             };
-            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
+            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
 
             var result = rule.RuleCondition(queryResult);
 
@@ -458,7 +458,7 @@ namespace Minded.Extensions.WebApi.Tests
         [TestMethod]
         public void QueryRuleCondition_NotAuthorizedQuery_WithNullResult_ReturnsFalse()
         {
-            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
+            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
 
             var result = rule.RuleCondition(null);
 
@@ -473,7 +473,7 @@ namespace Minded.Extensions.WebApi.Tests
         public void QueryRuleCondition_NotAuthorizedQuery_WithPlainObject_ReturnsTrue()
         {
             var queryResult = Any.String();
-            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Unauthorized);
+            IQueryRestRule rule = _sut.GetQueryRules().First(r => r.Operation == RestOperation.Any && r.ResultStatusCode == HttpStatusCode.Forbidden);
 
             var result = rule.RuleCondition(queryResult);
 

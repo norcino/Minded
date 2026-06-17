@@ -11,6 +11,7 @@ using Minded.Extensions.CQRS.EntityFrameworkCore.Tests.TestSupportClasses;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using System.Collections;
 using System;
+using System.Threading.Tasks;
 
 namespace Minded.Framework.CQRS.Tests
 {
@@ -975,12 +976,11 @@ namespace Minded.Framework.CQRS.Tests
         }
 
         /// <summary>
-        /// Tests that Count reflects records after Top is applied.
-        /// Note: Based on the implementation, Count is executed AFTER Top,
-        /// so it counts the limited result set.
+        /// Tests that Count reflects all records matching the query criteria,
+        /// regardless of the Top pagination limit.
         /// </summary>
         [TestMethod]
-        public void ApplyTo_Should_Count_with_Top_applied()
+        public void ApplyTo_Should_Count_all_matching_records_regardless_of_Top()
         {
             // Arrange: Create 20 vehicles
             List<Vehicle> vehicles = new List<Vehicle>();
@@ -1001,10 +1001,39 @@ namespace Minded.Framework.CQRS.Tests
             // Act: Apply the query
             var queryResult = vehicleQuery.ApplyQueryTo(_context.Vehicles).ToList();
 
-            // Assert: CountValue should be 5 (after Top is applied)
-            // Note: This is the current behavior - count is after Take()
-            vehicleQuery.CountValue.Should().Be(5, because: "count is applied after Top limits the results");
-            queryResult.Should().HaveCount(5);
+            // Assert: CountValue reflects the total matching records, while data is paginated
+            vehicleQuery.CountValue.Should().Be(20, because: "count reflects all matching records before pagination");
+            queryResult.Should().HaveCount(5, because: "Top = 5 limits the returned data");
+        }
+
+        /// <summary>
+        /// Tests that CountOnly populates the count of all matching records without returning data.
+        /// </summary>
+        [TestMethod]
+        public void ApplyTo_Should_return_count_without_data_when_CountOnly_is_true()
+        {
+            // Arrange: Create 12 vehicles
+            List<Vehicle> vehicles = new List<Vehicle>();
+            for (int i = 1; i <= 12; i++)
+            {
+                vehicles.Add(new Vehicle { Id = 0, Model = $"Model_{i:D2}" });
+            }
+            _context.Vehicles.AddRange(vehicles);
+            _context.SaveChanges();
+
+            // Arrange: Create a query with CountOnly
+            var vehicleQuery = new FullFeaturedVehicleQuery
+            {
+                Count = true,
+                CountOnly = true
+            };
+
+            // Act: Apply the query
+            var queryResult = vehicleQuery.ApplyQueryTo(_context.Vehicles).ToList();
+
+            // Assert: CountValue is populated but no data is returned
+            vehicleQuery.CountValue.Should().Be(12, because: "all vehicles match the query criteria");
+            queryResult.Should().BeEmpty(because: "CountOnly suppresses data retrieval");
         }
         #endregion
 
@@ -1129,12 +1158,12 @@ namespace Minded.Framework.CQRS.Tests
             queryResult.Should().HaveCount(3, because: "Top = 3");
             queryResult.Should().AllSatisfy(v => v.Model.Should().Contain("BMW"));
             queryResult.Should().AllSatisfy(v => v.Owner.Should().NotBeNull());
-            vehicleQuery.CountValue.Should().Be(3, because: "count is applied after all other traits");
+            vehicleQuery.CountValue.Should().Be(15, because: "count reflects all records matching the filter, before pagination");
         }
 
         /// <summary>
         /// Tests that traits are applied in the correct order:
-        /// OrderBy -> Expand -> Filter -> Skip -> Top -> Count
+        /// OrderBy -> Expand -> Filter -> Count -> Skip -> Top
         /// </summary>
         [TestMethod]
         public void ApplyTo_Should_apply_traits_in_correct_order()
@@ -1392,6 +1421,95 @@ namespace Minded.Framework.CQRS.Tests
             // Note: Different databases may handle this differently (some may throw)
             queryResult.Should().HaveCount(3,
                 because: "SQLite treats negative OFFSET as 0, returning all records");
+        }
+        #endregion
+
+        #region Single Entity Queries
+        /// <summary>
+        /// Tests that the single-entity overload returns the entity matching the filter.
+        /// </summary>
+        [TestMethod]
+        public async Task ApplyTo_Should_return_single_entity_matching_filter()
+        {
+            // Arrange: Create vehicles
+            _context.Vehicles.AddRange(new List<Vehicle>
+            {
+                new Vehicle { Id = 0, Model = "BMW" },
+                new Vehicle { Id = 0, Model = "Audi" }
+            });
+            _context.SaveChanges();
+
+            var query = new SingleVehicleQuery { Filter = v => v.Model == "BMW" };
+
+            // Act: Apply the query
+            var result = await query.ApplyQueryTo(_context.Vehicles);
+
+            // Assert: The matching entity is returned
+            result.Should().NotBeNull();
+            result.Model.Should().Be("BMW");
+        }
+
+        /// <summary>
+        /// Tests that the single-entity overload returns null when nothing matches the filter.
+        /// </summary>
+        [TestMethod]
+        public async Task ApplyTo_Should_return_null_when_no_entity_matches_filter()
+        {
+            // Arrange: Create a non-matching vehicle
+            _context.Vehicles.Add(new Vehicle { Id = 0, Model = "Audi" });
+            _context.SaveChanges();
+
+            var query = new SingleVehicleQuery { Filter = v => v.Model == "BMW" };
+
+            // Act: Apply the query
+            var result = await query.ApplyQueryTo(_context.Vehicles);
+
+            // Assert: No match returns null
+            result.Should().BeNull();
+        }
+
+        /// <summary>
+        /// Tests that the IQueryResponse overload wraps the matched entity in a successful QueryResponse.
+        /// </summary>
+        [TestMethod]
+        public async Task ApplyTo_Should_wrap_single_entity_in_successful_QueryResponse()
+        {
+            // Arrange: Create vehicles
+            _context.Vehicles.AddRange(new List<Vehicle>
+            {
+                new Vehicle { Id = 0, Model = "BMW" },
+                new Vehicle { Id = 0, Model = "Audi" }
+            });
+            _context.SaveChanges();
+
+            var query = new SingleVehicleResponseQuery { Filter = v => v.Model == "BMW" };
+
+            // Act: Apply the query
+            var response = await query.ApplyQueryTo(_context.Vehicles);
+
+            // Assert: The entity is wrapped in a successful response
+            response.Should().NotBeNull();
+            response.Successful.Should().BeTrue();
+            response.Result.Should().NotBeNull();
+            response.Result.Model.Should().Be("BMW");
+        }
+
+        /// <summary>
+        /// Tests that the IQueryResponse overload returns a successful response with a null result when nothing matches.
+        /// </summary>
+        [TestMethod]
+        public async Task ApplyTo_Should_return_successful_QueryResponse_with_null_result_when_no_match()
+        {
+            // Arrange: empty database
+            var query = new SingleVehicleResponseQuery { Filter = v => v.Model == "BMW" };
+
+            // Act: Apply the query
+            var response = await query.ApplyQueryTo(_context.Vehicles);
+
+            // Assert: The query succeeded but found nothing
+            response.Should().NotBeNull();
+            response.Successful.Should().BeTrue();
+            response.Result.Should().BeNull();
         }
         #endregion
     }

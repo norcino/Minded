@@ -1,29 +1,34 @@
 # Minded.Extensions.Validation
 
-Validation decorator for automatic command and query validation before handler execution using FluentValidation.
+Validation decorator for automatic command and query validation before handler execution.
 
 ## Features
 
 - **Automatic Validation** - Validates commands and queries before they reach the handler
-- **FluentValidation Integration** - Uses FluentValidation for powerful, fluent validation rules
-- **Validation Result Aggregation** - Collects all validation errors and returns them in the response
-- **Configurable Behavior** - Control validation execution per command/query
-- **Outcome Tracking** - Validation errors are added to the response outcomes
+- **Bring Your Own Validation Library** - Implement the rules with FluentValidation, DataAnnotations, or plain code; the framework only requires that the validator class implements the Minded validator interfaces
+- **Validation Result Aggregation** - Collects all validation outcomes and returns them in the response
+- **Opt-in Behavior** - Validation runs only for commands/queries decorated with `[ValidateCommand]` / `[ValidateQuery]`
+- **Outcome Tracking** - Validation outcomes are added to the response outcome entries
 
 ## Installation
 
 ```bash
 dotnet add package Minded.Extensions.Validation
-dotnet add package FluentValidation
 ```
+
+The validator interfaces (`ICommandValidator<TCommand>`, `IQueryValidator<TQuery, TResult>`, `IValidator<TEntity>`, `IValidationResult`) live in the `Minded.Extensions.Validation.Abstractions` package, which is referenced automatically.
 
 ## Quick Start
 
 ### 1. Create a Command
 
-```csharp
-using Minded.Framework.CQRS.Abstractions;
+Decorate the command with `[ValidateCommand]` to opt in to validation:
 
+```csharp
+using Minded.Framework.CQRS.Command;
+using Minded.Extensions.Validation.Decorator;
+
+[ValidateCommand]
 public class CreateUserCommand : ICommand<User>
 {
     public string Username { get; set; }
@@ -35,42 +40,49 @@ public class CreateUserCommand : ICommand<User>
 
 ### 2. Create a Validator
 
+The validator class **must implement the Minded `ICommandValidator<TCommand>` interface** so the validation decorator can resolve it from DI. `ValidateAsync` returns a `Task<IValidationResult>`:
+
 ```csharp
-using FluentValidation;
+using System.Threading.Tasks;
+using Minded.Extensions.Validation;
+using Minded.Extensions.Validation.Decorator;
+using Minded.Framework.CQRS;
+using Minded.Framework.CQRS.Abstractions;
 
-public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
+public class CreateUserCommandValidator : ICommandValidator<CreateUserCommand>
 {
-    public CreateUserCommandValidator()
+    public Task<IValidationResult> ValidateAsync(CreateUserCommand command)
     {
-        RuleFor(x => x.Username)
-            .NotEmpty().WithMessage("Username is required")
-            .MinimumLength(3).WithMessage("Username must be at least 3 characters")
-            .MaximumLength(50).WithMessage("Username cannot exceed 50 characters");
+        var result = new ValidationResult();
 
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required")
-            .EmailAddress().WithMessage("Email must be a valid email address");
+        if (string.IsNullOrWhiteSpace(command.Username) || command.Username.Length < 3)
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.Username), "Username must be at least 3 characters",
+                command.Username, Severity.Error));
 
-        RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required")
-            .MinimumLength(8).WithMessage("Password must be at least 8 characters")
-            .Matches(@"[A-Z]").WithMessage("Password must contain at least one uppercase letter")
-            .Matches(@"[a-z]").WithMessage("Password must contain at least one lowercase letter")
-            .Matches(@"[0-9]").WithMessage("Password must contain at least one number");
+        if (string.IsNullOrWhiteSpace(command.Email) || !command.Email.Contains("@"))
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.Email), "Email must be a valid email address",
+                command.Email, Severity.Error));
 
-        RuleFor(x => x.Age)
-            .GreaterThanOrEqualTo(18).WithMessage("User must be at least 18 years old")
-            .LessThan(120).WithMessage("Age must be less than 120");
+        if (command.Age < 18)
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.Age), "User must be at least 18 years old",
+                command.Age, Severity.Error));
+
+        return Task.FromResult<IValidationResult>(result);
     }
 }
 ```
+
+The logic *inside* `ValidateAsync` can use any validation library you like (FluentValidation, DataAnnotations, plain code) — see [Using FluentValidation Internally](#using-fluentvalidation-internally). What matters is that the class implements the Minded interface.
 
 ### 3. Configure Validation Decorator
 
 ```csharp
 using Minded.Extensions.Configuration;
 
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Add validation decorator for commands
     builder.AddCommandValidationDecorator();
@@ -80,25 +92,26 @@ services.AddMinded(builder =>
 });
 ```
 
+`AddCommandValidationDecorator()` and `AddQueryValidationDecorator()` also **auto-register the validators**: they scan the service assemblies (selected by the `AddMinded` assembly filter) and register every implementation of `ICommandValidator<>`, `IQueryValidator<,>` and `IValidator<>` found there.
+
 ### 4. Automatic Validation
 
-When a command is dispatched, validation runs automatically:
+When a `[ValidateCommand]`-decorated command is dispatched, validation runs automatically before the handler. If validation fails, the handler is never invoked and the response carries the validation outcomes:
 
 ```csharp
 var command = new CreateUserCommand
 {
     Username = "ab",  // Too short
     Email = "invalid-email",  // Invalid format
-    Password = "weak",  // Doesn't meet requirements
     Age = 15  // Too young
 };
 
 var result = await _mediator.ProcessCommandAsync(command);
 
-if (!result.Success)
+if (!result.Successful)
 {
-    // Validation failed - check outcomes
-    foreach (var outcome in result.Outcomes)
+    // Validation failed - check outcome entries
+    foreach (var outcome in result.OutcomeEntries)
     {
         Console.WriteLine($"{outcome.Severity}: {outcome.Message}");
     }
@@ -106,93 +119,146 @@ if (!result.Success)
     // Output:
     // Error: Username must be at least 3 characters
     // Error: Email must be a valid email address
-    // Error: Password must be at least 8 characters
-    // Error: Password must contain at least one uppercase letter
-    // Error: Password must contain at least one number
     // Error: User must be at least 18 years old
+}
+```
+
+## Validator Interfaces
+
+All three interfaces are defined in `Minded.Extensions.Validation.Abstractions` and follow the same shape — an async method returning `Task<IValidationResult>`:
+
+| Interface | Validates | Method |
+|-----------|-----------|--------|
+| `ICommandValidator<TCommand>` | A command (resolved by the command validation decorator) | `Task<IValidationResult> ValidateAsync(TCommand command)` |
+| `IQueryValidator<TQuery, TResult>` | A query (resolved by the query validation decorator) | `Task<IValidationResult> ValidateAsync(TQuery query)` |
+| `IValidator<TEntity>` | A reusable entity/value, composed inside command/query validators | `Task<IValidationResult> ValidateAsync(TEntity subject)` |
+
+## ValidationResult and Merge
+
+`ValidationResult` is the built-in `IValidationResult` implementation:
+
+- `IsValid` is `true` when no outcome entry has `Severity.Error` (warnings and info entries do **not** fail validation).
+- `OutcomeEntries` is the list of `IOutcomeEntry` items produced by the validation.
+- `Merge(IValidationResult)` appends the entries of another validation result to the current one and returns it — if either result contains errors, the merged result is invalid.
+
+`Merge` makes it easy to compose a reusable entity validator into a command validator:
+
+```csharp
+public class CreateUserCommandValidator : ICommandValidator<CreateUserCommand>
+{
+    private readonly IValidator<User> _userValidator;
+
+    public CreateUserCommandValidator(IValidator<User> userValidator)
+        => _userValidator = userValidator;
+
+    public async Task<IValidationResult> ValidateAsync(CreateUserCommand command)
+    {
+        var result = new ValidationResult();
+
+        if (command.User == null)
+        {
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.User), "User is required", null, Severity.Error));
+            return result;  // Early return - avoid null-reference cascade
+        }
+
+        // Merge the entity validator's entries into the command validator's result
+        return (await _userValidator.ValidateAsync(command.User)).Merge(result);
+    }
+}
+
+public class UserValidator : IValidator<User>
+{
+    public Task<IValidationResult> ValidateAsync(User user)
+    {
+        var result = new ValidationResult();
+
+        if (string.IsNullOrWhiteSpace(user.Name))
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(user.Name), "Name cannot be empty", user.Name, Severity.Error));
+
+        return Task.FromResult<IValidationResult>(result);
+    }
 }
 ```
 
 ## Advanced Usage
 
-### Complex Validation Rules
-
-```csharp
-public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
-{
-    public CreateOrderCommandValidator()
-    {
-        RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("Customer ID is required")
-            .GreaterThan(0).WithMessage("Customer ID must be positive");
-
-        RuleFor(x => x.Items)
-            .NotEmpty().WithMessage("Order must contain at least one item")
-            .Must(items => items.Count <= 100).WithMessage("Order cannot contain more than 100 items");
-
-        RuleForEach(x => x.Items).ChildRules(item =>
-        {
-            item.RuleFor(x => x.ProductId)
-                .NotEmpty().WithMessage("Product ID is required");
-
-            item.RuleFor(x => x.Quantity)
-                .GreaterThan(0).WithMessage("Quantity must be greater than 0")
-                .LessThanOrEqualTo(1000).WithMessage("Quantity cannot exceed 1000");
-
-            item.RuleFor(x => x.Price)
-                .GreaterThan(0).WithMessage("Price must be greater than 0");
-        });
-
-        RuleFor(x => x.ShippingAddress)
-            .NotNull().WithMessage("Shipping address is required")
-            .SetValidator(new AddressValidator());
-    }
-}
-
-public class AddressValidator : AbstractValidator<Address>
-{
-    public AddressValidator()
-    {
-        RuleFor(x => x.Street).NotEmpty().WithMessage("Street is required");
-        RuleFor(x => x.City).NotEmpty().WithMessage("City is required");
-        RuleFor(x => x.PostalCode)
-            .NotEmpty().WithMessage("Postal code is required")
-            .Matches(@"^\d{5}(-\d{4})?$").WithMessage("Invalid postal code format");
-    }
-}
-```
-
 ### Async Validation
 
+`ValidateAsync` is naturally asynchronous, so validators can await I/O such as uniqueness checks:
+
 ```csharp
-public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
+public class CreateUserCommandValidator : ICommandValidator<CreateUserCommand>
 {
     private readonly IUserRepository _userRepository;
 
     public CreateUserCommandValidator(IUserRepository userRepository)
+        => _userRepository = userRepository;
+
+    public async Task<IValidationResult> ValidateAsync(CreateUserCommand command)
     {
-        _userRepository = userRepository;
+        var result = new ValidationResult();
 
-        RuleFor(x => x.Username)
-            .NotEmpty()
-            .MustAsync(BeUniqueUsername).WithMessage("Username is already taken");
+        if (await _userRepository.UsernameExistsAsync(command.Username))
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.Username), "Username is already taken",
+                command.Username, Severity.Error));
 
-        RuleFor(x => x.Email)
-            .NotEmpty()
-            .EmailAddress()
-            .MustAsync(BeUniqueEmail).WithMessage("Email is already registered");
-    }
+        if (await _userRepository.EmailExistsAsync(command.Email))
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.Email), "Email is already registered",
+                command.Email, Severity.Error));
 
-    private async Task<bool> BeUniqueUsername(string username, CancellationToken cancellationToken)
-    {
-        return !await _userRepository.UsernameExistsAsync(username, cancellationToken);
-    }
-
-    private async Task<bool> BeUniqueEmail(string email, CancellationToken cancellationToken)
-    {
-        return !await _userRepository.EmailExistsAsync(email, cancellationToken);
+        return result;
     }
 }
+```
+
+### Using FluentValidation Internally
+
+FluentValidation (or any other library) can implement the rules **inside** the Minded validator. The decorator only resolves and invokes the Minded interface; how the result is produced is an internal detail of your validator class:
+
+```csharp
+using FluentValidation;
+using Minded.Extensions.Validation;
+using Minded.Extensions.Validation.Decorator;
+
+public class CreateUserCommandValidator : ICommandValidator<CreateUserCommand>
+{
+    // Internal FluentValidation rules - not visible to the framework
+    private class Rules : AbstractValidator<CreateUserCommand>
+    {
+        public Rules()
+        {
+            RuleFor(x => x.Username).NotEmpty().MinimumLength(3);
+            RuleFor(x => x.Email).NotEmpty().EmailAddress();
+            RuleFor(x => x.Age).GreaterThanOrEqualTo(18);
+        }
+    }
+
+    public async Task<IValidationResult> ValidateAsync(CreateUserCommand command)
+    {
+        var fluentResult = await new Rules().ValidateAsync(command);
+
+        // Map FluentValidation failures to Minded outcome entries
+        return new ValidationResult(fluentResult.Errors.Select(f =>
+            (IOutcomeEntry)new OutcomeEntry(
+                f.PropertyName, f.ErrorMessage, f.AttemptedValue, Severity.Error)));
+    }
+}
+```
+
+> A plain `AbstractValidator<T>` on its own is **not** picked up by the framework — the decorator resolves `ICommandValidator<TCommand>` / `IQueryValidator<TQuery, TResult>` from DI, so the class registered for the command/query must implement the Minded interface.
+
+### Outcome Severity
+
+Use `Severity` to distinguish hard failures from advisory checks. Only `Severity.Error` entries make a result invalid; `Warning` and `Info` entries flow through to the response without blocking the handler:
+
+```csharp
+result.OutcomeEntries.Add(new OutcomeEntry(
+    nameof(command.Password), "Password is weak",
+    null, Severity.Warning, "WeakPassword"));
 ```
 
 ## Best Practices
@@ -203,7 +269,7 @@ Each validator should validate a single command or query:
 
 ```csharp
 // Good - focused validator
-public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand> { }
+public class CreateUserCommandValidator : ICommandValidator<CreateUserCommand> { }
 
 // Avoid - generic validators that try to handle multiple types
 ```
@@ -212,44 +278,39 @@ public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand> {
 
 ```csharp
 // Good - clear, actionable messages
-RuleFor(x => x.Email)
-    .EmailAddress().WithMessage("Email must be a valid email address");
+new OutcomeEntry(nameof(command.Email), "Email must be a valid email address", command.Email, Severity.Error)
 
 // Avoid - generic messages
-RuleFor(x => x.Email)
-    .EmailAddress().WithMessage("Invalid");
+new OutcomeEntry(nameof(command.Email), "Invalid", command.Email, Severity.Error)
 ```
 
 ### 3. Validate Business Rules in Validators
 
 ```csharp
-public class TransferFundsCommandValidator : AbstractValidator<TransferFundsCommand>
+public class TransferFundsCommandValidator : ICommandValidator<TransferFundsCommand>
 {
-    public TransferFundsCommandValidator()
+    public Task<IValidationResult> ValidateAsync(TransferFundsCommand command)
     {
-        RuleFor(x => x.Amount)
-            .GreaterThan(0).WithMessage("Transfer amount must be greater than zero")
-            .LessThanOrEqualTo(10000).WithMessage("Transfer amount cannot exceed $10,000 per transaction");
+        var result = new ValidationResult();
 
-        RuleFor(x => x.FromAccountId)
-            .NotEqual(x => x.ToAccountId).WithMessage("Cannot transfer to the same account");
+        if (command.Amount <= 0)
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.Amount), "Transfer amount must be greater than zero",
+                command.Amount, Severity.Error));
+
+        if (command.FromAccountId == command.ToAccountId)
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                nameof(command.ToAccountId), "Cannot transfer to the same account",
+                command.ToAccountId, Severity.Error));
+
+        return Task.FromResult<IValidationResult>(result);
     }
 }
 ```
 
-### 4. Register Validators in DI Container
+### 4. Reuse Entity Validators
 
-Validators are automatically discovered and registered when using `AddMinded()`:
-
-```csharp
-services.AddMinded(builder =>
-{
-    builder.AddCommandValidationDecorator();
-});
-
-// Validators are automatically registered as:
-// services.AddTransient<IValidator<CreateUserCommand>, CreateUserCommandValidator>();
-```
+Inject `IValidator<TEntity>` implementations into command validators and combine the results with `Merge` (see [ValidationResult and Merge](#validationresult-and-merge)).
 
 ## Configuration Options
 
@@ -258,7 +319,7 @@ services.AddMinded(builder =>
 The validation decorator has **no runtime configuration options**. Validation behavior is controlled entirely by:
 
 1. **Attributes** - `[ValidateCommand]` or `[ValidateQuery]` on commands/queries
-2. **Validators** - FluentValidation validator classes
+2. **Validators** - classes implementing the Minded validator interfaces
 
 ```csharp
 // Register validation decorator for commands
@@ -266,21 +327,15 @@ builder.AddCommandValidationDecorator();
 
 // Register validation decorator for queries
 builder.AddQueryValidationDecorator();
-
-// Register both
-builder.AddCommandValidationDecorator();
-builder.AddQueryValidationDecorator();
 ```
 
-**Note:** Unlike other decorators (Logging, Exception, Transaction), the Validation decorator does not accept configuration options during registration. All validation logic is defined in your FluentValidation validator classes.
+**Note:** Unlike other decorators (Logging, Exception, Transaction), the Validation decorator does not accept configuration options during registration. All validation logic is defined in your validator classes.
 
 ### Controlling Validation Behavior
 
-Validation behavior is controlled through:
-
 #### 1. Attributes (Required)
 
-Commands/queries must be decorated with the appropriate attribute:
+Commands/queries must be decorated with the appropriate attribute, otherwise the decorator is not applied:
 
 ```csharp
 [ValidateCommand]  // For commands
@@ -290,31 +345,9 @@ public class CreateUserCommand : ICommand<User> { }
 public class GetUserQuery : IQuery<User> { }
 ```
 
-#### 2. Validator Classes
+#### 2. Validator Classes (Required for decorated types)
 
-Define validation rules using FluentValidation:
-
-```csharp
-public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
-{
-    public CreateUserCommandValidator()
-    {
-        RuleFor(x => x.Username).NotEmpty().MinimumLength(3);
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Age).GreaterThanOrEqualTo(18);
-    }
-}
-```
-
-#### 3. Validator Severity
-
-Control outcome severity in validators:
-
-```csharp
-RuleFor(x => x.Email)
-    .NotEmpty()
-    .WithSeverity(Severity.Error);  // Error, Warning, or Information
-```
+Every `[ValidateCommand]`-decorated command **must** have a registered `ICommandValidator<TCommand>`, and every `[ValidateQuery]`-decorated query an `IQueryValidator<TQuery, TResult>`. The decorator takes the validator as a **constructor dependency**, so a decorated command/query with no registered validator fails at dispatch time with a DI resolution error (see [Troubleshooting](#troubleshooting)).
 
 ## Integration with RestMediator
 
@@ -338,31 +371,32 @@ public class UserController : ControllerBase
         // Validation runs automatically
         // Returns 400 Bad Request if validation fails
         // Returns 200 OK with result if validation passes
-        return await _mediator.ProcessCommandAsync(command);
+        return await _mediator.ProcessRestCommandAsync(RestOperation.CreateWithContent, command);
     }
 }
 ```
 
 ## Troubleshooting
 
-### Validators Not Running
+### DI Resolution Error When Dispatching
 
-Ensure validators are in the same assembly as your commands/queries, or explicitly register them:
+If dispatching a `[ValidateCommand]`-decorated command throws a dependency-injection resolution error (unable to resolve `ICommandValidator<TCommand>`), the command has no registered validator. The validation decorator receives the validator through its constructor, so the failure happens at dispatch time, not at startup.
 
-```csharp
-services.AddValidatorsFromAssembly(typeof(CreateUserCommandValidator).Assembly);
-```
+Validators are auto-registered by `AddCommandValidationDecorator()` / `AddQueryValidationDecorator()`, which scan the service assemblies selected by the `AddMinded` assembly filter. Ensure:
+
+1. The validator class implements `ICommandValidator<TCommand>` (or `IQueryValidator<TQuery, TResult>`), and
+2. It lives in an assembly matched by the `AddMinded` assembly filter.
 
 ### Validation Errors Not Appearing
 
-Check that the validation decorator is registered **before** other decorators:
+Check that the validation decorator is registered **before** other decorators (first registered = innermost, runs right before the handler):
 
 ```csharp
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
-    builder.AddCommandValidationDecorator();  // First
+    builder.AddCommandValidationDecorator();  // First registered = innermost
     builder.AddCommandLoggingDecorator();     // After validation
-    builder.AddCommandExceptionDecorator();   // Last
+    builder.AddCommandExceptionDecorator();   // Last registered = outermost
 });
 ```
 
@@ -418,6 +452,6 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 
 - [GitHub Repository](https://github.com/norcino/Minded)
 - [NuGet Package](https://www.nuget.org/packages/Minded.Extensions.Validation)
-- [FluentValidation Documentation](https://docs.fluentvalidation.net/)
+- [FluentValidation Documentation](https://docs.fluentvalidation.net/) (optional library for implementing rules inside Minded validators)
 - [Main Documentation](https://github.com/norcino/Minded#readme)
 - [Changelog](https://github.com/norcino/Minded/blob/master/Changelog.md)

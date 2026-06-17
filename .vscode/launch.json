@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Backend: MindedExample.Api",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/Example/MindedExample.Api/MindedExample.Api.csproj"
+        },
+        {
+            "name": "Frontend: Chrome",
+            "type": "pwa-chrome",
+            "request": "launch",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/Example/Frontend/src",
+            "preLaunchTask": "frontend: dev"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full Stack: Frontend + MindedExample.Api",
+            "configurations": [
+                "Backend: MindedExample.Api",
+                "Frontend: Chrome"
+            ],
+            "stopAll": true
+        }
+    ]
+}

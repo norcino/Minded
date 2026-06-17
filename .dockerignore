@@ -1,0 +1,12 @@
+# Build context hygiene for the API image (built from the repository root).
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/TestResults/
+**/test-results/
+**/playwright-report/
+Example/Tests/e2e-ui/.auth/
+.git/
+.vs/
+.claude/

@@ -49,7 +49,7 @@ public class CreatePaymentCommand : ICommand<Payment>
 ```csharp
 using Minded.Extensions.Configuration;
 
-services.AddMinded(builder =>
+services.AddMinded(configuration, mindedBuilderConfiguration: builder =>
 {
     // Add transaction decorator for commands
     builder.AddCommandTransactionDecorator();
@@ -221,13 +221,13 @@ public bool GetEffectiveEnableLogging()
 
 ### Transaction Attributes
 
-Configure transaction behavior per command/query using attributes:
+Configure transaction behavior per command/query using attributes. Both attributes have a **parameterless constructor and settable properties**, so they are configured with C# attribute named-property initialization — e.g. `[TransactionalCommand(IsolationLevel = IsolationLevel.Serializable, TimeoutSeconds = 30)]`. The constructor sets the defaults: `TransactionScopeOption.Required`, `IsolationLevel.ReadCommitted`, and `TimeoutSeconds = 0` (`0` means "use the default timeout from `TransactionOptions`", which is 1 minute unless configured).
 
 **[TransactionalCommand] Attribute:**
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-public class TransactionCommandAttribute : Attribute
+public class TransactionalCommandAttribute : Attribute
 {
     /// <summary>
     /// Transaction scope option (default: Required)
@@ -250,9 +250,9 @@ public class TransactionCommandAttribute : Attribute
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-public class TransactionQueryAttribute : Attribute
+public class TransactionalQueryAttribute : Attribute
 {
-    // Same properties as TransactionCommandAttribute
+    // Same properties as TransactionalCommandAttribute
     public TransactionScopeOption TransactionScopeOption { get; set; }
     public IsolationLevel IsolationLevel { get; set; }
     public int TimeoutSeconds { get; set; }
@@ -283,6 +283,45 @@ public class CriticalOperationCommand : ICommand<Result> { }
 ```
 
 **Note:** Attribute properties override TransactionOptions defaults.
+
+### Automatic Rollback on Unsuccessful Response
+
+When `RollbackOnUnsuccessfulResponse` is `true` (the default in `TransactionOptions`), returning an unsuccessful `ICommandResponse` (`Successful = false`) from the handler automatically rolls the transaction back — the decorator skips `scope.Complete()`, so the transaction is discarded when the scope is disposed. No explicit rollback code is needed:
+
+```csharp
+public async Task<ICommandResponse<Order>> HandleAsync(
+    CreateOrderCommand command,
+    CancellationToken cancellationToken)
+{
+    await _orderRepository.AddAsync(order, cancellationToken);
+
+    if (!await _inventoryService.TryReserveItemsAsync(command.Items, cancellationToken))
+    {
+        // Returning an unsuccessful response rolls back the transaction automatically
+        return CommandResponse<Order>.Error(
+            new OutcomeEntry(null, "Could not reserve inventory"));
+    }
+
+    return CommandResponse<Order>.Success(order);
+}
+```
+
+Set `RollbackOnUnsuccessfulResponse = false` if only exceptions should cause a rollback.
+
+### TransactionScopeOption Values
+
+| Value | Behavior | When to use |
+|-------|----------|-------------|
+| `Required` (default) | Joins the ambient transaction if one exists; otherwise creates a new one | The default choice; lets nested `[TransactionalCommand]` commands share a single transaction |
+| `RequiresNew` | Always starts a new, independent transaction, suspending any ambient one | Operations that must commit or roll back independently of the caller (e.g. audit records that must persist even when the outer operation fails) |
+| `Suppress` | Executes without any ambient transaction | Non-transactional work inside a transactional flow that must not enlist in or roll back with the outer transaction |
+
+```csharp
+[TransactionalCommand(TransactionScopeOption = TransactionScopeOption.RequiresNew)]
+public class WriteAuditEntryCommand : ICommand<bool> { }
+```
+
+> **Note:** When a nested transaction requests a different `IsolationLevel` than the ambient transaction, the decorator automatically promotes the scope to `RequiresNew`, because a `TransactionScope` cannot join an ambient transaction with a different isolation level.
 
 ### Isolation Levels
 
@@ -363,19 +402,21 @@ public class CreateOrderWithPaymentCommandHandler : ICommandHandler<CreateOrderW
             new CreateOrderCommand { Order = command.Order },
             cancellationToken);
 
-        if (!orderResult.Success)
-            return CommandResponse<Order>.Failure("Failed to create order");
+        if (!orderResult.Successful)
+            return CommandResponse<Order>.Error(
+                new OutcomeEntry(null, "Failed to create order"));
 
         // This also joins the same transaction
         var paymentResult = await _mediator.ProcessCommandAsync(
             new ProcessPaymentCommand { Payment = command.Payment },
             cancellationToken);
 
-        if (!paymentResult.Success)
+        if (!paymentResult.Successful)
         {
             // Payment failed - entire transaction rolls back
             // Order creation is also rolled back
-            return CommandResponse<Order>.Failure("Payment failed");
+            return CommandResponse<Order>.Error(
+                new OutcomeEntry(null, "Payment failed"));
         }
 
         // Both operations succeed - transaction commits
@@ -499,12 +540,14 @@ public async Task<CommandResponse<Order>> HandleAsync(
     catch (TransactionAbortedException ex)
     {
         // Transaction was aborted (timeout, deadlock, etc.)
-        return CommandResponse<Order>.Failure("Transaction failed: " + ex.Message);
+        return CommandResponse<Order>.Error(
+            new OutcomeEntry(null, "Transaction failed: " + ex.Message));
     }
     catch (DbUpdateConcurrencyException ex)
     {
         // Concurrency conflict
-        return CommandResponse<Order>.Failure("Order was modified by another user");
+        return CommandResponse<Order>.Error(
+            new OutcomeEntry(null, "Order was modified by another user"));
     }
 }
 ```

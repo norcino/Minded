@@ -23,7 +23,7 @@ A modern React TypeScript application built with Vite and Material-UI (MUI) for 
 
 - Node.js (v18 or higher)
 - npm (v9 or higher)
-- Minded Example API running on `http://localhost:5000`
+- Minded Example API running on `http://localhost:6000`
 
 ## How to Build and Run
 
@@ -39,7 +39,7 @@ npm install
 npm run dev
 ```
 
-The application will start on `http://localhost:3000` and automatically proxy API requests to `http://localhost:5000`.
+The application will start on `http://localhost:3000` and automatically proxy API requests to `http://localhost:6000`.
 
 ### 3. Build for Production
 

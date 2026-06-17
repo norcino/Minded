@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.3.0 (2026-04-18)
+Aligned all package versions to 1.3.0, added .NET 10 support, upgraded all Microsoft dependencies to 10.x, and introduced the new Minded.Extensions.Authorization package for RBAC authorization.
+
+### New Packages
+
+* **Minded.Extensions.Authorization** - RBAC authorization decorator with role and permission attributes
+
+### Affected
+
+* All packages - version aligned to 1.3.0
+* All packages - added .NET 10 target framework support
+* All Microsoft NuGet dependencies upgraded to 10.x versions
+* Example application - general improvements and authorization showcase
+
+### Added
+
+* Added support for .NET 10
+* Upgraded NuGet package dependencies including Microsoft's to 10.x versions
+* Added `Minded.Extensions.Authorization` package with RBAC authorization decorator
+* Added `[RequireRoles]` attribute for role-based access control on commands and queries
+* Added `[RequirePermissions]` attribute for permission-based access control on commands and queries
+* Added `[RequireClaim]` attribute for claim-based access control with value matching, `AuthorizationMatch` modes, and `MatchProperty` to bind a claim value to a request property
+* Added `[RequireResourceAccess]` attribute for resource-based authorization that dispatches an `IQuery<bool>` (or `IQuery<IQueryResponse<bool>>`) authorization query through the mediator using a request property as resource id and a claim as caller identifier
+* Added `OrAnyRole`, `OrAnyPermission`, and `OrAnyClaim` properties on `[RequireRoles]`, `[RequirePermissions]`, `[RequireClaim]`, and `[RequireResourceAccess]` to short-circuit the primary clause when any listed role/permission/claim is present
+* Added `[RequireAuthentication]` attribute for authentication-only checks without RBAC
+* Added `[AllowUnauthenticated]` attribute to opt out of enforce-authentication policies
+* Added `AuthorizationMatch` enum with `All`, `Any`, `AtLeast`, and `None` matching modes
+* Added `AuthorizationContext` for representing caller identity, roles, permissions, and claims (claim keys are case-insensitive)
+* Added `IAuthorizationContextAccessor` interface to bridge authentication mechanisms
+* Added `DefaultRequestAuthorizationEvaluator` for case-insensitive RBAC evaluation
+* Added `AuthorizationOptions` with `RequireAuthenticationForAllCommands` and `RequireAuthenticationForAllQueries` policies
+* Added `AuthorizationDescriptorCache` for compiled attribute caching at startup
+* Added eager attribute validation at startup to catch configuration errors early (now also validates `MatchProperty` and `ResourceIdProperty` exist on the request type and that the authorization query type exposes a public `(object resourceId, string claimValue)` constructor)
+* Added recursion prevention for resource authorization: the inner authorization query runs inside an async-flow-scoped bypass marker on `IMindedContext`, preventing the authorization decorator from re-evaluating itself when dispatched through the mediator
+* Added `MindedContextRequiredException` thrown at runtime when a `[RequireResourceAccess]` clause is reached without an active `IMindedContext`, with a remediation message pointing to the Minded context decorator registration
+* Added `AddCommandAuthorizationDecorator()` and `AddQueryAuthorizationDecorator()` extension methods (now also register a fallback `IMindedContextAccessor` so the decorators can resolve the ambient context)
+* Added `AddAuthorizationContextAccessor<T>()` and `AddRequestAuthorizationEvaluator<T>()` extension methods
+* Added `Minded.Extensions.Authorization` README and developer documentation with usage examples and DI registration guidance
+* Added authorization showcase in Example application with roles, permissions, and admin section
+* Added `Permissions` and `Roles` static classes with `const string` fields for compile-time safe permission/role references
+* Added `Role` and `Permission` domain entities with many-to-many relationships
+* Added admin section in Example frontend for role management and user-role assignment
+* Added impersonation-based authorization context accessor in Example API
+* Added default "User" role assignment for newly registered users
+
+### Changed
+
+* Aligned all package versions to 1.3.0
+* General improvement of Example application
+
 ## 1.2.0 (2025-11-17)
 Added sensitive data protection feature to prevent PII and confidential data from appearing in logs.
 Created new `Minded.Extensions.DataProtection` packages for centralized data protection functionality.
@@ -193,7 +243,7 @@ Fixed critical bugs in DefaultRulesProcessor and validation logic.
 * Added 5 integration tests for end-to-end retry decorator validation
 * Added retry decorator demonstration in Example application (CreateCategoryCommandHandler)
 * Added comprehensive retry decorator documentation in README.md
-* Added `ExistsCategoryByIdQuery` and `ExistsTransactionByIdQuery` for data validation
+* Added `ExistsCategoryInCurrentTenantQuery` and `ExistsTransactionByIdQuery` for data validation
 * Added 48 edge case tests for DefaultRulesProcessor
 * Added 23 unit tests for Service.Transaction
 * Added 14 new unit tests for Service.Category (total 21)

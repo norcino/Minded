@@ -21,6 +21,7 @@
 - [Example Application](#example-application)
 - [Available Packages](#available-packages)
 - [Documentation](#documentation)
+- [AI-Assisted Development](#ai-assisted-development)
 - [License](#license)
 
 ---
@@ -138,6 +139,7 @@ dotnet add package Minded.Extensions.Validation      # For validation
 dotnet add package Minded.Extensions.Logging         # For logging
 dotnet add package Minded.Extensions.Exception       # For exception handling
 dotnet add package Minded.Extensions.Caching.Memory  # For caching
+dotnet add package Minded.Extensions.Authorization    # For RBAC authorization
 dotnet add package Minded.Extensions.OData           # For OData support
 ```
 
@@ -525,6 +527,7 @@ The following decorators accept configuration options:
 | **Transaction** | `TransactionOptions` | ❌ No | ✅ Yes |
 | **Exception** | `ExceptionOptions` | ✅ Yes | ❌ No |
 | **Data Protection** | `DataProtectionOptions` | ✅ Yes | ✅ Yes |
+| **Authorization** | `AuthorizationOptions` | ✅ Yes | ❌ No |
 
 **Decorators without Configuration Options**:
 - **Validation** - Configured via `[ValidateCommand]`/`[ValidateQuery]` attributes and FluentValidation validators
@@ -1041,6 +1044,190 @@ public class GetOrderWithItemsQuery : IQuery<OrderDto>
 
 **See**: [Transaction Decorator Documentation](Extensions/Minded.Extensions.Transaction/README.md)
 
+#### Authorization Decorator
+
+**Purpose**: Enforce Role-Based Access Control (RBAC) on commands and queries through declarative attributes
+
+**Package**: `Minded.Extensions.Authorization`
+
+**Installation**:
+```bash
+dotnet add package Minded.Extensions.Authorization
+```
+
+**Usage**:
+```csharp
+builder.AddCommandValidationDecorator()
+       .AddCommandTransactionDecorator()
+       .AddCommandAuthorizationDecorator()       // After validation/transaction, before logging
+       .AddCommandLoggingDecorator()
+       .AddCommandExceptionDecorator()
+       .AddCommandHandlers();
+
+builder.AddQueryValidationDecorator()
+       .AddQueryMemoryCacheDecorator()
+       .AddQueryAuthorizationDecorator()         // After validation/cache, before logging
+       .AddQueryLoggingDecorator()
+       .AddQueryExceptionDecorator()
+       .AddQueryHandlers();
+```
+
+**How it works**:
+1. The decorator resolves an `AuthorizationDescriptor` from the command/query type's attributes (compiled once, then cached)
+2. If the request has no RBAC attributes and no enforce-authentication policy applies, it passes through to the inner handler
+3. If `[AllowUnauthenticated]` is present, the request passes through without any checks
+4. The decorator retrieves the caller's `AuthorizationContext` via `IAuthorizationContextAccessor`
+5. If the caller has no principal (`HasPrincipal = false`), the request is denied with a 401 error
+6. If the caller is authenticated, the evaluator checks all role and permission clauses (implicit AND)
+7. If all clauses pass, the request proceeds to the inner handler; otherwise it is denied with a 403 error
+
+**Attribute Examples**:
+
+```csharp
+// Require specific roles (all must be present by default)
+[RequireRoles("Admin", "Manager")]
+public class DeleteOrderCommand : ICommand { }
+
+// Require specific permissions
+[RequirePermissions("orders.read", "orders.export")]
+public class ExportOrdersQuery : IQuery<IQueryResponse<byte[]>> { }
+
+// Require authentication only (no specific roles or permissions)
+[RequireAuthentication]
+public class GetProfileQuery : IQuery<IQueryResponse<UserProfile>> { }
+
+// Explicitly allow unauthenticated access (opts out of enforce-auth policy)
+[AllowUnauthenticated]
+public class GetPublicCatalogQuery : IQuery<IQueryResponse<IEnumerable<Product>>> { }
+```
+
+**Match Modes**:
+
+Control how items within a single clause are matched using the `Match` property:
+
+```csharp
+// All (default) — every role must be present
+[RequireRoles("Admin", "Manager", Match = AuthorizationMatch.All)]
+public class SensitiveCommand : ICommand { }
+
+// Any — at least one role must be present
+[RequireRoles("Admin", "Manager", "Support", Match = AuthorizationMatch.Any)]
+public class ViewDashboardQuery : IQuery<IQueryResponse<Dashboard>> { }
+
+// AtLeast — at least Minimum items must be present
+[RequirePermissions("reports.read", "reports.export", "reports.delete",
+    Match = AuthorizationMatch.AtLeast, Minimum = 2)]
+public class GenerateReportCommand : ICommand<Report> { }
+
+// None — none of the items may be present (exclusion)
+[RequireRoles("Suspended", "Banned", Match = AuthorizationMatch.None)]
+public class PlaceOrderCommand : ICommand<Order> { }
+```
+
+**Compound Rules** (multiple attributes combine with implicit AND):
+
+```csharp
+// Caller must have BOTH the "Admin" role AND the "users.delete" permission
+[RequireRoles("Admin")]
+[RequirePermissions("users.delete")]
+public class DeleteUserCommand : ICommand { }
+
+// Caller must satisfy ALL three clauses
+[RequireRoles("Manager", "TeamLead", Match = AuthorizationMatch.Any)]
+[RequirePermissions("projects.write")]
+[RequireRoles("Suspended", Match = AuthorizationMatch.None)]
+public class UpdateProjectCommand : ICommand<Project> { }
+```
+
+**Configuration**:
+
+```csharp
+// With options
+builder.AddCommandAuthorizationDecorator(options =>
+{
+    // Require authentication for ALL commands, even those without RBAC attributes
+    options.RequireAuthenticationForAllCommands = true;
+});
+
+builder.AddQueryAuthorizationDecorator(options =>
+{
+    // Require authentication for ALL queries
+    options.RequireAuthenticationForAllQueries = true;
+
+    // Dynamic provider (takes precedence over static value)
+    options.RequireAuthenticationForAllQueriesProvider = () =>
+        _featureFlags.IsEnabled("EnforceQueryAuth");
+});
+```
+
+When `RequireAuthenticationForAllCommands` or `RequireAuthenticationForAllQueries` is enabled, every request without RBAC attributes and without `[AllowUnauthenticated]` will require an authenticated caller. Use `[AllowUnauthenticated]` to opt specific requests out of this policy.
+
+**IAuthorizationContextAccessor**:
+
+Implement `IAuthorizationContextAccessor` to bridge your authentication mechanism to the authorization system:
+
+```csharp
+public class HttpAuthorizationContextAccessor : IAuthorizationContextAccessor
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public HttpAuthorizationContextAccessor(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public AuthorizationContext Current
+    {
+        get
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            if (user?.Identity?.IsAuthenticated != true)
+                return new AuthorizationContext(hasPrincipal: false);
+
+            var roles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
+
+            var permissions = user.Claims
+                .Where(c => c.Type == "permission")
+                .Select(c => c.Value)
+                .ToList();
+
+            return new AuthorizationContext(hasPrincipal: true, roles: roles, permissions: permissions);
+        }
+    }
+}
+
+// Register in DI
+services.AddAuthorizationContextAccessor<HttpAuthorizationContextAccessor>();
+```
+
+**Error Codes**:
+
+| Scenario | ErrorCode | HTTP Status | Description |
+|----------|-----------|-------------|-------------|
+| No authenticated principal | `GenericErrorCodes.NotAuthenticated` ("401") | 401 Unauthorized | Caller has no identity |
+| RBAC clauses not satisfied | `GenericErrorCodes.NotAuthorized` ("403") | 403 Forbidden | Caller lacks required roles/permissions |
+
+These error codes are already handled by the existing `DefaultRestRulesProvider` — no custom `IRestRulesProvider` is needed.
+
+**Raw Query Exceptions**:
+
+For queries returning a raw result type (not `IQueryResponse<T>`), the decorator throws standard BCL exceptions instead of returning an envelope response:
+- `System.Security.SecurityException` — for 403 (RBAC denied)
+- `System.UnauthorizedAccessException` — for 401 (no principal)
+
+These are caught by Minded's existing `ExceptionQueryHandlerDecorator`.
+
+**Best Practices**:
+- Use `[AllowUnauthenticated]` sparingly — only for truly public endpoints
+- Enable `RequireAuthenticationForAllCommands` / `RequireAuthenticationForAllQueries` for a secure-by-default posture
+- Place the authorization decorator after validation and transaction in the pipeline so invalid requests are rejected first
+- Implement `IAuthorizationContextAccessor` as a scoped service to match the HTTP request lifecycle
+- Keep role and permission names consistent across your application — comparison is case-insensitive with trimmed whitespace
+- Do not combine `[AllowUnauthenticated]` with RBAC attributes on the same class — this is rejected at startup
+
 #### WebApi Decorator - Working with RestMediator
 
 The `RestMediator` simplifies REST API development by automatically mapping command/query results to HTTP responses.
@@ -1144,7 +1331,7 @@ public class User
 **Configure DataProtection based on environment:**
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     // Add DataProtection with environment-based configuration
     builder.AddDataProtection(options =>
@@ -1519,7 +1706,7 @@ public class MyCustomSanitizer : ILoggingSanitizer
 Register using ```RegisterLoggingSanitizerPipelineConfiguration``` in ```MindedBuilder``` it is possible to add a new sanitizer to the pipeline, which will be executed befure the logging output is generated, it is possible also to register specific properties to be excluded from the logging output:
 
 ```csharp
-services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("Service."), builder =>
+services.AddMinded(Configuration, assembly => assembly.Name.StartsWith("MindedExample.Application."), builder =>
 {
     builder.RegisterLoggingSanitizerPipelineConfiguration(pipeline =>
     {
@@ -1769,9 +1956,9 @@ Minded/
 │   ├── Minded.Extensions.Caching.Memory/
 │   └── Minded.Extensions.OData/
 ├── Example/                            # Example application
-│   ├── Application.Api/
-│   ├── Service.Category/
-│   ├── Service.Transaction/
+│   ├── MindedExample.Api/
+│   ├── MindedExample.Application.Category/
+│   ├── MindedExample.Application.Transaction/
 │   └── Tests/
 └── Tests/                              # Framework tests
 ````
@@ -1976,13 +2163,12 @@ The example application is a simple **Category and Transaction Management API** 
 
 ```
 Example/
-├── Application.Api/              # ASP.NET Core Web API
+├── MindedExample.Api/              # ASP.NET Core Web API
 │   ├── Controllers/
 │   │   ├── CategoryController.cs
 │   │   └── TransactionController.cs
-│   ├── Startup.cs               # Minded configuration
 │   └── Program.cs
-├── Service.Category/            # Category domain
+├── MindedExample.Application.Category/            # Category domain
 │   ├── Command/
 │   │   ├── CreateCategoryCommand.cs
 │   │   ├── UpdateCategoryCommand.cs
@@ -2000,54 +2186,63 @@ Example/
 │   └── Validator/
 │       ├── CreateCategoryCommandValidator.cs
 │       └── CategoryValidator.cs
-├── Service.Transaction/         # Transaction domain
+├── MindedExample.Application.Transaction/         # Transaction domain
 │   └── (similar structure)
-├── Data.Context/                # EF Core DbContext
+├── MindedExample.Infrastructure.Persistence/    # EF Core DbContext
 │   ├── MindedExampleContext.cs
 │   └── DatabaseSeeder.cs        # Automatic seeding
-├── Data.Entity/                 # Domain entities
+├── MindedExample.Domain/                 # Domain entities
 │   ├── Category.cs
 │   ├── Transaction.cs
 │   └── User.cs
 └── Tests/                       # Unit and integration tests
-    ├── Service.Category.Tests/
-    ├── Service.Transaction.Tests/
-    └── Application.Api.E2ETests/
+    ├── MindedExample.Application.Category.UnitTests/
+    ├── MindedExample.Application.Transaction.UnitTests/
+    └── MindedExample.Api.E2ETests/
 ```
 
 ### Running the Example
 
+For a detailed quick-start guide including prerequisites, login credentials, and sample data, see **[Example/example-app.md](Example/example-app.md)**.
+
 1. **Clone the Repository**
    ```bash
    git clone https://github.com/norcino/Minded.git
-   cd Minded/Example
+   cd Minded
    ```
 
-2. **Run the API**
+2. **Start the Database** (PostgreSQL via Docker — the default configuration points at it)
    ```bash
-   cd Application.Api
+   docker compose -f docker-compose.tests.yml up -d
+   ```
+   > No Docker? Set `"DatabaseType": "SQLiteInMemory"` in `Example/MindedExample.Api/appsettings.Development.json` instead — SQL Server is also supported via `"SQLServer"`/`"LocalDb"`.
+
+3. **Run the API** (schema is created and seeded automatically)
+   ```bash
+   cd Example/MindedExample.Api
    dotnet run
    ```
 
-3. **Access the API**
-   - Swagger UI: `https://localhost:5001/swagger`
-   - API Base URL: `https://localhost:5001/api`
+4. **Access the API**
+   - Swagger UI: `http://localhost:6000/swagger`
+   - API Base URL: `http://localhost:6000/api`
+   - Frontend (Vite): `http://localhost:3000`
 
-4. **Try Some Requests**
+5. **Try Some Requests**
 
    **Get all categories:**
    ```bash
-   GET https://localhost:5001/api/category
+   GET http://localhost:6000/api/category
    ```
 
    **Get a single category:**
    ```bash
-   GET https://localhost:5001/api/category/1
+   GET http://localhost:6000/api/category/1
    ```
 
    **Create a category:**
    ```bash
-   POST https://localhost:5001/api/category
+   POST http://localhost:6000/api/category
    Content-Type: application/json
 
    {
@@ -2057,14 +2252,14 @@ Example/
 
    **OData query:**
    ```bash
-   GET https://localhost:5001/api/category?$filter=name eq 'Electronics'&$orderby=name&$top=10
+   GET http://localhost:6000/api/category?$filter=name eq 'Electronics'&$orderby=name&$top=10
    ```
 
 ### Key Examples to Study
 
 #### 1. Simple Command with Validation
 
-**Command**: `Service.Category/Command/CreateCategoryCommand.cs`
+**Command**: `MindedExample.Application.Category/Command/CreateCategoryCommand.cs`
 ```csharp
 [ValidateCommand]
 public class CreateCategoryCommand : ICommand<Category>
@@ -2073,7 +2268,7 @@ public class CreateCategoryCommand : ICommand<Category>
 }
 ```
 
-**Handler**: `Service.Category/CommandHandler/CreateCategoryCommandHandler.cs`
+**Handler**: `MindedExample.Application.Category/CommandHandler/CreateCategoryCommandHandler.cs`
 ```csharp
 public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryCommand, Category>
 {
@@ -2094,7 +2289,7 @@ public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryComman
 }
 ```
 
-**Validator**: `Service.Category/Validator/CreateCategoryCommandValidator.cs`
+**Validator**: `MindedExample.Application.Category/Validator/CreateCategoryCommandValidator.cs`
 ```csharp
 public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCommand>
 {
@@ -2116,7 +2311,7 @@ public class CreateCategoryCommandValidator : ICommandValidator<CreateCategoryCo
 
 #### 2. Query with Caching
 
-**Query**: `Service.Category/Query/GetCategoryByIdQuery.cs`
+**Query**: `MindedExample.Application.Category/Query/GetCategoryByIdQuery.cs`
 ```csharp
 [MemoryCache(ExpirationInSeconds = 300)]
 public class GetCategoryByIdQuery : IQuery<Category>, IGenerateCacheKey
@@ -2129,7 +2324,7 @@ public class GetCategoryByIdQuery : IQuery<Category>, IGenerateCacheKey
 
 #### 3. Query with OData Support
 
-**Query**: `Service.Category/Query/GetCategoriesQuery.cs`
+**Query**: `MindedExample.Application.Category/Query/GetCategoriesQuery.cs`
 ```csharp
 [ValidateQuery]
 public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>,
@@ -2146,7 +2341,7 @@ public class GetCategoriesQuery : IQuery<IQueryResponse<IEnumerable<Category>>>,
 
 #### 4. Controller Using RestMediator
 
-**Controller**: `Application.Api/Controllers/CategoryController.cs`
+**Controller**: `MindedExample.Api/Controllers/CategoryController.cs`
 ```csharp
 [Route("api/[controller]")]
 public class CategoryController : Controller
@@ -2175,20 +2370,49 @@ public class CategoryController : Controller
 
 The example application automatically seeds the database with sample data in development mode. This is perfect for testing and understanding the framework.
 
-**See**: [Database Seeding Documentation](Example/Data.Context/README_DatabaseSeeding.md)
+**See**: [Database Seeding Documentation](Example/MindedExample.Infrastructure.Persistence/README_DatabaseSeeding.md)
 
 ### Running Tests
 
+The repository has a single, CI-agnostic test entry point: [`test.ps1`](test.ps1) (PowerShell, works on Windows `powershell`/`pwsh` and Linux/macOS `pwsh`). Any CI system should call this script instead of defining its own test logic.
+
 ```bash
-# Run all tests
-dotnet test
+# Fast tier (default): Framework/Extensions tests + Example unit tests — no infrastructure needed
+pwsh ./test.ps1 -Tier unit
 
-# Run specific test project
-cd Tests/Service.Category.Tests
-dotnet test
+# In-process API E2E + integration tests (WebApplicationFactory, SQLite in-memory) — no infrastructure needed
+pwsh ./test.ps1 -Tier api
 
-# Run with coverage
-dotnet test /p:CollectCoverage=true
+# Same API E2E suite against real PostgreSQL (starts docker-compose.tests.yml automatically;
+# each run uses a unique database that is created and dropped automatically)
+pwsh ./test.ps1 -Tier api -ApiDatabase postgres
+
+# Playwright browser E2E tests (real frontend + API + PostgreSQL; Docker started automatically)
+pwsh ./test.ps1 -Tier ui
+
+# Everything
+pwsh ./test.ps1 -Tier all
+```
+
+TRX result files and Cobertura coverage reports are written to `TestResults/<tier>/`. The script exits non-zero if any project fails, making it directly usable as a CI gate.
+
+A single project can still be run directly with `dotnet test path/to/Project.csproj`.
+
+#### PostgreSQL test database
+
+The `unit` and `api` tiers need no infrastructure. To run the Example application against a real database (and for the upcoming Playwright UI tier), a PostgreSQL instance is provided via Docker Compose:
+
+```bash
+docker compose -f docker-compose.tests.yml up -d    # start (host port 5433)
+docker compose -f docker-compose.tests.yml down     # stop
+docker compose -f docker-compose.tests.yml down -v  # stop and wipe all data
+```
+
+Two databases are created on first start: `mindedexample` (local API runs) and `mindedexample_e2e` (reserved for UI E2E tests). Credentials: `minded`/`minded`. To point the Example API at it, set `DatabaseType` to `PostgreSQL` (the `MindedExamplePostgreSQL` connection string in `appsettings.json` already targets `localhost:5433`):
+
+```bash
+DatabaseType=PostgreSQL dotnet run --project Example/MindedExample.Api    # bash
+$env:DatabaseType='PostgreSQL'; dotnet run --project Example/MindedExample.Api  # PowerShell
 ```
 
 ---
@@ -2221,6 +2445,7 @@ All Minded packages are available on NuGet:
 | [Minded.Extensions.Caching.Abstractions](https://www.nuget.org/packages/Minded.Extensions.Caching.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Caching.Abstractions.svg) | Caching interfaces and abstractions |
 | [Minded.Extensions.Caching.Memory](https://www.nuget.org/packages/Minded.Extensions.Caching.Memory/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Caching.Memory.svg) | In-memory caching decorator implementation |
 | [Minded.Extensions.Transaction](https://www.nuget.org/packages/Minded.Extensions.Transaction/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Transaction.svg) | Transaction decorator with nested transaction support |
+| [Minded.Extensions.Authorization](https://www.nuget.org/packages/Minded.Extensions.Authorization/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.Authorization.svg) | RBAC authorization decorator with role and permission attributes |
 | [Minded.Extensions.DataProtection.Abstractions](https://www.nuget.org/packages/Minded.Extensions.DataProtection.Abstractions/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.DataProtection.Abstractions.svg) | Data protection and sanitization interfaces |
 | [Minded.Extensions.DataProtection](https://www.nuget.org/packages/Minded.Extensions.DataProtection/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.DataProtection.svg) | Data protection implementation for PII/sensitive data sanitization |
 | [Minded.Extensions.CQRS.EntityFrameworkCore](https://www.nuget.org/packages/Minded.Extensions.CQRS.EntityFrameworkCore/) | ![NuGet](https://img.shields.io/nuget/v/Minded.Extensions.CQRS.EntityFrameworkCore.svg) | Entity Framework Core integration with base query classes |
@@ -2243,6 +2468,7 @@ All Minded packages are available on NuGet:
 - **[Logging](Extensions/Minded.Extensions.Logging/README.md)** - Comprehensive logging
 - **[Caching](Extensions/Minded.Extensions.Caching.Memory/README.md)** - In-memory caching for query results
 - **[Transaction](Extensions/Minded.Extensions.Transaction/README.md)** - Database transaction management with nested transaction support
+- **[Authorization](Extensions/Minded.Extensions.Authorization/README.md)** - RBAC authorization with role and permission attributes
 - **[WebApi/RestMediator](Extensions/Minded.Extensions.WebApi/README.md)** - REST API integration with automatic HTTP response mapping
 - **[Data Protection](Extensions/Minded.Extensions.DataProtection/README.md)** - Sensitive data protection and sanitization (PII, confidential business data)
 
@@ -2258,6 +2484,30 @@ All Minded packages are available on NuGet:
 - [Command Pattern](https://en.wikipedia.org/wiki/Command_pattern)
 - [Decorator Pattern](https://en.wikipedia.org/wiki/Decorator_pattern)
 - [CQRS](https://martinfowler.com/bliki/CQRS.html)
+
+---
+
+## AI-Assisted Development
+
+The [`AI/`](AI/) folder contains canonical steering files that teach AI coding tools how to work with Minded correctly. Two categories are covered:
+
+| File | Purpose |
+|------|---------|
+| [`AI/minded-contributing.md`](AI/minded-contributing.md) | For **framework contributors**: adding new decorator extensions, package conventions, coding standards |
+| [`AI/minded-utilization.md`](AI/minded-utilization.md) | For **application developers**: Commands, Queries, Handlers, Validators, DI setup, REST controllers |
+
+### Pre-configured for this repo
+
+| Tool | Files |
+|------|-------|
+| **GitHub Copilot** | `.github/copilot-instructions.md` (overview) · `.github/instructions/minded-backend.instructions.md` (Example app) · `.github/instructions/minded-contributing.instructions.md` (Framework/Extensions) |
+| **Kiro** | `.kiro/steering/minded-overview.md` · `.kiro/steering/minded-contributing.md` · `.kiro/steering/minded-utilization.md` |
+| **Claude Code** | `CLAUDE.md` |
+| **Augment Code** | `.augment/rules/minded-framework.md` |
+
+### Using Minded AI guidance in your application repo
+
+Copy [`AI/minded-utilization.md`](AI/minded-utilization.md) to your repo and configure it for your AI tool of choice. See [`AI/README.md`](AI/README.md) for per-tool setup instructions (frontmatter format, file path, and folder location for each tool).
 
 ---
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Transactions;
 
 namespace Minded.Extensions.Transaction.Decorator

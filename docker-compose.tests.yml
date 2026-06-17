@@ -1,0 +1,81 @@
+# PostgreSQL database for local development and automation tests, plus an optional
+# fully containerized application stack (API + frontend) behind the "full" profile.
+# See Roadmap/automation-testing-plan.md (tasks T-03, T-16, T-35) and the
+# "Running Tests" section of README.md.
+#
+#   Database only (default — what test.ps1 and the Playwright webServer mode use):
+#     Start:  docker compose -f docker-compose.tests.yml up -d
+#     Stop:   docker compose -f docker-compose.tests.yml down
+#     Reset:  docker compose -f docker-compose.tests.yml down -v
+#
+#   Full stack (database + API on :6000 + frontend on :3000 — no .NET/Node needed):
+#     Start:  docker compose -f docker-compose.tests.yml --profile full up -d --build --wait
+#     Stop:   docker compose -f docker-compose.tests.yml --profile full down
+#   The API database defaults to `mindedexample`; override with MINDED_DB
+#   (e.g. MINDED_DB=mindedexample_e2e to point the containerized stack at the UI-test
+#   database and run Playwright against it with BASE_URL=http://localhost:3000).
+#
+# Two databases are created on first start:
+#   mindedexample      - default database for running the API locally
+#   mindedexample_e2e  - dedicated database for Playwright UI E2E tests
+
+name: minded-tests
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: minded-postgres
+    environment:
+      POSTGRES_USER: minded
+      POSTGRES_PASSWORD: minded
+      POSTGRES_DB: mindedexample
+    ports:
+      # Host port 5433: 5432 is commonly taken by other local PostgreSQL instances
+      - "5433:5432"
+    volumes:
+      - minded-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minded -d mindedexample"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Example/MindedExample.Api/Dockerfile
+    container_name: minded-api
+    profiles: ["full"]
+    environment:
+      # Development: seeds the database (global admin + demo tenants) on startup
+      ASPNETCORE_ENVIRONMENT: Development
+      DatabaseType: PostgreSQL
+      ConnectionStrings__MindedExamplePostgreSQL: Host=postgres;Port=5432;Database=${MINDED_DB:-mindedexample};Username=minded;Password=minded
+    ports:
+      # Same host port the dev API uses, so helpers/docs work unchanged
+      - "6000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/healthcheck"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./Example/Frontend
+    container_name: minded-frontend
+    profiles: ["full"]
+    ports:
+      # Same host port the Vite dev server uses
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  minded-postgres-data:

@@ -4,12 +4,120 @@
  */
 export interface User {
   id: number;
+  tenantId?: number | null;
   name: string;
   surname: string;
   email: string;
+  tenantRole?: string;
+  isGlobalAdmin?: boolean;
   categories?: Category[];
   transactions?: Transaction[];
+  roles?: string[];
 }
+
+export interface Tenant {
+  id: number;
+  name: string;
+}
+
+export interface AuthResponse {
+  accessToken: string | null;
+  user: User;
+  tenant: Tenant | null;
+}
+
+export interface RegisterRequest {
+  name: string;
+  surname: string;
+  email: string;
+  password: string;
+  tenantName: string;
+  mode?: 'create-tenant' | 'join-tenant';
+  inviteToken?: string;
+}
+
+export interface PendingRegistrationResponse {
+  pendingApproval: boolean;
+  message: string;
+}
+
+export interface InviteResolution {
+  tenantName: string;
+  email?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface AcceptInviteRequest {
+  codeOrToken: string;
+  name: string;
+  surname: string;
+  email: string;
+  password: string;
+}
+
+export interface TenantInvite {
+  id: number;
+  email: string;
+  code: string;
+  token: string;
+  inviteLink: string;
+  expiresAtUtc: string;
+}
+
+export interface TenantSummary {
+  id: number;
+  name: string;
+  legalOwnerUserId?: number | null;
+  legalOwnerEmail?: string;
+  activeUsersCount: number;
+  categoriesCount: number;
+  transactionsCount: number;
+}
+
+export interface CreateTenantRequest {
+  name: string;
+  legalOwnerName: string;
+  legalOwnerSurname: string;
+  legalOwnerEmail: string;
+  legalOwnerPassword: string;
+}
+
+export interface TenantJoinRequest {
+  id: number;
+  tenantId: number;
+  name: string;
+  surname: string;
+  email: string;
+  createdAtUtc: string;
+}
+
+/**
+ * Role DTO with name and associated permissions.
+ * Roles are string-based, stored in join tables.
+ */
+export interface RoleDto {
+  name: string;
+  permissions: string[];
+}
+
+/**
+ * Grouped permissions returned by the API.
+ * Keys are group names (e.g. "Categories"), values are permission name arrays.
+ */
+export type PermissionGroups = Record<string, string[]>;
 
 /**
  * Category entity for organizing transactions.
@@ -84,4 +192,3 @@ export interface ODataResponse<T> {
   value: T[];
   '@odata.count'?: number;
 }
-

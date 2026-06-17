@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>$(AssemblyName)</PackageId>
     <Title>$(AssemblyName)</Title>
@@ -23,9 +23,9 @@
     <RepositoryUrl>https://github.com/norcino/Minded</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <AssemblyVersion>1.0.7</AssemblyVersion>
-    <FileVersion>1.0.7</FileVersion>
-    <VersionPrefix>1.0.7</VersionPrefix>
+    <AssemblyVersion>1.3.0</AssemblyVersion>
+    <FileVersion>1.3.0</FileVersion>
+    <VersionPrefix>1.3.0</VersionPrefix>
     <VersionSuffix></VersionSuffix>
     <RepositoryType>git</RepositoryType>
     <SignAssembly>True</SignAssembly>
@@ -37,12 +37,13 @@
     <None Include="Minded-128.png" Pack="true" PackagePath="\" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS.Abstractions\Minded.Framework.CQRS.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Framework\Minded.Framework.CQRS\Minded.Framework.CQRS.csproj" />
   </ItemGroup>
 </Project>

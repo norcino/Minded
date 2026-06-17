@@ -1,57 +1,103 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { User } from '../types';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { authService } from '../api/authService';
+import { AuthResponse, User } from '../types';
 
-/**
- * User context interface defining the shape of the context.
- * Provides user impersonation functionality to allow viewing the application
- * as different users without authentication.
- */
 interface UserContextType {
   currentUser: User | null;
+  accessToken: string | null;
+  tenantName: string | null;
+  isAuthenticated: boolean;
   setCurrentUser: (user: User | null) => void;
-  isImpersonating: boolean;
+  setAccessToken: (token: string | null) => void;
+  refreshCurrentUser: () => Promise<void>;
+  logout: () => void;
 }
 
-/**
- * User context for managing the currently impersonated user.
- * This allows the application to filter categories and transactions
- * based on the selected user.
- */
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-/**
- * Props for the UserProvider component.
- */
 interface UserProviderProps {
   children: ReactNode;
 }
 
-/**
- * UserProvider component that wraps the application and provides
- * user impersonation functionality.
- * 
- * @param props Component props containing children
- * @returns Provider component with user context
- */
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Hydrate synchronously: RequireAuth redirects on the FIRST render, so loading the saved
+  // user in an effect (after render) would bounce authenticated users to /login on hard refresh.
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (!savedUser) {
+      return null;
+    }
+    try {
+      return JSON.parse(savedUser) as User;
+    } catch {
+      localStorage.removeItem('currentUser');
+      return null;
+    }
+  });
+  const [accessToken, setAccessTokenState] = useState<string | null>(localStorage.getItem('accessToken'));
+  const [tenantName, setTenantName] = useState<string | null>(localStorage.getItem('tenantName'));
 
-  const value: UserContextType = {
-    currentUser,
-    setCurrentUser,
-    isImpersonating: currentUser !== null,
+  const setAccessToken = (token: string | null) => {
+    setAccessTokenState(token);
+    if (token) {
+      localStorage.setItem('accessToken', token);
+    } else {
+      localStorage.removeItem('accessToken');
+    }
   };
+
+  const applyAuthResponse = (response: AuthResponse) => {
+    setCurrentUser(response.user);
+    setTenantName(response.tenant?.name || null);
+    if (response.accessToken) {
+      setAccessToken(response.accessToken);
+    }
+    localStorage.setItem('currentUser', JSON.stringify(response.user));
+    if (response.tenant?.name) {
+      localStorage.setItem('tenantName', response.tenant.name);
+    } else {
+      localStorage.removeItem('tenantName');
+    }
+  };
+
+  const refreshCurrentUser = async () => {
+    if (!localStorage.getItem('accessToken')) {
+      return;
+    }
+
+    const me = await authService.me();
+    applyAuthResponse(me);
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    setTenantName(null);
+    setAccessToken(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('tenantName');
+  };
+
+  useEffect(() => {
+    // Re-validate the stored session against the API; an invalid/expired token logs out
+    refreshCurrentUser().catch(() => {
+      logout();
+    });
+  }, []);
+
+  const value = useMemo<UserContextType>(() => ({
+    currentUser,
+    accessToken,
+    tenantName,
+    isAuthenticated: !!currentUser && !!accessToken,
+    setCurrentUser,
+    setAccessToken,
+    refreshCurrentUser,
+    logout,
+  }), [currentUser, accessToken, tenantName]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
-/**
- * Custom hook to access the user context.
- * Must be used within a UserProvider.
- * 
- * @returns User context value
- * @throws Error if used outside of UserProvider
- */
 export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
   if (context === undefined) {
@@ -59,4 +105,3 @@ export const useUser = (): UserContextType => {
   }
   return context;
 };
-

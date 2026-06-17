@@ -36,7 +36,20 @@ The core feature of this package is the `QueryExtensions.ApplyQueryTo()` extensi
 | `ICanFilterExpression<T>` | `Expression<Func<T, bool>> Filter` | Applies a LINQ `.Where()` expression filter |
 | `ICanSkip` | `int? Skip` | Skips specified number of records (pagination) |
 | `ICanTop` | `int? Top` | Takes specified number of records (default: 100 if not specified) |
-| `ICanCount` | `bool Count`, `bool CountOnly`, `int CountValue` | Counts matching records |
+| `ICanCount` | `bool Count`, `bool CountOnly`, `int CountValue` | Computes the total number of records matching the filter, before pagination; `CountOnly` suppresses the data rows |
+
+### Trait Application Order
+
+For collection queries, `ApplyQueryTo()` applies the traits in a fixed order:
+
+1. **OrderBy** (`ICanOrderBy`)
+2. **Expand** (`ICanExpand` — EF Core `Include()`)
+3. **Filter** (`ICanFilterExpression<T>` — `Where()`)
+4. **Count** (`ICanCount` — `CountValue` is computed here, **after** filtering and **before** `Skip`/`Take`, so it always reflects the total number of records matching the criteria, not just the returned page)
+5. **Skip** (`ICanSkip`)
+6. **Top** (`ICanTop` — when `Top` is not set, a default `Take(100)` cap is applied to prevent unbounded queries)
+
+When `CountOnly` is `true`, the returned queryable yields **no data rows** — only `query.CountValue` is populated.
 
 ### Complete Example
 
@@ -126,9 +139,10 @@ var query = new GetProductsQuery
     Count = true
 };
 
-var response = await mediator.HandleAsync(query);
-// response.Outcome contains the products
-// query.CountValue contains the total count (if Count = true)
+var response = await mediator.ProcessQueryAsync(query);
+// response.Result contains the page of products (after Skip/Top)
+// query.CountValue contains the total number of records matching the Filter,
+// computed before Skip/Top (if Count = true)
 ```
 
 ### Trait Interface Details
@@ -194,12 +208,16 @@ Enables counting of matching records:
 
 ```csharp
 // Usage
-query.Count = true;      // Include count in response
-query.CountOnly = false; // Also return data (set true to only get count)
+query.Count = true;      // Compute the total count into query.CountValue
+query.CountOnly = false; // Also return data (set true to only get the count, with NO data rows)
 
 // After query execution:
 int totalRecords = query.CountValue;
 ```
+
+`CountValue` is computed **after** the filter is applied and **before** `Skip`/`Take`, so it always contains the total number of records matching the query criteria — not the size of the returned page. This makes it suitable for building pagination metadata (e.g. total page count) alongside a paged result.
+
+When `CountOnly = true`, `ApplyQueryTo()` returns a queryable that yields **no data rows**; only `query.CountValue` is populated.
 
 ### OData Integration
 
@@ -208,7 +226,6 @@ When used with `Minded.Extensions.CQRS.OData`, you can automatically populate tr
 ```csharp
 using Minded.Extensions.CQRS.OData;
 
-[EnableQuery]
 [HttpGet]
 public async Task<IActionResult> GetProducts(ODataQueryOptions<Product> options)
 {
@@ -218,8 +235,8 @@ public async Task<IActionResult> GetProducts(ODataQueryOptions<Product> options)
     // from OData query string: $filter, $orderby, $top, $skip, $count, $expand
     query.ApplyODataQueryOptions(options);
 
-    var response = await _mediator.HandleAsync(query);
-    return Ok(response.Outcome);
+    var response = await _mediator.ProcessQueryAsync(query);
+    return Ok(response.Result);
 }
 ```
 
@@ -299,7 +316,7 @@ using Minded.Extensions.Configuration;
 services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
-services.AddMinded(builder =>
+services.AddMinded(Configuration, mindedBuilderConfiguration: builder =>
 {
     builder.AddQueryLoggingDecorator();
     builder.AddQueryExceptionDecorator();
@@ -308,8 +325,7 @@ services.AddMinded(builder =>
 
 ## Query Patterns
 
-> **Note**: The following patterns show **manual** approaches to querying without using trait interfaces.
-> For dynamic filtering, ordering, and pagination, use the **trait interfaces** with `ApplyQueryTo()` as shown in the [QueryExtensions and Trait Interfaces](#queryextensions-and-trait-interfaces) section above.
+> **Note**: For dynamic filtering, ordering, and pagination, the query **must** implement the trait interfaces and the handler must call `ApplyQueryTo()`, as shown below and in the [QueryExtensions and Trait Interfaces](#queryextensions-and-trait-interfaces) section above. Traits that are not implemented are simply not applied.
 
 ### Query with Trait Interfaces
 
@@ -350,6 +366,58 @@ public class GetUsersQueryHandler : IQueryHandler<GetUsersQuery, IQueryResponse<
             .ToListAsync(cancellationToken);
 
         return new QueryResponse<IEnumerable<User>>(result);
+    }
+}
+```
+
+## Single-Entity Queries
+
+In addition to the collection overloads (which return a composable `IQueryable<T>`), `ApplyQueryTo()` provides two **async** overloads for queries returning a single entity:
+
+```csharp
+// For queries declared as IQuery<T>:
+// returns the first matching entity, or null when no match is found
+public static Task<T> ApplyQueryTo<T>(this IQuery<T> query, IQueryable<T> queryable) where T : class
+
+// For queries declared as IQuery<IQueryResponse<T>>
+public static Task<IQueryResponse<T>> ApplyQueryTo<T>(this IQuery<IQueryResponse<T>> query, IQueryable<T> queryable) where T : class
+```
+
+Both overloads apply only the `ICanExpand` (`Include()`) and `ICanFilterExpression<T>` (`Where()`) traits, then materialise the result with `FirstOrDefaultAsync()`. The `ICanCount`, `ICanTop`, `ICanSkip` and `ICanOrderBy` traits are **intentionally ignored** because they are not meaningful for single-entity queries.
+
+```csharp
+using System.Linq.Expressions;
+using Minded.Framework.CQRS.Query;
+using Minded.Framework.CQRS.Query.Trait;
+
+public class GetProductByIdQuery : IQuery<Product>, ICanFilterExpression<Product>, ICanExpand
+{
+    public GetProductByIdQuery(int id)
+    {
+        Filter = p => p.Id == id;
+    }
+
+    public Expression<Func<Product, bool>> Filter { get; set; }
+    public string[] Expand { get; set; }
+    public Guid TraceId { get; } = Guid.NewGuid();
+}
+
+public class GetProductByIdQueryHandler : IQueryHandler<GetProductByIdQuery, Product>
+{
+    private readonly ApplicationDbContext _context;
+
+    public GetProductByIdQueryHandler(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Product> HandleAsync(
+        GetProductByIdQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        // Applies Filter and Expand, then materialises with FirstOrDefaultAsync();
+        // returns null when no entity matches
+        return await query.ApplyQueryTo(_context.Products.AsNoTracking());
     }
 }
 ```
