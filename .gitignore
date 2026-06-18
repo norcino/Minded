@@ -10,6 +10,9 @@
 *.userosscache
 *.sln.docstates
 
+# Exception: project directories whose names happen to match *.user
+!**/MindedExample.Application.User/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
