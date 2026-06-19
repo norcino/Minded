@@ -164,6 +164,9 @@ jobs:
       }
     displayName: 'Load Configuration and List Packages'
 
+  - task: NuGetAuthenticate@1
+    displayName: 'Authenticate with Azure Artifacts'
+
   - pwsh: |
       $ErrorActionPreference = "Continue"
 
@@ -176,7 +179,7 @@ jobs:
         Write-Host "`nPushing: $($package.Name)"
         dotnet nuget push $package.FullName `
           --source "https://pkgs.dev.azure.com/norcino/781d4237-b045-4959-bd79-25174518b8d8/_packaging/b371f2d0-81c8-46d0-b653-f90e65088279/nuget/v3/index.json" `
-          --api-key az `
+          --api-key AzureDevOps `
           --skip-duplicate
 
         if ($LASTEXITCODE -ne 0) {
