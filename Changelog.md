@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.4.0 (Unreleased)
+Removed the `net8.0` target framework from all packages, which now target `net10.0` and `netstandard2.0`, and updated Microsoft dependencies to the latest 10.0.x patch releases.
+
+### Affected
+
+* All packages - version aligned to 1.4.0
+* All packages - removed `net8.0` target framework
+* Minded.Extensions.WebApi, Minded.Extensions.OData, Minded.Extensions.CQRS.OData, Minded.Extensions.CQRS.EntityFrameworkCore - dependency updates
+
+### Changed
+
+* Removed `net8.0` from the target frameworks of all packages; they now target `netstandard2.0;net10.0`
+* `Minded.Extensions.CQRS.EntityFrameworkCore`, `Minded.Extensions.CQRS.OData` and `Minded.Extensions.OData` now target `net10.0` only
+* Applications on .NET 8 can still consume the packages that ship a `netstandard2.0` build; `net10.0` is the only modern target that is built and tested
+* Updated `Microsoft.Extensions.*` dependencies (Caching.Memory, Configuration.Abstractions, DependencyInjection.Abstractions, DependencyModel, Logging.Abstractions, Options, Options.ConfigurationExtensions) from 10.0.6 to 10.0.13
+* Updated `Microsoft.AspNetCore.Mvc.Abstractions` and `Microsoft.AspNetCore.Mvc.Core` from 2.3.9 to 2.3.13 (Minded.Extensions.WebApi)
+* Updated `Microsoft.AspNetCore.OData` from 9.4.1 to 9.5.0 (Minded.Extensions.OData, Minded.Extensions.CQRS.OData)
+* Updated `Microsoft.EntityFrameworkCore` from 10.0.6 to 10.0.13 (Minded.Extensions.CQRS.EntityFrameworkCore)
+* Removed all `net8.0`-specific package versions from `Directory.Packages.props`
+* Repository now builds with the .NET 10 SDK (`global.json`)
+* Updated test dependencies (MSTest 4.5.1, Microsoft.NET.Test.Sdk 18.11.0, FluentAssertions 8.11.0, Moq 4.21.0, FsCheck 3.5.0, coverlet.collector 10.1.0)
+* Updated README requirements and contributor guidelines to list `netstandard2.0;net10.0` as the supported target frameworks
+
 ## 1.3.0 (2026-04-18)
 Aligned all package versions to 1.3.0, added .NET 10 support, upgraded all Microsoft dependencies to 10.x, and introduced the new Minded.Extensions.Authorization package for RBAC authorization.
 

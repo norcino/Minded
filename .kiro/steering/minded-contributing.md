@@ -15,7 +15,7 @@ alwaysApply: false
 
 - Assembly / NuGet ID: `Minded.Framework.<Name>` or `Minded.Extensions.<Name>`.
 - Abstractions-only variant: `Minded.Extensions.<Name>.Abstractions`.
-- Target frameworks: `netstandard2.0;net8.0;net10.0`.
+- Target frameworks: `netstandard2.0;net10.0`.
 - Sign with `key.snk`. Pack `README.md` as NuGet content alongside the binary.
 - Folder structure inside a new extension: `Attributes/`, `Decorator/`, `Configuration/`, `ServiceCollectionExtensions.cs`.
 

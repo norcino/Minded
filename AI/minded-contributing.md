@@ -27,7 +27,7 @@ IMediator
 | Assembly / NuGet ID | `Minded.Framework.<Name>` or `Minded.Extensions.<Name>` |
 | Abstractions package | `Minded.Extensions.<Name>.Abstractions` — interfaces only, no DI |
 | Namespace root | Mirrors assembly name exactly (e.g. `Minded.Extensions.MyBehaviour`) |
-| Target frameworks | `netstandard2.0;net8.0;net10.0` |
+| Target frameworks | `netstandard2.0;net10.0` |
 | Signing | `<SignAssembly>true</SignAssembly>` with `key.snk` at the repo root |
 | NuGet metadata | `PackageId`, `Description`, `PackageTags`, `<None Include="README.md">` packed as content |
 | Symbol packages | `<IncludeSymbols>true</IncludeSymbols>` with `snupkg` format |
@@ -38,7 +38,7 @@ IMediator
 
 ### Step 1 — Create the project
 
-Create `Extensions/Minded.Extensions.<Name>/Minded.Extensions.<Name>.csproj` targeting `netstandard2.0;net8.0;net10.0`. Copy the NuGet metadata block from an existing extension project (e.g. `Minded.Extensions.Logging`). Add a `README.md` to be packed with the NuGet.
+Create `Extensions/Minded.Extensions.<Name>/Minded.Extensions.<Name>.csproj` targeting `netstandard2.0;net10.0`. Copy the NuGet metadata block from an existing extension project (e.g. `Minded.Extensions.Logging`). Add a `README.md` to be packed with the NuGet.
 
 ### Step 2 — Create an opt-in attribute (if attribute-driven)
 

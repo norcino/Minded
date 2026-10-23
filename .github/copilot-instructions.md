@@ -42,7 +42,7 @@ Minded is an open-source .NET **CQRS + Mediator + Decorator** framework (NuGet p
 ## General Principles
 
 1. All public APIs in `Framework/` and `Extensions/` require XML documentation (`/// <summary>`).
-2. Target frameworks: `netstandard2.0;net8.0;net10.0`.
+2. Target frameworks: `netstandard2.0;net10.0`.
 3. Tests use MSTest + Moq + FluentAssertions.
 4. Never put validation or cross-cutting logic inside a handler — use the decorator pipeline.
 5. Exception handling must be the outermost decorator (registered last) to catch all errors.

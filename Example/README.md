@@ -129,7 +129,7 @@ This starts only PostgreSQL on port `5433`. Two databases are created automatica
 ### Option 2 — Local (requires .NET SDK and Node.js)
 
 **Prerequisites:**
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - Node.js (for the frontend)
 - PostgreSQL or SQL Server
 
