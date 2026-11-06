@@ -1,4 +1,7 @@
 {
     "kiroAgent.configureMCP": "Disabled",
-    "dotnet.defaultSolution": "Minded-Example.slnx"
+    "dotnet.defaultSolution": "Minded-Example.slnx",
+    "csharp-dev-tools.solutionViewer.selectedWorkspaceSolutions": [
+        "Minded-Example.slnx"
+    ]
 }

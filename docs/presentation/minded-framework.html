@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minded Framework: clean architecture as the default</title>
+<meta name="description" content="Presentation of the Minded .NET framework: Mediator, CQRS and Decorator patterns, the principles they enforce, and the released decorators.">
+<style>
+:root{
+  --bg:#0b1020; --bg2:#070b16; --surface:#131b31; --surface2:#1a2440; --line:#2a3757;
+  --text:#e8edf7; --muted:#a8b4cf; --dim:#7a88a8;
+  --core:#8ea2ff; --cmd:#ff9f5a; --qry:#3fd6c6;
+  --val:#5bd27f; --exc:#ff6b6b; --log:#f6c945; --dp:#c79bff; --retry:#62a8ff;
+  --cache:#38d0f0; --tx:#f5a524; --auth:#f472b6; --ctx:#a7e34a; --http:#8792ad;
+  --mono:"Cascadia Code","JetBrains Mono",Consolas,ui-monospace,SFMono-Regular,Menlo,monospace;
+  --s:1;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#04060c;color:var(--text);
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;}
+body{overflow:hidden}
+a{color:inherit}
+.deck{position:fixed;inset:0}
+
+/* ---------- slide frame ---------- */
+.slide{position:absolute;left:50%;top:50%;width:1280px;height:720px;margin:-360px 0 0 -640px;
+  transform:scale(var(--s));transform-origin:center center;padding:42px 64px 58px;
+  background:radial-gradient(900px 500px at 92% -8%,rgba(142,162,255,.11),transparent 62%),
+             radial-gradient(700px 420px at -6% 108%,rgba(63,214,198,.06),transparent 60%),var(--bg);
+  display:flex;flex-direction:column;overflow:hidden;
+  opacity:0;visibility:hidden;transition:opacity .28s ease,visibility 0s linear .28s}
+.slide.active{opacity:1;visibility:visible;transition:opacity .28s ease}
+@media (prefers-reduced-motion:reduce){.slide,.slide.active{transition:none}}
+.sf{position:absolute;left:64px;right:64px;bottom:20px;display:flex;justify-content:space-between;
+  font-size:13px;color:var(--dim);letter-spacing:.02em}
+.sf .brand{font-weight:700;color:var(--muted)}
+.sf .brand::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;
+  margin-right:8px;background:var(--core);box-shadow:0 0 0 3px rgba(142,162,255,.25)}
+
+/* ---------- typography ---------- */
+.kicker{margin:0 0 8px;font-size:14px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--c,var(--core))}
+h1{margin:0;font-size:96px;line-height:1;letter-spacing:-.03em;font-weight:800}
+h2{margin:0 0 10px;font-size:40px;line-height:1.12;letter-spacing:-.015em;font-weight:750}
+h3{margin:0 0 6px;font-size:20px;line-height:1.25}
+.lede{margin:0;font-size:20px;line-height:1.45;color:var(--muted);max-width:1060px}
+.muted{color:var(--muted)} .dim{color:var(--dim)}
+.mono{font-family:var(--mono)}
+b.hl{color:var(--c,var(--core))}
+.body{flex:1;min-height:0;display:flex;gap:28px;margin-top:24px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.grow{flex:1}
+.center-v{justify-content:center}
+
+/* ---------- components ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card.accent{border-top:4px solid var(--c,var(--core))}
+.card p{margin:0;color:var(--muted);font-size:16px;line-height:1.45}
+.card h3{color:var(--text)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)} .g5{grid-template-columns:repeat(5,1fr)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:13px;line-height:1;
+  padding:6px 11px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:var(--text);white-space:nowrap}
+.chip.pkg{color:var(--c,var(--core));border-color:color-mix(in srgb,var(--c,var(--core)) 55%,var(--line))}
+.chip.plain{font-family:inherit}
+.chip.warn{color:var(--tx);border-color:color-mix(in srgb,var(--tx) 55%,var(--line))}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.03em}
+.badge.c{background:color-mix(in srgb,var(--cmd) 22%,transparent);color:var(--cmd)}
+.badge.q{background:color-mix(in srgb,var(--qry) 22%,transparent);color:var(--qry)}
+.badge.x{background:var(--surface2);color:var(--muted)}
+ul.facts{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+ul.facts li{position:relative;padding-left:22px;font-size:16.5px;line-height:1.42}
+ul.facts li::before{content:"";position:absolute;left:0;top:.45em;width:10px;height:10px;border-radius:3px;background:var(--c,var(--core))}
+ul.facts li b{color:var(--text)}
+ul.facts.sm li{font-size:15.5px}
+.callout{border-left:4px solid var(--c,var(--core));background:color-mix(in srgb,var(--c,var(--core)) 9%,var(--surface));
+  border-radius:0 12px 12px 0;padding:12px 16px;font-size:16px;line-height:1.45}
+.callout strong{color:var(--c,var(--core))}
+
+/* ---------- code ---------- */
+pre.code{margin:0;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;
+  font-family:var(--mono);font-size:14.5px;line-height:1.52;color:#d6deeb;white-space:pre;overflow:hidden;tab-size:4}
+pre.code.sm{font-size:13.5px;line-height:1.5}
+pre.code.xs{font-size:12.5px;line-height:1.48}
+pre.code .k{color:#c792ea} pre.code .t{color:#82aaff} pre.code .s{color:#c3e88d}
+pre.code .c{color:#7183a6;font-style:italic} pre.code .a{color:#ffcb6b} pre.code .n{color:#f78c6c}
+.term{background:#05080f;border:1px solid var(--line);border-radius:12px;font-family:var(--mono);font-size:12.5px;line-height:1.6;overflow:hidden}
+.term .bar{display:flex;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line);background:#0b1122}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:#3a4565;display:block}
+.term .bar span{margin-left:8px;font-size:12px;color:var(--dim);font-family:inherit}
+.term pre{margin:0;padding:12px 14px;white-space:pre-wrap;color:#cfd8ea}
+.term .tid{color:var(--dim)} .term .ok{color:var(--val)} .term .bad{color:var(--exc)} .term .nm{color:var(--log)}
+
+/* ---------- svg infographics ---------- */
+svg{font-family:inherit;overflow:visible}
+.sv .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.sv .bxc{fill:color-mix(in srgb,var(--c) 15%,var(--surface));stroke:var(--c);stroke-width:1.6}
+.sv .bxs{fill:var(--c);stroke:none}
+.sv .dash{fill:none;stroke:var(--dim);stroke-width:1.5;stroke-dasharray:6 5}
+.sv .tl{fill:var(--text);font-size:15px;font-weight:650}
+.sv .tb{fill:var(--text);font-size:17px;font-weight:700}
+.sv .ts{fill:var(--muted);font-size:12.5px}
+.sv .tc{fill:var(--c);font-size:13px;font-weight:700}
+.sv .tm{fill:var(--text);font-family:var(--mono);font-size:12.5px}
+.sv .tdark{fill:#0b1020;font-size:13px;font-weight:800}
+.sv .mid{text-anchor:middle}
+.sv .end{text-anchor:end}
+.sv .ln{stroke:var(--muted);stroke-width:1.8;fill:none}
+.sv .ln.ok{stroke:var(--val)} .sv .ln.bad{stroke:var(--exc)}
+.sv .ring{fill:color-mix(in srgb,var(--c) 13%,var(--bg));stroke:var(--c);stroke-width:2}
+.sv .ringlbl{fill:var(--c);font-size:13px;font-weight:800;letter-spacing:.12em;text-anchor:middle}
+
+/* ---------- specific layouts ---------- */
+.title-wrap{flex:1;display:grid;grid-template-columns:1fr 420px;align-items:center;gap:40px}
+.tagline{font-size:30px;line-height:1.3;margin:18px 0 22px;color:var(--text);font-weight:500;max-width:640px}
+.acr{font-size:22px;color:var(--muted);letter-spacing:.02em}
+.acr b{color:var(--core);font-weight:800}
+.hint{margin-top:34px;font-size:14px;color:var(--dim)}
+.hint kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--muted)}
+
+.agenda a{display:flex;gap:18px;align-items:flex-start;text-decoration:none;transition:transform .15s,border-color .15s}
+.agenda a:hover,.agenda a:focus-visible{border-color:var(--c);transform:translateY(-2px);outline:none}
+.agenda .num{font-size:44px;font-weight:800;line-height:1;color:var(--c);min-width:60px}
+
+.divider{justify-content:center}
+.divider .big{font-size:150px;font-weight:850;line-height:.9;color:var(--c);opacity:.95;letter-spacing:-.04em}
+.divider h2{font-size:64px;margin-top:10px}
+.divider .lede{font-size:24px;max-width:900px}
+.divider .bgonion{position:absolute;right:-140px;top:50%;transform:translateY(-50%);opacity:.18;pointer-events:none}
+
+.legend{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;font-size:14px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block;background:var(--c)}
+.stat{font-size:72px;font-weight:850;line-height:1;color:var(--core);letter-spacing:-.03em}
+.pain{display:flex;gap:14px;align-items:flex-start}
+.pain .ic{flex:0 0 34px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:16px;
+  background:color-mix(in srgb,var(--c) 18%,var(--surface));color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,var(--line))}
+.pain h3{font-size:18px;margin:2px 0 2px}
+.pain p{margin:0;font-size:15.5px;color:var(--muted);line-height:1.4}
+
+.solid .card{display:flex;flex-direction:column;gap:8px;padding:20px 18px}
+.solid .L{font-size:64px;font-weight:850;line-height:1;color:var(--c)}
+.solid h3{font-size:18px;margin:0}
+.solid .card p{font-size:15.5px}
+.solid .hintc{margin-top:auto;font-family:var(--mono);font-size:12.5px;color:var(--c);background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;white-space:normal;word-break:break-word}
+
+.dots{display:grid;gap:6px}
+.dots i{display:block;width:24px;height:24px;border-radius:5px;background:var(--c)}
+.formula{font-size:54px;font-weight:850;letter-spacing:-.02em;text-align:center;line-height:1.1}
+.formula small{display:block;font-size:16px;font-weight:500;color:var(--muted);letter-spacing:0;margin-top:10px}
+
+.tree{font-family:var(--mono);font-size:14px;line-height:1.75;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:0;white-space:pre;color:var(--muted)}
+.tree .d{color:var(--text);font-weight:600} .tree .f{color:var(--c)}
+
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:15.5px}
+table.tbl th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);font-weight:700;padding:0 14px 10px}
+table.tbl td{padding:11px 14px;border-top:1px solid var(--line);vertical-align:middle;line-height:1.35}
+table.tbl td:first-child{color:var(--text);font-weight:600}
+table.tbl td.no{color:#ffb3b3} table.tbl td.yes{color:#bff0cd}
+table.tbl td.yes code,table.tbl td code{font-family:var(--mono);font-size:13.5px;color:var(--a,#ffcb6b)}
+.status{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;align-items:center;font-size:16px}
+.status .code{font-family:var(--mono);font-weight:800;font-size:15px;padding:4px 9px;border-radius:7px;text-align:center;min-width:64px;
+  background:color-mix(in srgb,var(--c) 18%,var(--surface));color:var(--c)}
+
+.flow{display:flex;align-items:center;gap:8px}
+.flow .st{flex:1;text-align:center;padding:12px 6px;border-radius:10px;font-weight:650;font-size:15px;
+  background:color-mix(in srgb,var(--c) 15%,var(--surface));border:1.5px solid var(--c);color:var(--text);white-space:nowrap}
+.flow .st.h{background:var(--core);color:#0b1020;border-color:var(--core)}
+.flow .ar{color:var(--dim);font-size:18px;flex:0 0 auto}
+.flow-label{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin:0 0 8px}
+
+.cat a{text-decoration:none;display:flex;flex-direction:column;gap:6px;transition:transform .15s,border-color .15s}
+.cat a:hover,.cat a:focus-visible{transform:translateY(-2px);border-color:var(--c);outline:none}
+.cat h3{margin:0;font-size:19px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cat .pk{font-family:var(--mono);font-size:12px;color:var(--c)}
+.cat p{font-size:14.5px}
+.cat .attrs{font-family:var(--mono);font-size:12px;color:#ffcb6b;line-height:1.5}
+
+.deco .body{display:grid;grid-template-columns:600px 1fr;gap:28px}
+.deco h2{margin-bottom:6px}
+.deco .chips{margin-top:10px}
+
+.pkgmap .grp{border:1px dashed var(--line);border-radius:14px;padding:14px 16px}
+.pkgmap .grp h3{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:0 0 10px}
+.pkgmap .chips{margin-top:0}
+
+.steps{counter-reset:st;display:grid;gap:14px}
+.steps > div{counter-increment:st;display:flex;gap:14px;align-items:flex-start}
+.steps > div::before{content:counter(st);flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:var(--core);color:#0b1020;font-weight:800}
+.steps h3{font-size:18px;margin:4px 0 2px} .steps p{margin:0;color:var(--muted);font-size:15.5px;line-height:1.4}
+
+.closing h2{font-size:58px}
+
+/* ---------- chrome ---------- */
+.progress{position:fixed;left:0;top:0;height:3px;background:var(--core);width:0;z-index:10;transition:width .25s}
+.nav{position:fixed;right:16px;top:12px;display:flex;align-items:center;gap:8px;z-index:10;opacity:.35;transition:opacity .2s}
+.nav:hover,.nav:focus-within{opacity:1}
+.nav button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);
+  font-size:18px;cursor:pointer;display:grid;place-items:center}
+.nav button:focus-visible{outline:2px solid var(--core);outline-offset:2px}
+.nav .count{font-size:13px;color:var(--muted);min-width:56px;text-align:center;font-variant-numeric:tabular-nums}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{height:auto;overflow:visible;background:var(--bg)}
+  .deck{position:static}
+  .slide{position:relative;left:auto;top:auto;margin:0;transform:none;opacity:1;visibility:visible;break-after:page;page-break-after:always}
+  .nav,.progress{display:none}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<a class="sr-only" href="#deck">Skip to slides</a>
+<div class="progress" aria-hidden="true"></div>
+
+<!-- Shared SVG definitions (arrow markers) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a8b4cf"/></marker>
+    <marker id="ah-ok" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5bd27f"/></marker>
+    <marker id="ah-bad" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff6b6b"/></marker>
+    <marker id="ah-w" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8edf7"/></marker>
+  </defs>
+</svg>
+
+<main class="deck" id="deck" aria-roledescription="carousel" aria-label="Minded framework presentation">
+
+<!-- ===================== 1. TITLE ===================== -->
+<section class="slide" id="title" data-section="">
+  <div class="title-wrap">
+    <div>
+      <p class="kicker">.NET · Mediator · CQRS · Decorator</p>
+      <h1>Minded</h1>
+      <p class="tagline">Clean architecture as the default, not an aspiration.</p>
+      <p class="acr"><b>M</b>ed<b>I</b>ator comma<b>ND</b> qu<b>E</b>ry <b>D</b>ecorator</p>
+      <div class="chips">
+        <span class="chip">v1.4.0</span>
+        <span class="chip">net10.0 · netstandard2.0</span>
+        <span class="chip">MIT</span>
+        <span class="chip">NuGet: Minded.*</span>
+      </div>
+      <p class="hint"><kbd>←</kbd> <kbd>→</kbd> navigate · <kbd>F</kbd> full screen · <kbd>Ctrl</kbd>+<kbd>P</kbd> export to PDF</p>
+    </div>
+    <svg class="sv" viewBox="0 0 400 400" width="400" height="400" role="img" aria-labelledby="t1">
+      <title id="t1">Concentric layers: Context, Exception, Logging and Validation wrapped around the Handler</title>
+      <circle class="ring" style="--c:var(--ctx)" cx="200" cy="200" r="194"/>
+      <circle class="ring" style="--c:var(--exc)" cx="200" cy="200" r="156"/>
+      <circle class="ring" style="--c:var(--log)" cx="200" cy="200" r="118"/>
+      <circle class="ring" style="--c:var(--val)" cx="200" cy="200" r="80"/>
+      <circle cx="200" cy="200" r="44" style="fill:var(--core)"/>
+      <text class="ringlbl" style="--c:var(--ctx)" x="200" y="30">CONTEXT</text>
+      <text class="ringlbl" style="--c:var(--exc)" x="200" y="68">EXCEPTION</text>
+      <text class="ringlbl" style="--c:var(--log)" x="200" y="106">LOGGING</text>
+      <text class="ringlbl" style="--c:var(--val)" x="200" y="143">VALIDATION</text>
+      <text x="200" y="206" class="mid" style="fill:#0b1020;font-weight:800;font-size:15px">Handler</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ===================== 2. AGENDA ===================== -->
+<section class="slide" id="agenda" data-section="Agenda">
+  <header>
+    <p class="kicker">Agenda</p>
+    <h2>What we'll cover</h2>
+    <p class="lede">From the problem Minded solves to every released decorator. Each tile links to its section.</p>
+  </header>
+  <nav class="body agenda grid g3" aria-label="Sections" style="align-content:center">
+    <a class="card accent" style="--c:var(--exc)" href="#problem"><span class="num">01</span><span><h3>The problem</h3><p>Why business logic gets buried under plumbing.</p></span></a>
+    <a class="card accent" style="--c:var(--core)" href="#how"><span class="num">02</span><span><h3>How Minded works</h3><p>Mediator, CQRS and the decorator pipeline.</p></span></a>
+    <a class="card accent" style="--c:var(--val)" href="#principles"><span class="num">03</span><span><h3>Principles built in</h3><p>SOLID, DRY, Clean Architecture, separation of concerns.</p></span></a>
+    <a class="card accent" style="--c:var(--log)" href="#maintain"><span class="num">04</span><span><h3>Built to last</h3><p>Testability, consistency and the cost of change.</p></span></a>
+    <a class="card accent" style="--c:var(--auth)" href="#catalogue"><span class="num">05</span><span><h3>Decorator catalogue</h3><p>Nine released building blocks, one by one.</p></span></a>
+    <a class="card accent" style="--c:var(--ctx)" href="#adopt"><span class="num">06</span><span><h3>Extend &amp; adopt</h3><p>Write your own decorator. Get started in minutes.</p></span></a>
+  </nav>
+</section>
+
+<!-- ===================== 3. THE PROBLEM ===================== -->
+<section class="slide" id="problem" data-section="01 · The problem" style="--c:var(--exc)">
+  <header>
+    <p class="kicker">01 · The problem</p>
+    <h2>Business logic drowns in plumbing</h2>
+    <p class="lede">Every endpoint re-implements the same cross-cutting concerns, slightly differently each time.</p>
+  </header>
+  <div class="body">
+    <div class="col" style="flex:0 0 640px">
+      <svg class="sv" viewBox="0 0 640 330" width="640" height="330" role="img" aria-labelledby="t3">
+        <title id="t3">Illustrative split of a typical endpoint of about 69 lines: only 5 lines are business logic. The same use case as a Minded handler is about 5 lines; the rest is handled by the pipeline.</title>
+        <text x="0" y="16" class="tl">A typical endpoint · ~69 lines</text>
+        <text x="600" y="16" class="ts end">illustrative</text>
+        <g transform="translate(0,30)">
+          <rect x="0"   width="70"  height="56" style="fill:var(--auth)"/>
+          <rect x="70"  width="104" height="56" style="fill:var(--val)"/>
+          <rect x="174" width="87"  height="56" style="fill:var(--exc)"/>
+          <rect x="261" width="70"  height="56" style="fill:var(--log)"/>
+          <rect x="331" width="61"  height="56" style="fill:var(--retry)"/>
+          <rect x="392" width="52"  height="56" style="fill:var(--tx)"/>
+          <rect x="444" width="52"  height="56" style="fill:var(--cache)"/>
+          <rect x="496" width="61"  height="56" style="fill:var(--http)"/>
+          <rect x="557" width="43"  height="56" style="fill:var(--core)"/>
+          <rect x="0" width="600" height="56" rx="4" style="fill:none;stroke:#0b1020;stroke-width:2"/>
+          <g class="tdark mid">
+            <text x="35" y="33">8</text><text x="122" y="33">12</text><text x="217" y="33">10</text>
+            <text x="296" y="33">8</text><text x="361" y="33">7</text><text x="418" y="33">6</text>
+            <text x="470" y="33">6</text><text x="526" y="33">7</text><text x="578" y="33">5</text>
+          </g>
+        </g>
+        <g transform="translate(0,112)" class="ts" style="font-size:13.5px">
+          <rect x="0" y="0" width="12" height="12" rx="3" style="fill:var(--auth)"/><text x="20" y="11">Authorization</text>
+          <rect x="210" y="0" width="12" height="12" rx="3" style="fill:var(--val)"/><text x="230" y="11">Validation</text>
+          <rect x="420" y="0" width="12" height="12" rx="3" style="fill:var(--exc)"/><text x="440" y="11">Error handling</text>
+          <rect x="0" y="26" width="12" height="12" rx="3" style="fill:var(--log)"/><text x="20" y="37">Logging</text>
+          <rect x="210" y="26" width="12" height="12" rx="3" style="fill:var(--retry)"/><text x="230" y="37">Retry</text>
+          <rect x="420" y="26" width="12" height="12" rx="3" style="fill:var(--tx)"/><text x="440" y="37">Transaction</text>
+          <rect x="0" y="52" width="12" height="12" rx="3" style="fill:var(--cache)"/><text x="20" y="63">Caching</text>
+          <rect x="210" y="52" width="12" height="12" rx="3" style="fill:var(--http)"/><text x="230" y="63">HTTP mapping</text>
+          <rect x="420" y="52" width="12" height="12" rx="3" style="fill:var(--core)"/><text x="440" y="63" style="fill:var(--text);font-weight:700">Business logic</text>
+        </g>
+        <text x="0" y="230" class="tl">The same use case as a Minded handler · ~5 lines</text>
+        <g transform="translate(0,244)">
+          <rect x="0" width="43" height="56" rx="4" style="fill:var(--core)"/>
+          <text x="21.5" y="33" class="tdark mid">5</text>
+          <rect x="49" y="1" width="551" height="54" rx="6" class="dash"/>
+          <text x="324" y="33" class="ts mid" style="font-size:14px">handled by the pipeline · written once, reused everywhere</text>
+        </g>
+      </svg>
+    </div>
+    <div class="col grow" style="gap:18px">
+      <div class="card" style="display:flex;gap:18px;align-items:center">
+        <span class="stat">~7%</span>
+        <p>of a typical endpoint is the actual use case. The rest is plumbing that every engineer rewrites.</p>
+      </div>
+      <div class="pain" style="--c:var(--exc)"><span class="ic">×N</span><div><h3>Duplicated</h3><p>The same try/catch, logging and permission checks in every endpoint.</p></div></div>
+      <div class="pain" style="--c:var(--log)"><span class="ic">≠</span><div><h3>Inconsistent</h3><p>Each engineer solves it their own way, so behaviour drifts.</p></div></div>
+      <div class="pain" style="--c:var(--retry)"><span class="ic">?</span><div><h3>Hard to test</h3><p>One unit test needs mocks for the logger, cache, auth and database.</p></div></div>
+      <div class="pain" style="--c:var(--auth)"><span class="ic">$</span><div><h3>Expensive to change</h3><p>A new logging rule means touching every file.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 4. THE IDEA ===================== -->
+<section class="slide" id="idea" data-section="01 · The problem">
+  <header>
+    <p class="kicker">The Minded idea</p>
+    <h2>Describe the use case. The pipeline does the rest.</h2>
+    <p class="lede">Callers send a message. Opt-in layers wrap the handler. The response flows back out the same way.</p>
+  </header>
+  <div class="body col" style="gap:22px">
+    <svg class="sv" viewBox="0 0 1152 268" width="1152" height="268" role="img" aria-labelledby="t4">
+      <title id="t4">Flow: Controller using IRestMediator sends a message to IMediator, which runs it through a pipeline of Context, Exception, Logging, Authorization, Retry, Transaction and Validation decorators to the Handler. The response flows back and is mapped to an HTTP status.</title>
+      <g style="--c:var(--core)">
+        <rect x="0" y="75" width="150" height="84" rx="12" class="bxc"/>
+        <text x="75" y="111" class="tl mid">Controller</text><text x="75" y="133" class="ts mid">IRestMediator</text>
+        <line x1="152" y1="117" x2="188" y2="117" class="ln" marker-end="url(#ah)"/>
+        <rect x="192" y="75" width="150" height="84" rx="12" class="bxc"/>
+        <text x="267" y="111" class="tl mid">IMediator</text><text x="267" y="133" class="ts mid">finds the handler</text>
+        <line x1="344" y1="117" x2="380" y2="117" class="ln" marker-end="url(#ah)"/>
+      </g>
+      <rect x="384" y="12" width="580" height="202" rx="16" class="dash"/>
+      <text x="674" y="34" class="ts mid">Decorator pipeline · opt-in layers, outermost first</text>
+      <g>
+        <g style="--c:var(--ctx)"><rect x="399" y="48" width="70" height="152" rx="10" class="bxc"/><text class="tl mid" transform="translate(434 124) rotate(-90)" dy="5">Context</text></g>
+        <g style="--c:var(--exc)"><rect x="479" y="48" width="70" height="152" rx="10" class="bxc"/><text class="tl mid" transform="translate(514 124) rotate(-90)" dy="5">Exception</text></g>
+        <g style="--c:var(--log)"><rect x="559" y="48" width="70" height="152" rx="10" class="bxc"/><text class="tl mid" transform="translate(594 124) rotate(-90)" dy="5">Logging</text></g>
+        <g style="--c:var(--auth)"><rect x="639" y="48" width="70" height="152" rx="10" class="bxc"/><text class="tl mid" transform="translate(674 124) rotate(-90)" dy="5">Authorization</text></g>
+        <g style="--c:var(--retry)"><rect x="719" y="48" width="70" height="152" rx="10" class="bxc"/><text class="tl mid" transform="translate(754 124) rotate(-90)" dy="5">Retry</text></g>
+        <g style="--c:var(--tx)"><rect x="799" y="48" width="70" height="152" rx="10" class="bxc"/><text class="tl mid" transform="translate(834 124) rotate(-90)" dy="5">Transaction</text></g>
+        <g style="--c:var(--val)"><rect x="879" y="48" width="70" height="152" rx="10" class="bxc"/><text class="tl mid" transform="translate(914 124) rotate(-90)" dy="5">Validation</text></g>
+      </g>
+      <line x1="966" y1="117" x2="998" y2="117" class="ln" marker-end="url(#ah)"/>
+      <rect x="1002" y="75" width="150" height="84" rx="12" style="fill:var(--core)"/>
+      <text x="1077" y="111" class="mid" style="fill:#0b1020;font-weight:800;font-size:16px">Handler</text>
+      <text x="1077" y="133" class="mid" style="fill:#1d2645;font-size:12.5px">your use case</text>
+      <path d="M1077 161 V234 H75 V165" class="ln" marker-end="url(#ah)"/>
+      <text x="576" y="258" class="ts mid" style="font-size:14px">Response flows back out: ICommandResponse / IQueryResponse → HTTP status code</text>
+    </svg>
+    <div class="grid g3">
+      <div class="card accent" style="--c:var(--core)"><h3>You write</h3><p>A command or query, its handler, and optionally a validator. Plain classes, constructor DI.</p></div>
+      <div class="card accent" style="--c:var(--log)"><h3>You declare</h3><p>Behaviour as attributes: <span class="mono">[ValidateCommand]</span>, <span class="mono">[MemoryCache]</span>, <span class="mono">[RequirePermissions]</span>.</p></div>
+      <div class="card accent" style="--c:var(--val)"><h3>Minded wires</h3><p>Handler discovery, the decorator chain and HTTP mapping, all registered in one place.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 5. DIVIDER: HOW ===================== -->
+<section class="slide divider" id="how" data-section="02 · How Minded works" style="--c:var(--core)">
+  <svg class="sv bgonion" viewBox="0 0 400 400" width="620" height="620" aria-hidden="true">
+    <circle class="ring" style="--c:var(--ctx)" cx="200" cy="200" r="194"/><circle class="ring" style="--c:var(--exc)" cx="200" cy="200" r="150"/>
+    <circle class="ring" style="--c:var(--log)" cx="200" cy="200" r="106"/><circle class="ring" style="--c:var(--val)" cx="200" cy="200" r="62"/>
+  </svg>
+  <div class="big">02</div>
+  <h2>How Minded works</h2>
+  <p class="lede">Three well-known patterns, combined into one predictable pipeline.</p>
+  <div class="chips"><span class="chip plain">Mediator</span><span class="chip plain">CQRS</span><span class="chip plain">Decorator onion</span><span class="chip plain">Anatomy of a feature</span><span class="chip plain">HTTP mapping</span></div>
+</section>
+
+<!-- ===================== 6. THREE PATTERNS ===================== -->
+<section class="slide" id="patterns" data-section="02 · How Minded works">
+  <header>
+    <p class="kicker">02 · How Minded works</p>
+    <h2>Three patterns, one pipeline</h2>
+    <p class="lede">Each pattern removes one kind of coupling. Together they leave the handler with nothing but the use case.</p>
+  </header>
+  <div class="body grid g3" style="align-items:stretch">
+    <div class="card accent col" style="--c:var(--core);gap:12px">
+      <svg class="sv" viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
+        <g class="ln" style="stroke:var(--core)"><line x1="40" y1="40" x2="12" y2="12"/><line x1="40" y1="40" x2="68" y2="12"/><line x1="40" y1="40" x2="12" y2="68"/><line x1="40" y1="40" x2="68" y2="68"/></g>
+        <circle cx="40" cy="40" r="13" style="fill:var(--core)"/>
+        <g style="fill:var(--surface);stroke:var(--core);stroke-width:2"><circle cx="12" cy="12" r="8"/><circle cx="68" cy="12" r="8"/><circle cx="12" cy="68" r="8"/><circle cx="68" cy="68" r="8"/></g>
+      </svg>
+      <h3 style="font-size:26px">Mediator</h3>
+      <p>One entry point: <span class="mono">IMediator</span>. Callers send messages and never know who handles them.</p>
+      <ul class="facts sm" style="margin-top:auto"><li>Controllers stay thin</li><li>No handler-to-handler coupling</li><li>Handlers resolved from DI, invocation cached</li></ul>
+    </div>
+    <div class="card accent col" style="--c:var(--cmd);gap:12px">
+      <svg class="sv" viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
+        <path d="M6 40 H30 C44 40 44 16 62 16" class="ln" style="stroke:var(--cmd);stroke-width:3"/>
+        <path d="M30 40 C44 40 44 64 62 64" class="ln" style="stroke:var(--qry);stroke-width:3"/>
+        <circle cx="68" cy="16" r="8" style="fill:var(--cmd)"/><circle cx="68" cy="64" r="8" style="fill:var(--qry)"/><circle cx="8" cy="40" r="6" style="fill:var(--text)"/>
+      </svg>
+      <h3 style="font-size:26px">CQRS</h3>
+      <p><b style="color:var(--cmd)">Commands</b> change state. <b style="color:var(--qry)">Queries</b> read it. Never both in the same message.</p>
+      <ul class="facts sm" style="margin-top:auto;--c:var(--cmd)"><li>Intent visible from the type name</li><li>Each side gets its own decorators</li><li>Reads and writes evolve independently</li></ul>
+    </div>
+    <div class="card accent col" style="--c:var(--val);gap:12px">
+      <svg class="sv" viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
+        <circle cx="40" cy="40" r="36" class="ring" style="--c:var(--exc)"/><circle cx="40" cy="40" r="26" class="ring" style="--c:var(--log)"/>
+        <circle cx="40" cy="40" r="16" class="ring" style="--c:var(--val)"/><circle cx="40" cy="40" r="7" style="fill:var(--core)"/>
+      </svg>
+      <h3 style="font-size:26px">Decorator</h3>
+      <p>Cross-cutting behaviour wraps the handler in layers. Each layer does one thing.</p>
+      <ul class="facts sm" style="margin-top:auto;--c:var(--val)"><li>Add behaviour without editing handlers</li><li>Write once, apply everywhere</li><li>Opt-in per message via attributes</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 7. CQRS ===================== -->
+<section class="slide" id="cqrs" data-section="02 · How Minded works">
+  <header>
+    <p class="kicker">02 · How Minded works</p>
+    <h2>Commands and queries: two clear contracts</h2>
+    <p class="lede">The type of a message tells you whether it changes the system. Both carry a <span class="mono">TraceId</span> for correlation.</p>
+  </header>
+  <div class="body" style="display:grid;grid-template-columns:1fr 64px 1fr;gap:0;align-items:stretch">
+    <div class="card accent col" style="--c:var(--cmd);gap:12px">
+      <h3 style="font-size:26px;color:var(--cmd)">Command</h3>
+      <p style="font-size:17px;color:var(--text)">Intent: <b>change state</b> (create, update, delete).</p>
+      <script type="text/x-cs" data-class="sm">
+ICommand / ICommand<TResult>
+  → ICommandHandler<TCommand, TResult>
+  → ICommandResponse<TResult>   // Successful + OutcomeEntries
+      </script>
+      <p><b style="color:var(--text)">Typical decorators</b><br>Validation · Transaction · Authorization · Retry <span class="dim">(idempotent only)</span></p>
+      <div class="chips" style="margin-top:auto"><span class="chip">CreateCategoryCommand</span><span class="chip">DeleteTransactionCommand</span></div>
+    </div>
+    <svg class="sv" viewBox="0 0 64 440" width="64" height="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <line x1="32" y1="20" x2="32" y2="420" class="dash"/>
+      <rect x="6" y="188" width="52" height="64" rx="10" class="bx"/>
+      <text x="32" y="216" class="ts mid" style="font-size:11px">IMessage</text>
+      <text x="32" y="234" class="ts mid" style="font-size:11px">TraceId</text>
+    </svg>
+    <div class="card accent col" style="--c:var(--qry);gap:12px">
+      <h3 style="font-size:26px;color:var(--qry)">Query</h3>
+      <p style="font-size:17px;color:var(--text)">Intent: <b>read state</b>, with no side effects.</p>
+      <script type="text/x-cs" data-class="sm">
+IQuery<TResult>
+  → IQueryHandler<TQuery, TResult>
+  → TResult or IQueryResponse<TResult>
+      </script>
+      <p><b style="color:var(--text)">Typical decorators</b><br>Caching · Validation · Authorization · Retry</p>
+      <p><b style="color:var(--text)">Query traits</b> <span class="mono" style="font-size:13.5px">ICanTop · ICanSkip · ICanCount · ICanOrderBy · ICanFilterExpression&lt;T&gt;</span> map cleanly to OData.</p>
+      <div class="chips" style="margin-top:auto"><span class="chip">GetCategoryByIdQuery</span><span class="chip">GetTransactionsQuery</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 8. ONION ===================== -->
+<section class="slide" id="onion" data-section="02 · How Minded works">
+  <header>
+    <p class="kicker">02 · How Minded works</p>
+    <h2>The decorator onion</h2>
+    <p class="lede">Each layer has one job. Registration order decides who wraps whom.</p>
+  </header>
+  <div class="body">
+    <svg class="sv" viewBox="0 0 440 440" width="440" height="440" style="flex:0 0 440px" role="img" aria-labelledby="t8">
+      <title id="t8">Concentric layers from outside to inside: Exception, Logging, Retry, Validation, and the Handler at the centre</title>
+      <circle class="ring" style="--c:var(--exc)" cx="220" cy="220" r="214"/>
+      <circle class="ring" style="--c:var(--log)" cx="220" cy="220" r="170"/>
+      <circle class="ring" style="--c:var(--retry)" cx="220" cy="220" r="126"/>
+      <circle class="ring" style="--c:var(--val)" cx="220" cy="220" r="84"/>
+      <circle cx="220" cy="220" r="44" style="fill:var(--core)"/>
+      <text class="ringlbl" style="--c:var(--exc)" x="220" y="34">EXCEPTION</text>
+      <text class="ringlbl" style="--c:var(--log)" x="220" y="78">LOGGING</text>
+      <text class="ringlbl" style="--c:var(--retry)" x="220" y="122">RETRY</text>
+      <text class="ringlbl" style="--c:var(--val)" x="220" y="160">VALIDATION</text>
+      <text x="220" y="226" class="mid" style="fill:#0b1020;font-weight:800;font-size:15px">Handler</text>
+      <text class="ringlbl" style="--c:var(--val);font-size:11px" x="220" y="290">registered first</text>
+      <text class="ringlbl" style="--c:var(--exc);font-size:11px" x="220" y="420">registered last</text>
+    </svg>
+    <div class="col grow" style="gap:18px">
+      <script type="text/x-cs">
+builder.AddCommandValidationDecorator() // 1st → innermost
+       .AddCommandRetryDecorator()      // 2nd
+       .AddCommandLoggingDecorator()    // 3rd
+       .AddCommandExceptionDecorator()  // last → outermost
+       .AddCommandHandlers();
+      </script>
+      <div>
+        <p class="flow-label dim">Execution order</p>
+        <div class="flow" style="gap:6px">
+          <span class="st" style="--c:var(--exc)">Exception</span><span class="ar">→</span>
+          <span class="st" style="--c:var(--log)">Logging</span><span class="ar">→</span>
+          <span class="st" style="--c:var(--retry)">Retry</span><span class="ar">→</span>
+          <span class="st" style="--c:var(--val)">Validation</span><span class="ar">→</span>
+          <span class="st h" style="--c:var(--core)">Handler</span>
+        </div>
+      </div>
+      <div class="callout" style="--c:var(--core)"><strong>Rule of thumb.</strong> First registered = innermost, last registered = outermost. Exception handling goes last so it sees every failure, including those raised by other decorators.</div>
+      <div class="callout" style="--c:var(--val)"><strong>Why it matters.</strong> Order is a design decision you make once, in one file, instead of in every endpoint.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 9. ANATOMY ===================== -->
+<section class="slide" id="anatomy" data-section="02 · How Minded works">
+  <header>
+    <p class="kicker">02 · How Minded works</p>
+    <h2>Anatomy of a feature</h2>
+    <p class="lede">Small files with one job each. The command reads like a spec; the handler is just the use case.</p>
+  </header>
+  <div class="body">
+    <div class="col" style="flex:0 0 380px">
+<pre class="tree" style="--c:var(--core)" aria-label="Feature folder structure"><span class="d">Application.Category/</span>
+├─ <span class="d">Command/</span>
+│   └─ <span class="f">CreateCategoryCommand</span>
+├─ <span class="d">CommandHandler/</span>
+│   └─ <span class="f">CreateCategoryCommandHandler</span>
+├─ <span class="d">Validator/</span>
+│   └─ <span class="f">CreateCategoryCommandValidator</span>
+├─ <span class="d">Query/</span>
+│   └─ <span class="f">GetCategoryByIdQuery</span>
+└─ <span class="d">QueryHandler/</span>
+    └─ <span class="f">GetCategoryByIdQueryHandler</span></pre>
+      <ul class="facts sm">
+        <li><b>Message</b>: data + declared behaviour. Immutable after construction.</li>
+        <li><b>Handler</b>: the business action only. No validation, no try/catch, no logging.</li>
+        <li><b>Validator</b>: rules, discovered automatically.</li>
+      </ul>
+    </div>
+    <div class="col grow" style="gap:12px">
+      <script type="text/x-cs" data-class="xs">
+[ValidateCommand]
+[RetryCommand]                                   // idempotent: safe to retry
+[RequirePermissions(Permissions.CanCreateCategory)]
+public class CreateCategoryCommand : ICommand<Category>, ILoggable
+{
+    public CreateCategoryCommand(Category category) => Category = category;
+    public Category Category { get; }
+    public string LoggingTemplate => "Name: {Name}";
+    public string[] LoggingProperties => new[] { "Category.Name" };
+}
+      </script>
+      <script type="text/x-cs" data-class="xs">
+public class CreateCategoryCommandHandler : ICommandHandler<CreateCategoryCommand, Category>
+{
+    private readonly IMindedExampleContext _db;
+    public CreateCategoryCommandHandler(IMindedExampleContext db) => _db = db;
+    public async Task<ICommandResponse<Category>> HandleAsync(
+        CreateCategoryCommand command, CancellationToken ct = default)
+    {
+        await _db.Categories.AddAsync(command.Category, ct);
+        await _db.SaveChangesAsync(ct);
+        return CommandResponse<Category>.Success(command.Category);
+    }
+}
+      </script>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 10. HTTP LIFECYCLE ===================== -->
+<section class="slide" id="rest" data-section="02 · How Minded works">
+  <header>
+    <p class="kicker">02 · How Minded works · Minded.Extensions.WebApi</p>
+    <h2>From HTTP to handler and back</h2>
+    <p class="lede">Controllers inject only <span class="mono">IRestMediator</span>. Outcomes become HTTP responses through rules, not hand-written <span class="mono">if</span> blocks.</p>
+  </header>
+  <div class="body">
+    <div class="col" style="flex:0 0 590px;gap:16px">
+      <script type="text/x-cs" data-class="sm">
+[ApiController, Route("api/[controller]")]
+public class CategoryController : ControllerBase
+{
+    private readonly IRestMediator _mediator;
+    public CategoryController(IRestMediator m) => _mediator = m;
+
+    [HttpPost]
+    public Task<IActionResult> Create(
+        Category category, CancellationToken ct = default)
+        => _mediator.ProcessRestCommandAsync(
+               RestOperation.CreateWithContent,
+               new CreateCategoryCommand(category), ct);
+}
+      </script>
+      <div class="callout" style="--c:var(--core)"><strong>Customisable.</strong> The default rules cover the common cases; implement <span class="mono">IRestRulesProvider</span> to change any mapping for your API.</div>
+    </div>
+    <div class="col grow">
+      <div class="card" style="padding:18px 22px">
+        <p class="flow-label dim" style="margin-bottom:12px">Default outcome → status mapping</p>
+        <div class="status">
+          <span class="code" style="--c:var(--val)">200</span><span><b>GetSingle</b> found · <b>GetMany</b> (even when empty)</span>
+          <span class="code" style="--c:var(--http)">404</span><span><b>GetSingle</b> returned nothing</span>
+          <span class="code" style="--c:var(--val)">201</span><span><b>CreateWithContent</b> succeeded</span>
+          <span class="code" style="--c:var(--val)">200/204</span><span><b>Update</b> / <b>Delete</b> succeeded</span>
+          <span class="code" style="--c:var(--log)">400</span><span>Validation failed, with outcome entries in the body</span>
+          <span class="code" style="--c:var(--auth)">401/403</span><span>Not authenticated / not authorized</span>
+          <span class="code" style="--c:var(--exc)">500</span><span>Unhandled exception</span>
+          <span class="code" style="--c:var(--retry)">499</span><span>Client cancelled the request</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 11. DIVIDER: PRINCIPLES ===================== -->
+<section class="slide divider" id="principles" data-section="03 · Principles built in" style="--c:var(--val)">
+  <svg class="sv bgonion" viewBox="0 0 400 400" width="620" height="620" aria-hidden="true">
+    <circle class="ring" style="--c:var(--val)" cx="200" cy="200" r="194"/><circle class="ring" style="--c:var(--qry)" cx="200" cy="200" r="150"/>
+    <circle class="ring" style="--c:var(--core)" cx="200" cy="200" r="106"/><circle class="ring" style="--c:var(--log)" cx="200" cy="200" r="62"/>
+  </svg>
+  <div class="big">03</div>
+  <h2>Principles, built into the structure</h2>
+  <p class="lede">You don't have to remember them on every pull request. The shape of the code keeps you honest.</p>
+  <div class="chips"><span class="chip plain">SOLID</span><span class="chip plain">DRY</span><span class="chip plain">Clean Architecture</span><span class="chip plain">Separation of concerns</span><span class="chip plain">KISS &amp; YAGNI</span><span class="chip plain">Fail fast</span></div>
+</section>
+
+<!-- ===================== 12. SOLID ===================== -->
+<section class="slide solid" id="solid" data-section="03 · Principles built in">
+  <header>
+    <p class="kicker" style="--c:var(--val)">03 · Principles built in</p>
+    <h2>SOLID, by construction</h2>
+    <p class="lede">Each letter maps to something concrete in the framework, not to a guideline you hope people follow.</p>
+  </header>
+  <div class="body grid g5" style="align-items:stretch">
+    <div class="card accent" style="--c:var(--cmd)"><span class="L">S</span><h3>Single responsibility</h3><p>One handler per use case. Validators validate. Each decorator owns one concern. Controllers only route.</p><span class="hintc">CreateXHandler</span></div>
+    <div class="card accent" style="--c:var(--val)"><span class="L">O</span><h3>Open / closed</h3><p>Add behaviour by registering a decorator or adding an attribute. Existing handlers stay untouched.</p><span class="hintc">.AddMyDecorator()</span></div>
+    <div class="card accent" style="--c:var(--retry)"><span class="L">L</span><h3>Liskov substitution</h3><p>Every decorator <em>is</em> an <span class="mono">ICommandHandler&lt;T&gt;</span>. The mediator can't tell a decorated handler from a bare one.</p><span class="hintc">: ICommandHandler&lt;T&gt;</span></div>
+    <div class="card accent" style="--c:var(--log)"><span class="L">I</span><h3>Interface segregation</h3><p>Small, opt-in contracts. A message implements only what it needs.</p><span class="hintc">ILoggable · ICanTop</span></div>
+    <div class="card accent" style="--c:var(--auth)"><span class="L">D</span><h3>Dependency inversion</h3><p>Controllers depend on <span class="mono">IRestMediator</span>. Application code depends on <span class="mono">*.Abstractions</span> packages, not implementations.</p><span class="hintc">IRestMediator</span></div>
+  </div>
+</section>
+
+<!-- ===================== 13. DRY ===================== -->
+<section class="slide" id="dry" data-section="03 · Principles built in" style="--c:var(--val)">
+  <header>
+    <p class="kicker">03 · Principles built in</p>
+    <h2>DRY: write each concern once</h2>
+    <p class="lede">Cross-cutting code stops growing with the number of use cases.</p>
+  </header>
+  <div class="body" style="align-items:center;gap:40px">
+    <div class="col" style="flex:0 0 330px;align-items:center;gap:14px">
+      <p class="flow-label" style="color:var(--exc)">Without a pipeline</p>
+      <div class="dots" style="grid-template-columns:repeat(6,24px)" role="img" aria-label="Grid of 48 squares: 8 use cases times 6 concerns, each concern copied into every use case">
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+      </div>
+      <p class="muted" style="margin:0;font-size:17px;text-align:center"><b style="color:var(--text);font-size:28px">48</b><br>copies to keep in sync<br><span class="dim">8 use cases × 6 concerns</span></p>
+    </div>
+    <div class="col grow center-v" style="gap:28px">
+      <div class="formula"><span style="color:var(--exc)">N × M</span> <span class="dim">→</span> <span style="color:var(--val)">N + M</span><small>N use cases, M cross-cutting concerns</small></div>
+      <div class="card" style="text-align:center"><p style="font-size:18px;color:var(--text)">At <b>100</b> use cases and <b>7</b> concerns:<br><span style="color:#ffb3b3">700 places to change</span> → <span style="color:#bff0cd">107 small, focused classes</span></p></div>
+      <p class="muted" style="margin:0;text-align:center;font-size:16px">Entity validators (<span class="mono">IValidator&lt;TEntity&gt;</span>) are reused across commands too.</p>
+    </div>
+    <div class="col" style="flex:0 0 330px;align-items:center;gap:14px">
+      <p class="flow-label" style="color:var(--val)">With Minded</p>
+      <div class="dots" style="grid-template-columns:repeat(6,24px)" role="img" aria-label="6 decorators written once">
+        <i style="--c:var(--val)"></i><i style="--c:var(--exc)"></i><i style="--c:var(--log)"></i><i style="--c:var(--auth)"></i><i style="--c:var(--retry)"></i><i style="--c:var(--cache)"></i>
+      </div>
+      <span class="dim" style="font-size:22px" aria-hidden="true">+</span>
+      <div class="dots" style="grid-template-columns:repeat(8,24px)" role="img" aria-label="8 thin handlers">
+        <i style="--c:var(--core)"></i><i style="--c:var(--core)"></i><i style="--c:var(--core)"></i><i style="--c:var(--core)"></i><i style="--c:var(--core)"></i><i style="--c:var(--core)"></i><i style="--c:var(--core)"></i><i style="--c:var(--core)"></i>
+      </div>
+      <p class="muted" style="margin:0;font-size:17px;text-align:center"><b style="color:var(--text);font-size:28px">14</b><br>pieces, each written once<br><span class="dim">6 decorators + 8 thin handlers</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 14. CLEAN ARCHITECTURE ===================== -->
+<section class="slide" id="clean" data-section="03 · Principles built in" style="--c:var(--val)">
+  <header>
+    <p class="kicker">03 · Principles built in</p>
+    <h2>Clean Architecture without the ceremony</h2>
+    <p class="lede">Dependencies point inward. The web layer and the database are details that plug into the application layer.</p>
+  </header>
+  <div class="body" style="gap:40px">
+    <svg class="sv" viewBox="0 0 460 460" width="450" height="450" style="flex:0 0 450px" role="img" aria-labelledby="t14">
+      <title id="t14">Concentric architecture: API and Infrastructure on the outer ring, Application in the middle ring, Domain at the centre. Arrows point inward.</title>
+      <path d="M230,8 A222,222 0 0,0 230,452 L230,392 A162,162 0 0,1 230,68 Z" class="bxc" style="--c:var(--core)"/>
+      <path d="M230,8 A222,222 0 0,1 230,452 L230,392 A162,162 0 0,0 230,68 Z" class="bxc" style="--c:var(--http)"/>
+      <circle cx="230" cy="230" r="160" class="bxc" style="--c:var(--qry)"/>
+      <circle cx="230" cy="230" r="98" class="bxc" style="--c:var(--log)"/>
+      <text class="tb mid" transform="translate(40 230) rotate(-90)" dy="6">API</text>
+      <text class="tb mid" transform="translate(420 230) rotate(90)" dy="6">Infrastructure</text>
+      <text x="230" y="104" class="tb mid" style="fill:var(--qry)">Application</text>
+      <text x="230" y="124" class="ts mid">commands · queries · handlers</text>
+      <text x="230" y="228" class="tb mid" style="fill:var(--log)">Domain</text>
+      <text x="230" y="250" class="ts mid">entities · rules</text>
+      <g class="ln" style="stroke:var(--text);stroke-width:2.2">
+        <line x1="391" y1="69" x2="314" y2="146" marker-end="url(#ah-w)"/>
+        <line x1="69" y1="69" x2="146" y2="146" marker-end="url(#ah-w)"/>
+        <line x1="391" y1="391" x2="314" y2="314" marker-end="url(#ah-w)"/>
+        <line x1="69" y1="391" x2="146" y2="314" marker-end="url(#ah-w)"/>
+      </g>
+    </svg>
+    <div class="col grow" style="gap:14px">
+      <div class="card accent" style="--c:var(--log);padding:14px 18px"><h3>Domain</h3><p>Entities and business rules. <span class="mono">MindedExample.Domain</span></p></div>
+      <div class="card accent" style="--c:var(--qry);padding:14px 18px"><h3>Application</h3><p>One project per feature with commands, queries, handlers and validators. Depends on Minded <em>abstractions</em>. <span class="mono">MindedExample.Application.*</span></p></div>
+      <div class="card accent" style="--c:var(--http);padding:14px 18px"><h3>Infrastructure</h3><p>EF Core, persistence, security services behind interfaces. <span class="mono">MindedExample.Infrastructure.*</span></p></div>
+      <div class="card accent" style="--c:var(--core);padding:14px 18px"><h3>API</h3><p>Controllers inject only <span class="mono">IRestMediator</span>. No business logic, no data access. <span class="mono">MindedExample.Api</span></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 15. OPT-IN / KISS ===================== -->
+<section class="slide" id="optin" data-section="03 · Principles built in" style="--c:var(--val)">
+  <header>
+    <p class="kicker">03 · Principles built in · Separation of concerns · KISS · YAGNI</p>
+    <h2>Pay only for what you use</h2>
+    <p class="lede">A small core and opt-in extensions. Nothing runs unless you ask for it.</p>
+  </header>
+  <div class="body">
+    <div class="col pkgmap" style="flex:0 0 600px;gap:14px">
+      <div class="grp" style="--c:var(--core)">
+        <h3>Framework · the core</h3>
+        <div class="chips">
+          <span class="chip pkg">CQRS.Abstractions</span><span class="chip pkg">CQRS</span><span class="chip pkg">Mediator.Abstractions</span>
+          <span class="chip pkg">Mediator</span><span class="chip pkg">Decorator</span>
+        </div>
+      </div>
+      <div class="grp">
+        <h3>Extensions · pick what you need</h3>
+        <div class="chips">
+          <span class="chip pkg" style="--c:var(--core)">Configuration</span>
+          <span class="chip pkg" style="--c:var(--http)">WebApi</span>
+          <span class="chip pkg" style="--c:var(--val)">Validation</span>
+          <span class="chip pkg" style="--c:var(--exc)">Exception</span>
+          <span class="chip pkg" style="--c:var(--log)">Logging</span>
+          <span class="chip pkg" style="--c:var(--dp)">DataProtection</span>
+          <span class="chip pkg" style="--c:var(--retry)">Retry</span>
+          <span class="chip pkg" style="--c:var(--cache)">Caching.Memory</span>
+          <span class="chip pkg" style="--c:var(--tx)">Transaction</span>
+          <span class="chip pkg" style="--c:var(--auth)">Authorization</span>
+          <span class="chip pkg" style="--c:var(--ctx)">Context</span>
+        </div>
+        <p class="dim" style="margin:12px 0 0;font-size:14px">Validation, Caching and DataProtection also ship <span class="mono">.Abstractions</span> packages, so libraries can depend on contracts only.</p>
+      </div>
+      <div class="callout" style="--c:var(--core)"><strong>KISS.</strong> Handlers are plain classes with constructor injection. No base class to inherit, no framework types in your domain logic beyond the message contracts.</div>
+    </div>
+    <div class="col grow" style="gap:16px">
+      <div class="card accent" style="--c:var(--val)">
+        <h3>Opt-in, level 1: the application</h3>
+        <p>Install the package and register the decorator once in <span class="mono">AddMinded(...)</span>. Not registered means not running.</p>
+      </div>
+      <div class="card accent" style="--c:var(--val)">
+        <h3>Opt-in, level 2: the message</h3>
+        <p>Add the attribute to the command or query that needs it. Without it the decorator simply passes the call through; Validation and Retry aren't even added to that handler's chain.</p>
+      </div>
+      <div class="card accent" style="--c:var(--log)">
+        <h3>YAGNI</h3>
+        <p>Start with Mediator + Validation + Exception. Add caching, retry or transactions when a real need shows up, without rewriting a single handler.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 16. DECLARATIVE + FAIL FAST ===================== -->
+<section class="slide" id="declarative" data-section="03 · Principles built in" style="--c:var(--val)">
+  <header>
+    <p class="kicker">03 · Principles built in · Declarative policy · Fail fast</p>
+    <h2>Policy lives next to the use case</h2>
+    <p class="lede">Open a command and you see everything that will happen to it. Real examples from the Example application.</p>
+  </header>
+  <div class="body">
+    <div class="col" style="flex:0 0 640px;gap:12px">
+      <script type="text/x-cs" data-class="sm">
+[MemoryCache(ExpirationInSeconds = 300)]                  // 1
+[RequireClaim("is_global_admin", "false")]                // 2
+[RequireResourceAccess(nameof(CategoryId), "tenant_id",   // 3
+    typeof(ExistsCategoryInCurrentTenantQuery))]
+public class GetCategoryByIdQuery
+    : IQuery<Category>, IGenerateCacheKey, ILoggable { … }
+      </script>
+      <script type="text/x-cs" data-class="sm">
+[ValidateCommand]                                         // 4
+[RetryCommand]                                            // 5
+[RequirePermissions(Permissions.CanUpdateCategory)]       // 6
+public class UpdateCategoryCommand : ICommand, ILoggable { … }
+      </script>
+      <div class="callout" style="--c:var(--exc)"><strong>Fail fast.</strong> Misconfiguration surfaces when the app boots, not in production: invalid authorization attributes are rejected at startup, and a <span class="mono">[MemoryCache]</span> query without <span class="mono">IGenerateCacheKey</span> fails startup in Debug builds.</div>
+    </div>
+    <div class="col grow">
+      <ul class="facts" style="gap:13px">
+        <li style="--c:var(--cache)"><b>① Cached</b> for 5 minutes, keyed by the query.</li>
+        <li style="--c:var(--auth)"><b>② Claim check</b>: global admins don't use tenant data.</li>
+        <li style="--c:var(--auth)"><b>③ Resource check</b>: the category must belong to the caller's tenant.</li>
+        <li style="--c:var(--val)"><b>④ Validated</b> by its <span class="mono">ICommandValidator</span> before the handler runs.</li>
+        <li style="--c:var(--retry)"><b>⑤ Retried</b> on transient failure, because the update is idempotent.</li>
+        <li style="--c:var(--auth)"><b>⑥ Permission</b> required, checked with a compile-time constant.</li>
+      </ul>
+      <p class="muted" style="margin:6px 0 0;font-size:16px">Reviewers check behaviour by reading attributes, not by tracing through layers of service code.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 17. DIVIDER: MAINTAIN ===================== -->
+<section class="slide divider" id="maintain" data-section="04 · Built to last" style="--c:var(--log)">
+  <svg class="sv bgonion" viewBox="0 0 400 400" width="620" height="620" aria-hidden="true">
+    <circle class="ring" style="--c:var(--log)" cx="200" cy="200" r="194"/><circle class="ring" style="--c:var(--tx)" cx="200" cy="200" r="150"/>
+    <circle class="ring" style="--c:var(--cmd)" cx="200" cy="200" r="106"/><circle class="ring" style="--c:var(--exc)" cx="200" cy="200" r="62"/>
+  </svg>
+  <div class="big">04</div>
+  <h2>Built to last</h2>
+  <p class="lede">Maintainability is what's left after the third team, the fiftieth feature and the first incident.</p>
+  <div class="chips"><span class="chip plain">Testability</span><span class="chip plain">Consistency</span><span class="chip plain">Cost of change</span><span class="chip plain">Production readiness</span></div>
+</section>
+
+<!-- ===================== 18. TESTABILITY ===================== -->
+<section class="slide" id="testing" data-section="04 · Built to last" style="--c:var(--log)">
+  <header>
+    <p class="kicker">04 · Built to last</p>
+    <h2>Testable in isolation</h2>
+    <p class="lede">Every unit has a small, explicit set of dependencies. Cross-cutting behaviour is tested once, in the framework.</p>
+  </header>
+  <div class="body col" style="gap:18px">
+    <div class="grid g4">
+      <div class="card accent" style="--c:var(--core)"><h3>Controller</h3><p>Mock <span class="mono">IRestMediator</span>. Assert the message sent.</p><p class="dim" style="margin-top:8px">1 mock</p></div>
+      <div class="card accent" style="--c:var(--cmd)"><h3>Handler</h3><p>Only its data access. No logger, cache, auth or retry setup.</p><p class="dim" style="margin-top:8px">1–2 dependencies</p></div>
+      <div class="card accent" style="--c:var(--val)"><h3>Validator</h3><p>Message in, <span class="mono">IValidationResult</span> out. Close to a pure function.</p><p class="dim" style="margin-top:8px">0–1 dependencies</p></div>
+      <div class="card accent" style="--c:var(--log)"><h3>Decorator</h3><p>Tested once: attribute absent → pass-through; present → behaviour applied.</p><p class="dim" style="margin-top:8px">reused by every handler</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:660px 1fr;gap:24px;flex:1;min-height:0">
+      <script type="text/x-cs" data-class="sm">
+[TestMethod]
+public async Task HandleAsync_creates_the_category()
+{
+    var db = TestDbContextFactory.Create();          // in-memory
+    var sut = new CreateCategoryCommandHandler(db);
+
+    var response = await sut.HandleAsync(
+        new CreateCategoryCommand(new Category { Name = "Food" }));
+
+    response.Successful.Should().BeTrue();
+    db.Categories.Should().ContainSingle(c => c.Name == "Food");
+}
+      </script>
+      <div class="col center-v" style="gap:14px">
+        <div class="callout" style="--c:var(--log)"><strong>Focused tests.</strong> A handler test reads like the use case, because the handler <em>is</em> the use case.</div>
+        <div class="callout" style="--c:var(--val)"><strong>Fewer brittle mocks.</strong> Changing how logging works never breaks a handler test.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 19. CONSISTENCY ===================== -->
+<section class="slide" id="consistency" data-section="04 · Built to last" style="--c:var(--log)">
+  <header>
+    <p class="kicker">04 · Built to last</p>
+    <h2>Every feature looks the same</h2>
+    <p class="lede">A predictable naming and folder convention turns "where is that logic?" into a file search.</p>
+  </header>
+  <div class="body col center-v" style="gap:28px">
+    <div class="card" style="padding:22px 26px">
+      <div class="flow" style="margin-bottom:14px">
+        <span class="st" style="--c:var(--text);flex:0 0 220px">CreateCategory</span><span class="ar">+</span>
+        <span class="st" style="--c:var(--cmd)">…Command</span><span class="ar">→</span>
+        <span class="st" style="--c:var(--cmd)">…CommandHandler</span><span class="ar">+</span>
+        <span class="st" style="--c:var(--val)">…CommandValidator</span>
+      </div>
+      <div class="flow">
+        <span class="st" style="--c:var(--text);flex:0 0 220px">GetCategoryById</span><span class="ar">+</span>
+        <span class="st" style="--c:var(--qry)">…Query</span><span class="ar">→</span>
+        <span class="st" style="--c:var(--qry)">…QueryHandler</span><span class="ar">+</span>
+        <span class="st" style="--c:var(--val)">…QueryValidator</span>
+      </div>
+    </div>
+    <div class="grid g4">
+      <div class="card accent" style="--c:var(--cmd)"><h3>Find by name</h3><p>Know the use case, know the files. No hunting through service classes.</p></div>
+      <div class="card accent" style="--c:var(--qry)"><h3>Learn once</h3><p>New engineers learn one pattern and can work on any feature, in any team.</p></div>
+      <div class="card accent" style="--c:var(--val)"><h3>Sharper reviews</h3><p>Reviews focus on business behaviour, not on whether the try/catch is right this time.</p></div>
+      <div class="card accent" style="--c:var(--dp)"><h3>AI-ready</h3><p>Steering files in <span class="mono">AI/</span> teach Copilot, Kiro, Claude Code and Augment the conventions.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 20. COST OF CHANGE ===================== -->
+<section class="slide" id="change" data-section="04 · Built to last" style="--c:var(--log)">
+  <header>
+    <p class="kicker">04 · Built to last</p>
+    <h2>The cost of change</h2>
+    <p class="lede">Typical requests from product, security and operations, and what they cost.</p>
+  </header>
+  <div class="body">
+    <table class="tbl" aria-label="Cost of change comparison">
+      <thead><tr><th style="width:34%">Change request</th><th style="width:31%">Without a pipeline</th><th>With Minded</th></tr></thead>
+      <tbody>
+        <tr><td>Log every command with duration and TraceId</td><td class="no">Edit every endpoint</td><td class="yes">Register one decorator</td></tr>
+        <tr><td>Cache a hot query for 5 minutes</td><td class="no">Cache plumbing in the service</td><td class="yes"><code>[MemoryCache(ExpirationInSeconds = 300)]</code></td></tr>
+        <tr><td>Restrict an operation to a permission</td><td class="no">Checks in controller or service</td><td class="yes"><code>[RequirePermissions(...)]</code></td></tr>
+        <tr><td>Keep e-mail addresses out of logs</td><td class="no">Scrub each log statement</td><td class="yes"><code>[SensitiveData]</code> on the property</td></tr>
+        <tr><td>Retry a flaky, idempotent update</td><td class="no">Hand-rolled loops and delays</td><td class="yes"><code>[RetryCommand(3, 100, 200, 400)]</code></td></tr>
+        <tr><td>Make a multi-step write atomic</td><td class="no">Manual transaction handling</td><td class="yes"><code>[TransactionalCommand]</code></td></tr>
+        <tr><td>Turn on verbose logging in production</td><td class="no">Change code, redeploy</td><td class="yes">Flip a feature flag via <code>EnabledProvider</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== 21. PRODUCTION READY ===================== -->
+<section class="slide" id="prod" data-section="04 · Built to last" style="--c:var(--log)">
+  <header>
+    <p class="kicker">04 · Built to last</p>
+    <h2>Production-ready details, included</h2>
+    <p class="lede">The safeguards most teams only add after their first production incident are already in place.</p>
+  </header>
+  <div class="body grid g4" style="align-content:center">
+    <div class="card accent" style="--c:var(--retry)"><h3>Cancellation</h3><p><span class="mono">CancellationToken</span> flows through every layer. Cancelled requests return 499 and log as Information.</p></div>
+    <div class="card accent" style="--c:var(--ctx)"><h3>Correlation</h3><p>Every message has a <span class="mono">TraceId</span>. Context propagates it to nested calls.</p></div>
+    <div class="card accent" style="--c:var(--exc)"><h3>Fail fast</h3><p>Decorator attributes are validated at startup, before the first request.</p></div>
+    <div class="card accent" style="--c:var(--log)"><h3>Runtime switches</h3><p>Options have <span class="mono">*Provider</span> counterparts for feature flags. No redeploy.</p></div>
+    <div class="card accent" style="--c:var(--dp)"><h3>Privacy</h3><p><span class="mono">[SensitiveData]</span> keeps PII out of logs and exception context.</p></div>
+    <div class="card accent" style="--c:var(--core)"><h3>Low overhead</h3><p>Handler types and compiled invocation delegates are cached. Validation and Retry aren't even added to handlers whose message lacks their attribute.</p></div>
+    <div class="card accent" style="--c:var(--qry)"><h3>Compatible</h3><p>Built for <span class="mono">net10.0</span>, with a <span class="mono">netstandard2.0</span> build for libraries. Signed assemblies, SourceLink, symbol packages.</p></div>
+    <div class="card accent" style="--c:var(--cmd)"><h3>Reference app</h3><p>ASP.NET Core API + React front end: RBAC, multi-tenancy, OData, live log streaming.</p></div>
+  </div>
+</section>
+
+<!-- ===================== 22. DIVIDER: CATALOGUE ===================== -->
+<section class="slide divider" id="catalogue" data-section="05 · Decorator catalogue" style="--c:var(--auth)">
+  <svg class="sv bgonion" viewBox="0 0 400 400" width="620" height="620" aria-hidden="true">
+    <circle class="ring" style="--c:var(--ctx)" cx="200" cy="200" r="194"/><circle class="ring" style="--c:var(--auth)" cx="200" cy="200" r="160"/>
+    <circle class="ring" style="--c:var(--retry)" cx="200" cy="200" r="126"/><circle class="ring" style="--c:var(--tx)" cx="200" cy="200" r="92"/>
+    <circle class="ring" style="--c:var(--val)" cx="200" cy="200" r="58"/>
+  </svg>
+  <div class="big">05</div>
+  <h2>Decorator catalogue</h2>
+  <p class="lede">Nine released building blocks. Each is a separate NuGet package you can adopt on its own.</p>
+  <div class="chips">
+    <span class="chip pkg" style="--c:var(--val)">Validation</span><span class="chip pkg" style="--c:var(--exc)">Exception</span>
+    <span class="chip pkg" style="--c:var(--log)">Logging</span><span class="chip pkg" style="--c:var(--dp)">Data Protection</span>
+    <span class="chip pkg" style="--c:var(--retry)">Retry</span><span class="chip pkg" style="--c:var(--cache)">Caching</span>
+    <span class="chip pkg" style="--c:var(--tx)">Transaction</span><span class="chip pkg" style="--c:var(--auth)">Authorization</span>
+    <span class="chip pkg" style="--c:var(--ctx)">Context</span>
+  </div>
+</section>
+
+<!-- ===================== 23. CATALOGUE OVERVIEW ===================== -->
+<section class="slide" id="overview" data-section="05 · Decorator catalogue" style="--c:var(--auth)">
+  <header>
+    <p class="kicker">05 · Decorator catalogue</p>
+    <h2>At a glance</h2>
+  </header>
+  <div class="body grid g3 cat" style="align-content:start;margin-top:14px;gap:14px">
+    <a class="card accent" style="--c:var(--val)" href="#d-validation"><h3>Validation <span><span class="badge c">C</span> <span class="badge q">Q</span></span></h3><span class="pk">Minded.Extensions.Validation</span><span class="attrs">[ValidateCommand] [ValidateQuery]</span><p>Reject bad input before the handler.</p></a>
+    <a class="card accent" style="--c:var(--exc)" href="#d-exception"><h3>Exception <span><span class="badge c">C</span> <span class="badge q">Q</span></span></h3><span class="pk">Minded.Extensions.Exception</span><span class="attrs">always on once registered</span><p>One place for unhandled errors.</p></a>
+    <a class="card accent" style="--c:var(--log)" href="#d-logging"><h3>Logging <span><span class="badge c">C</span> <span class="badge q">Q</span></span></h3><span class="pk">Minded.Extensions.Logging</span><span class="attrs">ILoggable (optional)</span><p>Structured, correlated execution logs.</p></a>
+    <a class="card accent" style="--c:var(--dp)" href="#d-dataprotection"><h3>Data Protection <span class="badge x">companion</span></h3><span class="pk">Minded.Extensions.DataProtection</span><span class="attrs">[SensitiveData]</span><p>Keeps PII out of logs and error dumps.</p></a>
+    <a class="card accent" style="--c:var(--retry)" href="#d-retry"><h3>Retry <span><span class="badge c">C</span> <span class="badge q">Q</span></span></h3><span class="pk">Minded.Extensions.Retry</span><span class="attrs">[RetryCommand] [RetryQuery]</span><p>Ride out transient failures.</p></a>
+    <a class="card accent" style="--c:var(--cache)" href="#d-caching"><h3>Caching <span class="badge q">Q</span></h3><span class="pk">Minded.Extensions.Caching.Memory</span><span class="attrs">[MemoryCache] + IGenerateCacheKey</span><p>Serve repeat reads from memory.</p></a>
+    <a class="card accent" style="--c:var(--tx)" href="#d-transaction"><h3>Transaction <span><span class="badge c">C</span> <span class="badge q">Q</span></span></h3><span class="pk">Minded.Extensions.Transaction</span><span class="attrs">[TransactionalCommand] [TransactionalQuery]</span><p>All-or-nothing database work.</p></a>
+    <a class="card accent" style="--c:var(--auth)" href="#d-authorization"><h3>Authorization <span><span class="badge c">C</span> <span class="badge q">Q</span></span></h3><span class="pk">Minded.Extensions.Authorization</span><span class="attrs">[RequireRoles] [RequirePermissions] [RequireClaim] [RequireResourceAccess]</span><p>Declarative RBAC and resource checks.</p></a>
+    <a class="card accent" style="--c:var(--ctx)" href="#d-context"><h3>Context <span><span class="badge c">C</span> <span class="badge q">Q</span></span></h3><span class="pk">Minded.Extensions.Context</span><span class="attrs">ITraceable (optional)</span><p>Ambient state shared across the pipeline.</p></a>
+  </div>
+</section>
+
+<!-- ===================== 24. TYPICAL PIPELINE ===================== -->
+<section class="slide" id="pipeline" data-section="05 · Decorator catalogue" style="--c:var(--auth)">
+  <header>
+    <p class="kicker">05 · Decorator catalogue</p>
+    <h2>Putting it together: a recommended pipeline</h2>
+    <p class="lede">Execution order, outermost first. Every position has a reason.</p>
+  </header>
+  <div class="body col center-v" style="gap:24px">
+    <div>
+      <p class="flow-label" style="color:var(--cmd)">Commands</p>
+      <div class="flow">
+        <span class="st" style="--c:var(--ctx)">Context</span><span class="ar">→</span><span class="st" style="--c:var(--exc)">Exception</span><span class="ar">→</span>
+        <span class="st" style="--c:var(--log)">Logging</span><span class="ar">→</span><span class="st" style="--c:var(--auth)">Authorization</span><span class="ar">→</span>
+        <span class="st" style="--c:var(--retry)">Retry</span><span class="ar">→</span><span class="st" style="--c:var(--tx)">Transaction</span><span class="ar">→</span>
+        <span class="st" style="--c:var(--val)">Validation</span><span class="ar">→</span><span class="st h">Handler</span>
+      </div>
+    </div>
+    <div>
+      <p class="flow-label" style="color:var(--qry)">Queries</p>
+      <div class="flow">
+        <span class="st" style="--c:var(--ctx)">Context</span><span class="ar">→</span><span class="st" style="--c:var(--exc)">Exception</span><span class="ar">→</span>
+        <span class="st" style="--c:var(--log)">Logging</span><span class="ar">→</span><span class="st" style="--c:var(--auth)">Authorization</span><span class="ar">→</span>
+        <span class="st" style="--c:var(--cache)">Caching</span><span class="ar">→</span><span class="st" style="--c:var(--val)">Validation</span><span class="ar">→</span><span class="st h">Handler</span>
+      </div>
+    </div>
+    <div class="grid g4" style="margin-top:6px">
+      <div class="card accent" style="--c:var(--ctx)"><h3>Context outermost</h3><p>Every layer, including nested calls, sees the same ambient context and TraceId.</p></div>
+      <div class="card accent" style="--c:var(--auth)"><h3>Auth before cache</h3><p>Permissions are checked even when the answer comes from the cache.</p></div>
+      <div class="card accent" style="--c:var(--retry)"><h3>Retry around transaction</h3><p>Each attempt gets a fresh transaction instead of reusing a failed one.</p></div>
+      <div class="card accent" style="--c:var(--val)"><h3>Validation innermost</h3><p>Database-backed rules read inside the same transaction as the write.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 25. VALIDATION ===================== -->
+<section class="slide deco" id="d-validation" data-section="05 · Decorator catalogue · Validation" style="--c:var(--val)">
+  <header>
+    <p class="kicker">Decorator 1 / 9</p>
+    <h2>Validation</h2>
+    <p class="lede">Reject bad input before it reaches the handler, with structured, field-level feedback.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Validation</span><span class="chip">[ValidateCommand]</span><span class="chip">[ValidateQuery]</span><span class="badge c">Commands</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 220" width="600" height="220" role="img" aria-labelledby="t25">
+        <title id="t25">The command goes to its validator. If valid it continues to the handler; if invalid the pipeline stops and returns Successful false with outcome entries, mapped to HTTP 400.</title>
+        <g style="--c:var(--cmd)"><rect x="0" y="80" width="124" height="60" rx="10" class="bxc"/><text x="62" y="106" class="tl mid">Command</text><text x="62" y="126" class="ts mid">[ValidateCommand]</text></g>
+        <line x1="126" y1="110" x2="160" y2="110" class="ln" marker-end="url(#ah)"/>
+        <g style="--c:var(--val)"><rect x="164" y="70" width="176" height="80" rx="10" class="bxc"/><text x="252" y="104" class="tl mid">Validator</text><text x="252" y="126" class="ts mid">ICommandValidator&lt;T&gt;</text></g>
+        <path d="M340 94 C372 94 372 45 398 45" class="ln ok" marker-end="url(#ah-ok)"/>
+        <path d="M340 126 C372 126 372 179 398 179" class="ln bad" marker-end="url(#ah-bad)"/>
+        <text x="340" y="62" class="tc end" style="--c:var(--val)">valid</text>
+        <text x="340" y="170" class="tc end" style="--c:var(--exc)">invalid</text>
+        <g style="--c:var(--val)"><rect x="404" y="14" width="196" height="62" rx="10" class="bxc"/><text x="502" y="40" class="tl mid">Continue</text><text x="502" y="60" class="ts mid">next layer → handler</text></g>
+        <g style="--c:var(--exc)"><rect x="404" y="140" width="196" height="78" rx="10" class="bxc"/><text x="502" y="164" class="tl mid">Stop here</text><text x="502" y="184" class="ts mid">Successful = false</text><text x="502" y="203" class="ts mid">OutcomeEntries → HTTP 400</text></g>
+      </svg>
+      <ul class="facts sm">
+        <li><b>Opt-in</b> per message. No attribute, no validation overhead.</li>
+        <li>Validators are plain DI classes, discovered automatically.</li>
+        <li><b>Reusable</b> entity validators (<span class="mono">IValidator&lt;TEntity&gt;</span>) shared across commands.</li>
+        <li>Errors carry property, message, severity and error code.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+[ValidateCommand]
+public class CreateCategoryCommand : ICommand<Category> { … }
+
+public class CreateCategoryCommandValidator
+    : ICommandValidator<CreateCategoryCommand>
+{
+    public async Task<IValidationResult> ValidateAsync(
+        CreateCategoryCommand command)
+    {
+        var result = new ValidationResult();
+        if (string.IsNullOrEmpty(command.Category?.Name))
+            result.OutcomeEntries.Add(new OutcomeEntry(
+                "Name", "{0} is mandatory"));
+        return result;
+    }
+}
+      </script>
+      <div class="callout"><strong>Placement.</strong> Innermost, so rules that read the database run inside the transaction.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 26. EXCEPTION ===================== -->
+<section class="slide deco" id="d-exception" data-section="05 · Decorator catalogue · Exception" style="--c:var(--exc)">
+  <header>
+    <p class="kicker">Decorator 2 / 9</p>
+    <h2>Exception</h2>
+    <p class="lede">One place for unhandled errors. No try/catch in handlers or controllers.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Exception</span><span class="chip">ExceptionOptions</span><span class="chip">SerializeProvider</span><span class="badge c">Commands</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 230" width="600" height="230" role="img" aria-labelledby="t26">
+        <title id="t26">An exception thrown by inner layers reaches the Exception decorator. Cancellations are logged as Information and become HTTP 499. Any other exception is logged as Error with the sanitized message and rethrown wrapped, becoming HTTP 500.</title>
+        <g style="--c:var(--core)"><rect x="0" y="80" width="150" height="70" rx="10" class="bxc"/><text x="75" y="108" class="tl mid">Inner layers</text><text x="75" y="128" class="ts mid">+ handler throws</text></g>
+        <line x1="152" y1="115" x2="188" y2="115" class="ln" marker-end="url(#ah)"/>
+        <g style="--c:var(--exc)"><rect x="192" y="70" width="172" height="90" rx="10" class="bxc"/><text x="278" y="110" class="tl mid">Exception</text><text x="278" y="130" class="ts mid">decorator</text></g>
+        <path d="M364 98 C384 98 384 48 400 48" class="ln" marker-end="url(#ah)"/>
+        <path d="M364 132 C384 132 384 183 400 183" class="ln bad" marker-end="url(#ah-bad)"/>
+        <g style="--c:var(--retry)"><rect x="404" y="8" width="196" height="80" rx="10" class="bxc"/><text x="502" y="34" class="tl mid">Cancelled</text><text x="502" y="54" class="ts mid">logged as Information</text><text x="502" y="73" class="ts mid">RestMediator → 499</text></g>
+        <g style="--c:var(--exc)"><rect x="404" y="140" width="196" height="86" rx="10" class="bxc"/><text x="502" y="164" class="tl mid">Any other exception</text><text x="502" y="184" class="ts mid">Error + sanitized message</text><text x="502" y="203" class="ts mid">rethrown wrapped → 500</text></g>
+      </svg>
+      <ul class="facts sm">
+        <li><b>Outermost</b> behavioural layer: catches failures from every decorator below it.</li>
+        <li>Logs the failing command or query with its data, after sanitization.</li>
+        <li>Non-serializable members (tokens, streams, delegates) and <span class="mono">[SensitiveData]</span> are stripped.</li>
+        <li>Wraps errors in <span class="mono">CommandHandlerException&lt;T&gt;</span> / <span class="mono">QueryHandlerException&lt;T,R&gt;</span>.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+builder.AddCommandValidationDecorator()
+    .AddCommandLoggingDecorator()
+    .AddCommandExceptionDecorator(o =>   // last = outermost
+        o.SerializeProvider = () => env.IsDevelopment())
+    .AddCommandHandlers();
+
+// Outside HTTP (e.g. a worker): one typed catch
+try
+{
+    await mediator.ProcessCommandAsync(command, ct);
+}
+catch (CommandHandlerException<ImportCommand> ex)
+{
+    // ex.InnerException: original error, already logged
+}
+      </script>
+      <div class="callout"><strong>Runtime control.</strong> Decide per environment, or per flag, whether message data is serialized into error logs.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 27. LOGGING ===================== -->
+<section class="slide deco" id="d-logging" data-section="05 · Decorator catalogue · Logging" style="--c:var(--log)">
+  <header>
+    <p class="kicker">Decorator 3 / 9</p>
+    <h2>Logging</h2>
+    <p class="lede">Every command and query, logged the same way: started, completed with duration, or failed.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Logging</span><span class="chip">ILoggable</span><span class="chip">LoggingOptions</span><span class="badge c">Commands</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <div class="term" role="img" aria-label="Sample log output with TraceId, started, completed with duration and failed lines">
+        <div class="bar"><i></i><i></i><i></i><span>application log</span></div>
+<pre><span class="tid">[Tracking:a1b2c3d4-e5f6-…]</span> <span class="nm">CreateUserCommand</span> - Started
+<span class="tid">[Tracking:a1b2c3d4-e5f6-…]</span> <span class="nm">CreateUserCommand</span> in 00:00:00.0234567 - <span class="ok">Completed: True</span>
+<span class="tid">[Tracking:b2c3d4e5-f6a7-…]</span> <span class="nm">GetUserByIdQuery</span> - Started
+<span class="tid">[Tracking:b2c3d4e5-f6a7-…]</span> <span class="nm">GetUserByIdQuery</span> in 00:00:00.0123456 - <span class="ok">Completed</span>
+<span class="tid">[Tracking:c3d4e5f6-a7b8-…]</span> <span class="nm">CreateUserCommand</span> in 00:00:00.0345678 - <span class="bad">Failed: User already exists</span></pre>
+      </div>
+      <ul class="facts sm">
+        <li><b>Correlated</b> by <span class="mono">TraceId</span>, with no logging code in handlers.</li>
+        <li><span class="mono">ILoggable</span> adds a structured template using property paths like <span class="mono">"Category.Name"</span>.</li>
+        <li>Optional outcome-entry logging, filtered by minimum severity.</li>
+        <li>Every option has a <b>Provider</b>: change verbosity at runtime via feature flags.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+public class CreateCategoryCommand
+    : ICommand<Category>, ILoggable
+{
+    public string LoggingTemplate => "Name: {Name}";
+    public string[] LoggingProperties
+        => new[] { "Category.Name" };
+}
+
+builder.AddCommandLoggingDecorator(o =>
+{
+    o.LogMessageTemplateData = true;
+    o.LogOutcomeEntries = true;
+    o.MinimumOutcomeSeverityLevel = Severity.Warning;
+    o.EnabledProvider = () => flags.IsOn("cmd-logs");
+});
+      </script>
+      <div class="callout"><strong>Also from appsettings.</strong> The parameterless registration reads <span class="mono">Minded:LoggingOptions</span>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 28. DATA PROTECTION ===================== -->
+<section class="slide deco" id="d-dataprotection" data-section="05 · Decorator catalogue · Data Protection" style="--c:var(--dp)">
+  <header>
+    <p class="kicker">Decorator 4 / 9 · companion to Logging &amp; Exception</p>
+    <h2>Data Protection</h2>
+    <p class="lede">Mark a property once. It stays out of every log and exception dump, everywhere.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.DataProtection</span><span class="chip">[SensitiveData]</span><span class="chip">ShowSensitiveDataProvider</span><span class="chip plain">GDPR / CCPA</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 214" width="600" height="214" role="img" aria-labelledby="t28">
+        <title id="t28">A User object with Id, Name, Email and Surname, where Email and Surname are marked sensitive, is sanitized before logging. The log entry shows only Id and Name.</title>
+        <g style="--c:var(--dp)"><rect x="0" y="0" width="270" height="210" rx="12" class="bxc"/></g>
+        <text x="18" y="30" class="tl">User</text><text x="252" y="30" class="ts end">in memory</text>
+        <text x="18" y="70" class="tm">Id = 42</text>
+        <text x="18" y="104" class="tm">Name = "Jane"</text>
+        <text x="18" y="138" class="tm">Email = "jane@example.com"</text>
+        <text x="18" y="172" class="tm">Surname = "Doe"</text>
+        <g style="--c:var(--dp)"><rect x="222" y="124" width="36" height="20" rx="5" class="bxs"/><text x="240" y="138" class="tdark mid" style="font-size:11px">PII</text>
+        <rect x="222" y="158" width="36" height="20" rx="5" class="bxs"/><text x="240" y="172" class="tdark mid" style="font-size:11px">PII</text></g>
+        <line x1="274" y1="105" x2="328" y2="105" class="ln" marker-end="url(#ah)"/>
+        <text x="301" y="94" class="ts mid">sanitize</text>
+        <g style="--c:var(--val)"><rect x="334" y="0" width="266" height="210" rx="12" class="bxc"/></g>
+        <text x="352" y="30" class="tl">Log entry</text>
+        <text x="352" y="70" class="tm">Id = 42</text>
+        <text x="352" y="104" class="tm">Name = "Jane"</text>
+        <line x1="352" y1="124" x2="582" y2="124" class="dash"/>
+        <text x="352" y="150" class="ts">Email and Surname omitted</text>
+        <text x="352" y="170" class="ts">(nested objects too)</text>
+      </svg>
+      <ul class="facts sm">
+        <li>Applied automatically by Logging and Exception once <span class="mono">AddDataProtection()</span> is configured.</li>
+        <li><b>Hidden by default</b>; reveal only in development or behind a flag.</li>
+        <li>Recursive with guards: max depth 3, collections truncated to 10 items.</li>
+        <li>Extensible with custom <span class="mono">IDataSanitizer</span> or <span class="mono">ILoggingSanitizer</span>.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    [SensitiveData]
+    public string Email { get; set; }
+
+    [SensitiveData]
+    public string Surname { get; set; }
+}
+
+builder.AddDataProtection(o =>
+    o.ShowSensitiveDataProvider = () => env.IsDevelopment());
+      </script>
+      <div class="callout"><strong>Privacy as a type-level decision.</strong> Reviewers look for one attribute, not for every log statement that might leak.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 29. RETRY ===================== -->
+<section class="slide deco" id="d-retry" data-section="05 · Decorator catalogue · Retry" style="--c:var(--retry)">
+  <header>
+    <p class="kicker">Decorator 5 / 9</p>
+    <h2>Retry</h2>
+    <p class="lede">Ride out transient failures with declarative backoff, instead of hand-rolled loops.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Retry</span><span class="chip">[RetryCommand]</span><span class="chip">[RetryQuery]</span><span class="chip warn">idempotent operations only</span><span class="badge c">Commands</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 200" width="600" height="200" role="img" aria-labelledby="t29">
+        <title id="t29">Timeline: attempt 1 fails, wait 100 milliseconds, retry 1 fails, wait 200 milliseconds, retry 2 fails, wait 400 milliseconds, retry 3 succeeds.</title>
+        <line x1="40" y1="90" x2="560" y2="90" class="ln" style="stroke:var(--line);stroke-width:3"/>
+        <g class="ts mid" style="font-size:13px;fill:var(--retry);font-weight:700">
+          <text x="77" y="62">100 ms</text><text x="188" y="62">200 ms</text><text x="411" y="62">400 ms</text>
+        </g>
+        <g style="stroke:var(--retry);stroke-width:2;fill:none" opacity=".7">
+          <path d="M60 72 H94"/><path d="M134 72 H243"/><path d="M283 72 H540"/>
+        </g>
+        <g style="--c:var(--exc)">
+          <circle cx="40" cy="90" r="20" class="bxc"/><text x="40" y="96" class="mid" style="fill:var(--exc);font-weight:800;font-size:17px">✕</text>
+          <circle cx="114" cy="90" r="20" class="bxc"/><text x="114" y="96" class="mid" style="fill:var(--exc);font-weight:800;font-size:17px">✕</text>
+          <circle cx="263" cy="90" r="20" class="bxc"/><text x="263" y="96" class="mid" style="fill:var(--exc);font-weight:800;font-size:17px">✕</text>
+        </g>
+        <g style="--c:var(--val)"><circle cx="560" cy="90" r="20" class="bxc"/><text x="560" y="96" class="mid" style="fill:var(--val);font-weight:800;font-size:17px">✓</text></g>
+        <g class="ts mid" style="font-size:13px">
+          <text x="40" y="132">Attempt 1</text><text x="114" y="132">Retry 1</text><text x="263" y="132">Retry 2</text><text x="560" y="132">Retry 3</text>
+        </g>
+        <text x="300" y="180" class="tm mid" style="fill:#ffcb6b">[RetryCommand(3, 100, 200, 400)]</text>
+      </svg>
+      <ul class="facts sm">
+        <li>Up to <b>5 delay values</b> for exponential backoff; the last delay is reused.</li>
+        <li>A bare attribute uses defaults from <span class="mono">RetryOptions</span>, appsettings or providers.</li>
+        <li><span class="mono">ApplyToAllQueries</span>: reads can retry without any attribute.</li>
+        <li>Every attempt is logged with exception details.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+// 3 retries with backoff: 100 ms, 200 ms, 400 ms
+[RetryCommand(3, 100, 200, 400)]
+public class UpdateCategoryCommand : ICommand { … }
+
+// Bare attribute: defaults from RetryOptions
+[RetryCommand]
+public class DeleteCategoryCommand : ICommand { … }
+
+builder.AddCommandRetryDecorator(o =>
+{
+    o.DefaultRetryCount = 3;
+    o.DefaultDelay1 = 100;
+    o.DefaultDelay2 = 200;
+    o.DefaultRetryCountProvider = () => cfg.Retries;
+});
+      </script>
+      <div class="callout"><strong>Placement.</strong> Wrap it around Transaction so each attempt runs in a fresh transaction.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 30. CACHING ===================== -->
+<section class="slide deco" id="d-caching" data-section="05 · Decorator catalogue · Caching" style="--c:var(--cache)">
+  <header>
+    <p class="kicker">Decorator 6 / 9</p>
+    <h2>Caching</h2>
+    <p class="lede">Serve repeat reads from memory, with the cache policy declared on the query itself.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Caching.Memory</span><span class="chip">[MemoryCache]</span><span class="chip">IGenerateCacheKey</span><span class="chip">IGlobalCacheKeyPrefixProvider</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 230" width="600" height="230" role="img" aria-labelledby="t30">
+        <title id="t30">The query's cache key is looked up. On a hit the cached value is returned and inner layers are skipped. On a miss the handler runs and the result is stored only if successful and not null.</title>
+        <g style="--c:var(--qry)"><rect x="0" y="85" width="130" height="64" rx="10" class="bxc"/><text x="65" y="112" class="tl mid">Query</text><text x="65" y="132" class="ts mid">GetCacheKey()</text></g>
+        <line x1="132" y1="117" x2="164" y2="117" class="ln" marker-end="url(#ah)"/>
+        <g style="--c:var(--cache)"><polygon points="168,117 230,69 292,117 230,165" class="bxc"/><text x="230" y="113" class="tl mid">in</text><text x="230" y="131" class="tl mid">cache?</text></g>
+        <path d="M268 100 C 330 60 356 46 398 46" class="ln ok" marker-end="url(#ah-ok)"/>
+        <path d="M268 134 C 330 174 356 188 398 188" class="ln" marker-end="url(#ah)"/>
+        <text x="330" y="58" class="tc" style="--c:var(--val)">hit</text>
+        <text x="330" y="190" class="tc" style="--c:var(--cache)">miss</text>
+        <g style="--c:var(--val)"><rect x="402" y="8" width="198" height="76" rx="10" class="bxc"/><text x="501" y="34" class="tl mid">Return cached</text><text x="501" y="54" class="ts mid">handler and inner</text><text x="501" y="71" class="ts mid">layers skipped</text></g>
+        <g style="--c:var(--cache)"><rect x="402" y="148" width="198" height="78" rx="10" class="bxc"/><text x="501" y="174" class="tl mid">Run the handler</text><text x="501" y="194" class="ts mid">store only if successful</text><text x="501" y="211" class="ts mid">and not null</text></g>
+      </svg>
+      <ul class="facts sm">
+        <li><span class="mono">[MemoryCache]</span> and <span class="mono">IGenerateCacheKey</span> go together; checked at startup in Debug.</li>
+        <li>Absolute, sliding or fixed-date expiration per query.</li>
+        <li><b>Failures are never cached</b>, so the next call tries again.</li>
+        <li>Cache faults degrade to a normal query unless <span class="mono">FailOnError = true</span>.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+[MemoryCache(ExpirationInSeconds = 300,
+             SlidingExpiration = 60)]
+public class GetCategoryByIdQuery
+    : IQuery<Category>, IGenerateCacheKey
+{
+    public int CategoryId { get; }
+    public string GetCacheKey() => $"Category-{CategoryId}";
+}
+
+// Multi-tenant: prefix every key with the tenant
+builder.AddQueryMemoryCacheDecorator<
+    TenantCacheKeyPrefixProvider>();
+      </script>
+      <div class="callout"><strong>Placement.</strong> Inside Authorization, so cached answers are still permission-checked.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 31. TRANSACTION ===================== -->
+<section class="slide deco" id="d-transaction" data-section="05 · Decorator catalogue · Transaction" style="--c:var(--tx)">
+  <header>
+    <p class="kicker">Decorator 7 / 9</p>
+    <h2>Transaction</h2>
+    <p class="lede">All-or-nothing database work, including nested commands, with one attribute.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Transaction</span><span class="chip">[TransactionalCommand]</span><span class="chip">[TransactionalQuery]</span><span class="chip">TransactionScope</span><span class="badge c">Commands</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 250" width="600" height="250" role="img" aria-labelledby="t31">
+        <title id="t31">A TransactionScope wraps the CreateTenantCommand handler, its SaveChanges calls and a nested command that joins the scope. Success commits; an exception or an unsuccessful response rolls back. RequiresNew or Suppress opt out per command.</title>
+        <rect x="1" y="8" width="372" height="238" rx="14" style="fill:color-mix(in srgb,var(--tx) 7%,transparent);stroke:var(--tx);stroke-width:1.6;stroke-dasharray:7 5"/>
+        <text x="18" y="32" class="tc" style="--c:var(--tx)">TransactionScope · Required</text>
+        <g style="--c:var(--core)"><rect x="18" y="44" width="338" height="44" rx="9" class="bxc"/><text x="34" y="71" class="tl">CreateTenantCommandHandler</text></g>
+        <rect x="18" y="98" width="338" height="40" rx="9" class="bx"/><text x="34" y="123" class="tm">SaveChangesAsync · tenant</text>
+        <rect x="18" y="146" width="338" height="40" rx="9" class="bx"/><text x="34" y="171" class="tm">SaveChangesAsync · admin user, roles</text>
+        <g style="--c:var(--cmd)"><rect x="18" y="194" width="338" height="40" rx="9" class="bxc"/><text x="34" y="219" class="tm">nested command → joins the scope</text></g>
+        <line x1="376" y1="44" x2="394" y2="44" class="ln ok" marker-end="url(#ah-ok)"/>
+        <line x1="376" y1="134" x2="394" y2="134" class="ln bad" marker-end="url(#ah-bad)"/>
+        <g style="--c:var(--val)"><rect x="398" y="8" width="202" height="72" rx="10" class="bxc"/><text x="499" y="38" class="tl mid">Success</text><text x="499" y="60" class="ts mid">→ Commit</text></g>
+        <g style="--c:var(--exc)"><rect x="398" y="92" width="202" height="86" rx="10" class="bxc"/><text x="499" y="118" class="tl mid">Exception, or</text><text x="499" y="138" class="ts mid">Successful = false</text><text x="499" y="158" class="ts mid">→ Rollback</text></g>
+        <g><rect x="398" y="190" width="202" height="56" rx="10" class="bx"/><text x="499" y="214" class="ts mid" style="fill:var(--text)">RequiresNew / Suppress</text><text x="499" y="233" class="ts mid">opt out per command</text></g>
+      </svg>
+      <ul class="facts sm">
+        <li>Nested commands and queries <b>join the ambient transaction</b> automatically.</li>
+        <li>Per-message <span class="mono">IsolationLevel</span> and <span class="mono">TimeoutSeconds</span>.</li>
+        <li>Rolls back on exceptions and, by default, on unsuccessful responses.</li>
+        <li><b>Database only</b>: HTTP calls, queues and e-mails need outbox or saga patterns.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+// Tenant + admin user + default roles:
+// several SaveChangesAsync calls, all or nothing
+[ValidateCommand]
+[TransactionalCommand]
+public class CreateTenantCommand
+    : ICommand<CreateTenantResult> { … }
+
+[TransactionalCommand(
+    IsolationLevel = IsolationLevel.Serializable,
+    TimeoutSeconds = 30)]
+public class ProcessPaymentCommand
+    : ICommand<Payment> { … }
+
+builder.AddCommandTransactionDecorator(o =>
+    o.RollbackOnUnsuccessfulResponse = true);
+      </script>
+      <div class="callout"><strong>Business rules can roll back too.</strong> Return <span class="mono">Successful = false</span> and the work is undone.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 32. AUTHORIZATION (RBAC) ===================== -->
+<section class="slide deco" id="d-authorization" data-section="05 · Decorator catalogue · Authorization" style="--c:var(--auth)">
+  <header>
+    <p class="kicker">Decorator 8 / 9 · part 1: roles, permissions, claims</p>
+    <h2>Authorization</h2>
+    <p class="lede">Declarative access control on the message, enforced for every caller: HTTP, workers and nested calls alike.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Authorization</span><span class="chip">IAuthorizationContextAccessor</span><span class="chip">AuthorizationOptions</span><span class="badge c">Commands</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:12px">
+      <svg class="sv" viewBox="0 0 600 236" width="600" height="236" role="img" aria-labelledby="t32">
+        <title id="t32">Decision flow: if the message is public, checks are skipped. Otherwise, a caller without a principal gets 401. A caller who fails any rule gets 403. Otherwise the handler runs.</title>
+        <path d="M65 82 V34 H542 V78" class="ln ok" marker-end="url(#ah-ok)"/>
+        <text x="300" y="26" class="tc mid" style="--c:var(--val)">public: skip all checks</text>
+        <g style="--c:var(--auth)">
+          <rect x="0" y="82" width="130" height="84" rx="10" class="bxc"/><text x="65" y="118" class="tl mid">Public?</text><text x="65" y="138" class="ts mid">opt-out attribute</text>
+          <rect x="158" y="82" width="130" height="84" rx="10" class="bxc"/><text x="223" y="118" class="tl mid">Signed in?</text><text x="223" y="138" class="ts mid">has a principal</text>
+          <rect x="316" y="82" width="140" height="84" rx="10" class="bxc"/><text x="386" y="110" class="tl mid">Rules pass?</text><text x="386" y="130" class="ts mid">roles · permissions</text><text x="386" y="147" class="ts mid">claims · resource</text>
+        </g>
+        <line x1="132" y1="124" x2="154" y2="124" class="ln" marker-end="url(#ah)"/>
+        <line x1="290" y1="124" x2="312" y2="124" class="ln ok" marker-end="url(#ah-ok)"/>
+        <line x1="458" y1="124" x2="480" y2="124" class="ln ok" marker-end="url(#ah-ok)"/>
+        <text x="143" y="114" class="ts mid">no</text><text x="301" y="114" class="ts mid">yes</text><text x="469" y="114" class="ts mid">yes</text>
+        <rect x="484" y="82" width="116" height="84" rx="10" style="fill:var(--core)"/><text x="542" y="129" class="mid" style="fill:#0b1020;font-weight:800;font-size:15px">Handler</text>
+        <line x1="223" y1="168" x2="223" y2="192" class="ln bad" marker-end="url(#ah-bad)"/>
+        <line x1="386" y1="168" x2="386" y2="192" class="ln bad" marker-end="url(#ah-bad)"/>
+        <text x="232" y="186" class="ts">no</text><text x="395" y="186" class="ts">no</text>
+        <g style="--c:var(--exc)">
+          <rect x="183" y="196" width="80" height="34" rx="8" class="bxc"/><text x="223" y="218" class="tl mid">401</text>
+          <rect x="346" y="196" width="80" height="34" rx="8" class="bxc"/><text x="386" y="218" class="tl mid">403</text>
+        </g>
+      </svg>
+      <div class="grid g2" style="gap:6px 18px;font-size:14.5px">
+        <span><span class="mono" style="color:#ffcb6b">[RequireAuthentication]</span> <span class="muted">any signed-in caller</span></span>
+        <span><span class="mono" style="color:#ffcb6b">[AllowUnauthenticated]</span> <span class="muted">explicit public</span></span>
+        <span><span class="mono" style="color:#ffcb6b">[RequireRoles]</span> <span class="muted">role names</span></span>
+        <span><span class="mono" style="color:#ffcb6b">[RequirePermissions]</span> <span class="muted">permission names</span></span>
+        <span><span class="mono" style="color:#ffcb6b">[RequireClaim]</span> <span class="muted">claim value or property match</span></span>
+        <span><span class="mono" style="color:#ffcb6b">[RequireResourceAccess]</span> <span class="muted">next slide</span></span>
+      </div>
+      <p class="muted" style="margin:0;font-size:14.5px">Match modes <span class="mono" style="color:var(--text)">All · Any · AtLeast · None</span>. Attributes combine with AND; <span class="mono" style="color:var(--text)">OrAnyRole</span> / <span class="mono" style="color:var(--text)">OrAnyPermission</span> / <span class="mono" style="color:var(--text)">OrAnyClaim</span> add escape hatches.</p>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+[RequireRoles("Manager", "TeamLead",
+    Match = AuthorizationMatch.Any)]
+[RequirePermissions("projects.write")]
+[RequireRoles("Suspended",
+    Match = AuthorizationMatch.None)]
+public class UpdateProjectCommand
+    : ICommand<Project> { … }
+
+// Secure by default: every command needs a caller
+builder.AddCommandAuthorizationDecorator(o =>
+    o.RequireAuthenticationForAllCommands = true);
+
+// Bridge your auth (JWT, cookies, ...) once
+services.AddAuthorizationContextAccessor<
+    HttpAuthorizationContextAccessor>();
+      </script>
+      <div class="callout"><strong>Checked at startup.</strong> Rules are compiled once and cached; contradictory attributes fail on boot.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 33. AUTHORIZATION (RESOURCE) ===================== -->
+<section class="slide deco" id="d-authorization-2" data-section="05 · Decorator catalogue · Authorization" style="--c:var(--auth)">
+  <header>
+    <p class="kicker">Decorator 8 / 9 · part 2: resource-based access</p>
+    <h2>Authorization: can this caller touch <em>this</em> resource?</h2>
+    <p class="lede">The policy is itself a query, dispatched through the mediator. Testable, reusable and tenant-aware.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Authorization</span><span class="chip">[RequireResourceAccess]</span><span class="chip">IQuery&lt;bool&gt;</span><span class="chip plain">requires Context</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 236" width="600" height="236" role="img" aria-labelledby="t33">
+        <title id="t33">The decorator reads CategoryId 7 from the query and the tenant_id claim from the caller, then dispatches ExistsCategoryInCurrentTenantQuery with those values through the mediator, inside a bypass scope. True continues; false returns 403.</title>
+        <g style="--c:var(--qry)"><rect x="0" y="10" width="200" height="64" rx="10" class="bxc"/><text x="100" y="37" class="tl mid">GetCategoryByIdQuery</text><text x="100" y="58" class="tm mid">CategoryId = 7</text></g>
+        <g style="--c:var(--auth)"><rect x="0" y="152" width="200" height="64" rx="10" class="bxc"/><text x="100" y="179" class="tl mid">Caller claims</text><text x="100" y="200" class="tm mid">tenant_id = t-42</text></g>
+        <path d="M200 42 C220 42 216 100 232 100" class="ln" marker-end="url(#ah)"/>
+        <path d="M200 184 C220 184 216 128 232 128" class="ln" marker-end="url(#ah)"/>
+        <g style="--c:var(--auth)"><rect x="236" y="72" width="150" height="84" rx="10" class="bxc"/><text x="311" y="108" class="tl mid">Authorization</text><text x="311" y="128" class="ts mid">decorator</text></g>
+        <text x="311" y="186" class="ts mid">runs inside a bypass scope:</text>
+        <text x="311" y="204" class="ts mid">no recursive auth check</text>
+        <path d="M386 100 C402 100 400 56 416 56" class="ln" marker-end="url(#ah)"/>
+        <g style="--c:var(--core)"><rect x="420" y="10" width="180" height="92" rx="10" class="bxc"/><text x="510" y="36" class="tl mid">ExistsCategoryIn</text><text x="510" y="55" class="tl mid">CurrentTenantQuery</text><text x="510" y="78" class="tm mid">(7, "t-42")</text><text x="510" y="96" class="ts mid" style="font-size:11px">via IMediator</text></g>
+        <line x1="463" y1="104" x2="463" y2="136" class="ln ok" marker-end="url(#ah-ok)"/>
+        <line x1="557" y1="104" x2="557" y2="136" class="ln bad" marker-end="url(#ah-bad)"/>
+        <g style="--c:var(--val)"><rect x="420" y="140" width="86" height="60" rx="10" class="bxc"/><text x="463" y="165" class="tl mid">true</text><text x="463" y="185" class="ts mid">continue</text></g>
+        <g style="--c:var(--exc)"><rect x="514" y="140" width="86" height="60" rx="10" class="bxc"/><text x="557" y="165" class="tl mid">false</text><text x="557" y="185" class="ts mid">403</text></g>
+      </svg>
+      <ul class="facts sm">
+        <li>Resource id comes from a message property; caller id from a claim.</li>
+        <li>The authorization query is a normal query: unit test it, reuse it.</li>
+        <li>Startup checks that the property exists and the query has a <span class="mono">(object resourceId, string claimValue)</span> constructor.</li>
+        <li>Short-circuit with <span class="mono">OrAnyRole</span>, e.g. for administrators.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+[RequireClaim("is_global_admin", "false")]
+[RequireResourceAccess(nameof(CategoryId), "tenant_id",
+    typeof(ExistsCategoryInCurrentTenantQuery))]
+public class GetCategoryByIdQuery : IQuery<Category> { … }
+
+// The policy is just another query
+public class ExistsCategoryInCurrentTenantQuery
+    : IQuery<bool>
+{
+    public ExistsCategoryInCurrentTenantQuery(
+        object resourceId, string claimValue)
+        => CategoryId = (int)resourceId;
+
+    public int CategoryId { get; }
+}
+      </script>
+      <div class="callout"><strong>Multi-tenancy, declared.</strong> Tenant isolation lives on the query instead of in every handler.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 34. CONTEXT ===================== -->
+<section class="slide deco" id="d-context" data-section="05 · Decorator catalogue · Context" style="--c:var(--ctx)">
+  <header>
+    <p class="kicker">Decorator 9 / 9</p>
+    <h2>Context</h2>
+    <p class="lede">One ambient context per root call, shared by every decorator and handler, including nested calls.</p>
+    <div class="chips"><span class="chip pkg">Minded.Extensions.Context</span><span class="chip">IMindedContextAccessor</span><span class="chip">ITraceable</span><span class="chip plain">AsyncLocal</span><span class="badge c">Commands</span><span class="badge q">Queries</span></div>
+  </header>
+  <div class="body">
+    <div class="col" style="gap:14px">
+      <svg class="sv" viewBox="0 0 600 236" width="600" height="236" role="img" aria-labelledby="t34">
+        <title id="t34">A single IMindedContext with one TraceId wraps the root CreateOrderCommand at depth 1, and its nested calls: GetCustomerByIdQuery at depth 2, ReserveStockCommand at depth 2, and GetStockLevelQuery at depth 3.</title>
+        <rect x="1" y="1" width="598" height="234" rx="16" style="fill:color-mix(in srgb,var(--ctx) 7%,transparent);stroke:var(--ctx);stroke-width:1.8"/>
+        <text x="18" y="26" class="tc" style="--c:var(--ctx)">IMindedContext · TraceId 7f3a… · Items · typed slots</text>
+        <rect x="16" y="38" width="568" height="186" rx="12" class="bx"/>
+        <text x="32" y="62" class="tl">CreateOrderCommand</text><text x="568" y="62" class="ts end">Depth 1 · IsRoot</text>
+        <g style="--c:var(--qry)"><rect x="32" y="76" width="250" height="134" rx="10" class="bxc"/>
+          <text x="46" y="100" class="tl">GetCustomerByIdQuery</text><text x="46" y="118" class="ts">Depth 2</text>
+          <text x="46" y="156" class="tm">TraceId 7f3a… (shared)</text><text x="46" y="180" class="tm">Get&lt;Customer&gt;()</text></g>
+        <g style="--c:var(--cmd)"><rect x="298" y="76" width="270" height="134" rx="10" class="bxc"/>
+          <text x="312" y="100" class="tl">ReserveStockCommand</text><text x="312" y="118" class="ts">Depth 2</text></g>
+        <g style="--c:var(--qry)"><rect x="312" y="134" width="242" height="62" rx="9" class="bxc"/>
+          <text x="326" y="160" class="tl" style="font-size:14px">GetStockLevelQuery</text><text x="326" y="180" class="ts">Depth 3 · same context</text></g>
+      </svg>
+      <ul class="facts sm">
+        <li><b>TraceId</b> seeded from the root <span class="mono">ITraceable</span> message and propagated to nested ones.</li>
+        <li><b>Share work</b>: a validator loads an entity once; the handler reuses it.</li>
+        <li><span class="mono">BeginScope&lt;T&gt;</span>: flow-scoped flags, invisible to parallel branches.</li>
+        <li><span class="mono">Current</span> is never null; outside a call it's a no-op context.</li>
+      </ul>
+    </div>
+    <div class="col" style="gap:12px">
+      <script type="text/x-cs" data-class="sm">
+// Validator loads the entity once...
+var category = await _db.Categories.FindAsync(id);
+_context.Current.Set(category);
+
+// ...the handler reuses it: no second query
+var category = _context.Current.Get<Category>();
+
+// Flow-scoped flag, invisible to parallel branches
+using (_context.Current.BeginScope(new SkipAudit()))
+{
+    await _mediator.ProcessCommandAsync(cmd, ct);
+}
+
+builder.AddContextDecorator();   // last = outermost
+      </script>
+      <div class="callout"><strong>Foundation for other decorators.</strong> Resource-based authorization uses it to prevent recursion.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 35. DIVIDER: ADOPT ===================== -->
+<section class="slide divider" id="adopt" data-section="06 · Extend & adopt" style="--c:var(--ctx)">
+  <svg class="sv bgonion" viewBox="0 0 400 400" width="620" height="620" aria-hidden="true">
+    <circle class="ring" style="--c:var(--ctx)" cx="200" cy="200" r="194"/><circle class="ring" style="--c:var(--val)" cx="200" cy="200" r="150"/>
+    <circle class="ring" style="--c:var(--qry)" cx="200" cy="200" r="106"/><circle class="ring" style="--c:var(--core)" cx="200" cy="200" r="62"/>
+  </svg>
+  <div class="big">06</div>
+  <h2>Extend &amp; adopt</h2>
+  <p class="lede">Your concerns aren't on the list? Add a layer. Ready to try it? Start small.</p>
+  <div class="chips"><span class="chip plain">Custom decorators</span><span class="chip plain">Getting started</span><span class="chip plain">Incremental adoption</span></div>
+</section>
+
+<!-- ===================== 36. CUSTOM DECORATOR ===================== -->
+<section class="slide" id="custom" data-section="06 · Extend & adopt" style="--c:var(--ctx)">
+  <header>
+    <p class="kicker">06 · Extend &amp; adopt</p>
+    <h2>Your own decorator, in about 30 lines</h2>
+    <p class="lede">Same mechanics as the built-in ones: an attribute, a decorator, a registration method.</p>
+  </header>
+  <div class="body">
+    <div class="col" style="flex:0 0 640px">
+      <script type="text/x-cs" data-class="xs">
+public class AuditCommandHandlerDecorator<TCommand>
+    : CommandHandlerDecoratorBase<TCommand>, ICommandHandler<TCommand>
+    where TCommand : ICommand
+{
+    private readonly IAuditTrail _audit;
+
+    public AuditCommandHandlerDecorator(
+        ICommandHandler<TCommand> inner, IAuditTrail audit)
+        : base(inner) => _audit = audit;    // extra deps come from DI
+
+    public async Task<ICommandResponse> HandleAsync(
+        TCommand command, CancellationToken ct = default)
+    {
+        var response = await InnerCommandHandler.HandleAsync(command, ct);
+
+        await _audit.RecordAsync(
+            typeof(TCommand).Name, command.TraceId, response.Successful, ct);
+
+        return response;
+    }
+}
+      </script>
+    </div>
+    <div class="col grow" style="gap:14px">
+      <script type="text/x-cs" data-class="xs">
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public sealed class AuditAttribute : Attribute { }
+
+public static MindedBuilder AddCommandAuditDecorator(
+    this MindedBuilder builder)
+{
+    // Wired only for commands marked [Audit]
+    builder.QueueCommandDecoratorRegistrationAction((b, i) =>
+        b.DecorateHandlerDescriptors(i,
+            typeof(AuditCommandHandlerDecorator<>),
+            typeof(AuditAttribute)));
+    return builder;
+}
+      </script>
+      <ul class="facts sm">
+        <li>Provide both variants: with and without a result type.</li>
+        <li>Test both paths: attribute absent → pass-through, present → applied.</li>
+        <li>Document attribute, options and recommended position.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 37. GETTING STARTED ===================== -->
+<section class="slide" id="start" data-section="06 · Extend & adopt" style="--c:var(--ctx)">
+  <header>
+    <p class="kicker">06 · Extend &amp; adopt</p>
+    <h2>Getting started</h2>
+    <p class="lede">Adopt incrementally: one controller, one feature at a time. Existing code keeps working alongside.</p>
+  </header>
+  <div class="body">
+    <div class="col steps" style="flex:0 0 470px">
+      <div><span><h3>Install the core</h3><p>Mediator, WebApi, Validation and Exception cover most first steps.</p></span></div>
+      <div><span><h3>Register once</h3><p><span class="mono">AddMinded(...)</span> scans your application assemblies for handlers and validators.</p></span></div>
+      <div><span><h3>Move one use case</h3><p>Command + handler (+ validator). Point the controller at <span class="mono">IRestMediator</span>.</p></span></div>
+      <div><span><h3>Add layers as needs appear</h3><p>Caching, retry, transactions, authorization: an attribute away.</p></span></div>
+      <div><span><h3>Explore the reference app</h3><p><span class="mono">Example/</span>: full API and React front end using every decorator.</p></span></div>
+    </div>
+    <div class="col grow" style="gap:14px">
+<pre class="code sm"><span class="c"># core + the first decorators</span>
+dotnet add package Minded.Framework.Mediator
+dotnet add package Minded.Extensions.WebApi
+dotnet add package Minded.Extensions.Validation
+dotnet add package Minded.Extensions.Exception</pre>
+      <script type="text/x-cs" data-class="sm">
+services.AddMinded(Configuration,
+    asm => asm.Name.StartsWith("MyApp.Application."), b =>
+{
+    b.AddMediator();
+    b.AddRestMediator();
+
+    b.AddCommandValidationDecorator()   // innermost
+     .AddCommandExceptionDecorator();   // outermost
+    b.AddQueryExceptionDecorator();
+
+    b.AddCommandHandlers();
+    b.AddQueryHandlers();
+});
+      </script>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 38. CLOSING ===================== -->
+<section class="slide closing" id="closing" data-section="">
+  <div class="body col center-v" style="margin-top:0;gap:30px">
+    <div>
+      <p class="kicker">Minded</p>
+      <h2>Write the use case.<br><span style="color:var(--core)">Minded handles the rest.</span></h2>
+    </div>
+    <div class="grid g4">
+      <div class="card accent" style="--c:var(--cmd)"><h3>Thin handlers</h3><p>Business logic only. Easy to read, easy to test.</p></div>
+      <div class="card accent" style="--c:var(--log)"><h3>Declarative policy</h3><p>Behaviour visible on the message, checked at startup.</p></div>
+      <div class="card accent" style="--c:var(--val)"><h3>One pipeline</h3><p>Every concern written once, applied consistently.</p></div>
+      <div class="card accent" style="--c:var(--auth)"><h3>Cheap to change</h3><p>New requirements become a decorator or an attribute.</p></div>
+    </div>
+    <div class="chips" style="margin-top:0">
+      <a class="chip" href="https://github.com/norcino/Minded">github.com/norcino/Minded</a>
+      <a class="chip" href="https://www.nuget.org/packages?q=Minded">nuget.org/packages?q=Minded</a>
+      <span class="chip plain">Questions?</span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<nav class="nav" aria-label="Slide navigation">
+  <button type="button" id="prev" aria-label="Previous slide">‹</button>
+  <span class="count" id="count" aria-live="polite">1 / 1</span>
+  <button type="button" id="next" aria-label="Next slide">›</button>
+</nav>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---- Tiny C# highlighter for <script type="text/x-cs"> blocks ---- */
+  var KW = new Set(("public private protected internal readonly class interface return await async new var if else " +
+    "using namespace get set null true false this static string int bool void object typeof nameof override where " +
+    "base sealed default params try catch").split(" "));
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function dedent(src) {
+    var lines = src.replace(/\t/g, "    ").split("\n");
+    while (lines.length && !lines[0].trim()) lines.shift();
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    var min = Infinity;
+    lines.forEach(function (l) { if (l.trim()) min = Math.min(min, l.match(/^ */)[0].length); });
+    return lines.map(function (l) { return l.slice(min === Infinity ? 0 : min); }).join("\n");
+  }
+  function highlight(src) {
+    var re = /(\$?"(?:[^"\\\n]|\\.)*")|(\/\/[^\n]*)|(^[ \t]*\[)([A-Z]\w*)|\b([A-Za-z_]\w*)\b|\b(\d+)\b/gm;
+    var out = "", last = 0, m;
+    while ((m = re.exec(src)) !== null) {
+      out += esc(src.slice(last, m.index));
+      if (m[1]) out += '<span class="s">' + esc(m[1]) + "</span>";
+      else if (m[2]) out += '<span class="c">' + esc(m[2]) + "</span>";
+      else if (m[4]) out += esc(m[3]) + '<span class="a">' + m[4] + "</span>";
+      else if (m[5]) out += KW.has(m[5]) ? '<span class="k">' + m[5] + "</span>"
+                          : /^[A-Z]/.test(m[5]) ? '<span class="t">' + m[5] + "</span>" : m[5];
+      else if (m[6]) out += '<span class="n">' + m[6] + "</span>";
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  document.querySelectorAll('script[type="text/x-cs"]').forEach(function (sc) {
+    var pre = document.createElement("pre");
+    pre.className = "code " + (sc.dataset.class || "");
+    var code = document.createElement("code");
+    code.innerHTML = highlight(dedent(sc.textContent));
+    pre.appendChild(code);
+    sc.replaceWith(pre);
+  });
+
+  /* ---- Deck ---- */
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var N = slides.length, cur = 0;
+  var progress = document.querySelector(".progress");
+  var counter = document.getElementById("count");
+
+  slides.forEach(function (s, i) {
+    var f = document.createElement("footer");
+    f.className = "sf";
+    f.innerHTML = '<span class="brand">Minded</span><span>' + (s.dataset.section || "") + "</span><span>" + (i + 1) + " / " + N + "</span>";
+    s.appendChild(f);
+    s.setAttribute("role", "group");
+    s.setAttribute("aria-roledescription", "slide");
+    s.setAttribute("aria-label", (i + 1) + " of " + N);
+  });
+
+  function fit() {
+    var sc = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    document.documentElement.style.setProperty("--s", sc.toFixed(4));
+  }
+
+  function indexFromHash() {
+    var h = decodeURIComponent(location.hash.slice(1));
+    if (!h) return 0;
+    if (/^\d+$/.test(h)) return Math.min(N, Math.max(1, parseInt(h, 10))) - 1;
+    var el = document.getElementById(h);
+    var idx = el ? slides.indexOf(el.closest(".slide")) : -1;
+    return idx < 0 ? cur : idx;
+  }
+
+  function show(i, updateHash) {
+    i = Math.max(0, Math.min(N - 1, i));
+    slides.forEach(function (s, k) {
+      var on = k === i;
+      s.classList.toggle("active", on);
+      if (on) { s.removeAttribute("aria-hidden"); s.inert = false; }
+      else { s.setAttribute("aria-hidden", "true"); s.inert = true; }
+    });
+    cur = i;
+    progress.style.width = ((i + 1) / N * 100) + "%";
+    counter.textContent = (i + 1) + " / " + N;
+    if (updateHash !== false) history.replaceState(null, "", "#" + (i + 1));
+  }
+
+  document.getElementById("prev").addEventListener("click", function () { show(cur - 1); });
+  document.getElementById("next").addEventListener("click", function () { show(cur + 1); });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    switch (e.key) {
+      case "ArrowRight": case "PageDown": case " ": show(cur + 1); e.preventDefault(); break;
+      case "ArrowLeft": case "PageUp": show(cur - 1); e.preventDefault(); break;
+      case "Home": show(0); e.preventDefault(); break;
+      case "End": show(N - 1); e.preventDefault(); break;
+      case "f": case "F":
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+        break;
+    }
+  });
+
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var id = a.getAttribute("href").slice(1);
+    var el = document.getElementById(id);
+    if (el && el.classList.contains("slide")) { e.preventDefault(); show(slides.indexOf(el)); }
+  });
+
+  var tx = null;
+  document.addEventListener("touchstart", function (e) { tx = e.changedTouches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) show(cur + (dx < 0 ? 1 : -1));
+    tx = null;
+  }, { passive: true });
+
+  window.addEventListener("resize", fit);
+  window.addEventListener("hashchange", function () { show(indexFromHash(), false); });
+  window.addEventListener("beforeprint", function () { slides.forEach(function (s) { s.inert = false; s.removeAttribute("aria-hidden"); }); });
+  window.addEventListener("afterprint", function () { show(cur, false); });
+
+  fit();
+  show(indexFromHash(), false);
+})();
+</script>
+</body>
+</html>

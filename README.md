@@ -120,7 +120,7 @@ Request → Validation → Exception Handling → Logging → Caching → Transa
 
 ### Requirements
 
-- **.NET Standard 2.0+** or **.NET Core 2.0+** or **.NET 6/8+**
+- **.NET 10** (packages target `net10.0`, plus `netstandard2.0` for library compatibility)
 - Compatible with ASP.NET Core applications
 - Works with Entity Framework Core for data access
 
